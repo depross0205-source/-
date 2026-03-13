@@ -94,13 +94,14 @@ canvas{max-width:100%;margin-top:8px;}
     <label>CORS Proxy</label>
     <select id="proxySelect">
       <option value="allorigins">allorigins.win（推薦）</option>
-      <option value="corsproxy">corsproxy.io</option>
+      <option value="corsproxy.io">corsproxy.io</option>
+      <option value="thingproxy">thingproxy（備用）</option>
     </select>
   </div>
   <div class="field">
     <label>回測起始年份（BAMLH0A0HYM2 最早 1997）</label>
     <select id="startYear">
-      <option value="1997">1997（最長）</option>
+      <option value="1997">1997（最長，Wilshire 5000 起始）</option>
       <option value="2000">2000</option>
       <option value="2005">2005</option>
       <option value="2010" selected>2010</option>
@@ -177,28 +178,56 @@ canvas{max-width:100%;margin-top:8px;}
 
 <script>
 // ── Proxy ─────────────────────────────────────────────────────────
-async function fetchFRED(seriesId, startDate, endDate, key) {
-  const proxy = document.getElementById('proxySelect').value;
-  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${key}&file_type=json&observation_start=${startDate}&observation_end=${endDate}&sort_order=asc&limit=10000`;
+const PROXY_LIST = [
+  {
+    name: 'allorigins',
+    build: (u) => 'https://api.allorigins.win/get?url=' + encodeURIComponent(u),
+    parse: async (r) => { const w = await r.json(); return JSON.parse(w.contents); }
+  },
+  {
+    name: 'corsproxy.io',
+    build: (u) => 'https://corsproxy.io/?' + encodeURIComponent(u),
+    parse: async (r) => r.json()
+  },
+  {
+    name: 'thingproxy',
+    build: (u) => 'https://thingproxy.freeboard.io/fetch/' + u,
+    parse: async (r) => r.json()
+  }
+];
 
-  let proxyUrl, r, raw;
-  if (proxy === 'allorigins') {
-    proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
-    r = await fetch(proxyUrl);
-    const wrapper = await r.json();
-    raw = JSON.parse(wrapper.contents);
-  } else {
-    proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
-    r = await fetch(proxyUrl);
-    raw = await r.json();
+async function fetchFRED(seriesId, startDate, endDate, key) {
+  const targetUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${key}&file_type=json&observation_start=${startDate}&observation_end=${endDate}&sort_order=asc&limit=10000`;
+
+  const preferred = document.getElementById('proxySelect').value;
+  const ordered = [...PROXY_LIST].sort((a,b) =>
+    a.name === preferred ? -1 : b.name === preferred ? 1 : 0
+  );
+
+  let lastErr = null;
+  for (const proxy of ordered) {
+    try {
+      setLoadingText(`[${seriesId}] 嘗試 ${proxy.name}...`);
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 12000);
+      const r = await fetch(proxy.build(targetUrl), { signal: controller.signal });
+      clearTimeout(timer);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const raw = await proxy.parse(r);
+      if (!raw || !raw.observations) throw new Error('無效回應');
+      if (raw.error_message) throw new Error(raw.error_message);
+      const map = {};
+      for (const obs of raw.observations) {
+        if (obs.value !== '.') map[obs.date] = parseFloat(obs.value);
+      }
+      console.log(`OK ${seriesId} via ${proxy.name}: ${Object.keys(map).length} rows`);
+      return map;
+    } catch(e) {
+      console.warn(`FAIL ${proxy.name} / ${seriesId}: ${e.message}`);
+      lastErr = e;
+    }
   }
-  if (raw.error_message) throw new Error(raw.error_message);
-  // Convert to { date: value } map
-  const map = {};
-  for (const obs of raw.observations) {
-    if (obs.value !== '.') map[obs.date] = parseFloat(obs.value);
-  }
-  return map;
+  throw new Error(`所有 Proxy 均失敗（${seriesId}）: ${lastErr?.message}`);
 }
 
 // ── Score functions ───────────────────────────────────────────────
@@ -432,12 +461,12 @@ async function runBacktest() {
   const startDate = `${startYear}-01-01`;
   const endDate = new Date().toISOString().slice(0,10);
 
-  showLoading(true, '抓取 SP500...', 10);
+  showLoading(true, '抓取 Wilshire 5000...', 10);
 
   try {
     // Fetch all series
-    setLoadingText('抓取 SP500...'); setProgress(10);
-    const spMap = await fetchFRED('SP500', startDate, endDate, key);
+    setLoadingText('抓取 Wilshire 5000...'); setProgress(10);
+    const spMap = await fetchFRED('WILL5000INDFC', startDate, endDate, key);
 
     setLoadingText('抓取 HY Spread...'); setProgress(30);
     const hyMap = await fetchFRED('BAMLH0A0HYM2', startDate, endDate, key);
@@ -531,7 +560,8 @@ async function runBacktest() {
 
   } catch(e) {
     showLoading(false);
-    setStatus('錯誤：' + e.message, 'err');
+    setStatus('錯誤：' + e.message + '（請確認 API Key 是否正確，或換一個 Proxy）', 'err');
+    console.error(e);
   }
 }
 
