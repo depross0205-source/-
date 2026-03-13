@@ -1,8 +1,11 @@
-<!DOCTYPE html><html lang="zh-TW">
+<!DOCTYPE html>
+
+<html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>矛與盾 即時分數</title>
+<title>矛與盾 回測工具</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root {
   --bg:#0a0c10; --panel:#111318; --border:#1e2330; --border2:#2a3045;
@@ -12,359 +15,539 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:'Courier New',monospace;min-height:100vh;padding:16px;}
 h1{font-size:15px;letter-spacing:3px;color:var(--accent);text-align:center;margin-bottom:4px;}
-.sub{font-size:9px;color:var(--muted);text-align:center;margin-bottom:20px;letter-spacing:1px;}.card{background:var(–panel);border:1px solid var(–border);border-radius:8px;padding:14px;margin-bottom:12px;}
-.card-title{font-size:9px;letter-spacing:2px;color:var(–muted);margin-bottom:10px;}
-/* Shield score big display */
-.shield-big{text-align:center;padding:20px 0;}
-.shield-num{font-size:72px;font-weight:900;line-height:1;transition:color .3s;}
-.shield-label{font-size:11px;letter-spacing:2px;margin-top:6px;}
-.mode-badge{display:inline-block;padding:4px 14px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:2px;margin-top:8px;}
-/* Input grid */
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
-.field{display:flex;flex-direction:column;gap:4px;}
-.field label{font-size:9px;color:var(–muted);letter-spacing:1px;}
-.field input{background:#0d0f14;border:1px solid var(–border2);color:var(–text);padding:8px 10px;border-radius:4px;font-family:inherit;font-size:13px;width:100%;}
-.field input:focus{outline:none;border-color:var(–accent);}
-.field .src{font-size:8px;color:var(–muted);margin-top:2px;}
-/* Progress bars */
-.bar-wrap{margin-top:6px;}
-.bar-label{display:flex;justify-content:space-between;font-size:9px;color:var(–muted);margin-bottom:3px;}
-.bar-bg{background:#1a1f2e;border-radius:2px;height:6px;overflow:hidden;}
-.bar-fill{height:100%;border-radius:2px;transition:width .4s,background .3s;}
-/* Fetch button */
-.btn{width:100%;padding:12px;background:var(–accent);color:#000;border:none;border-radius:6px;font-family:inherit;font-size:12px;font-weight:700;letter-spacing:2px;cursor:pointer;margin-bottom:10px;}
-.btn:active{opacity:.8;}
-.btn-sm{padding:7px 14px;font-size:10px;background:transparent;border:1px solid var(–border2);color:var(–muted);border-radius:4px;font-family:inherit;cursor:pointer;letter-spacing:1px;}
-.btn-sm:active{background:var(–border);}
-/* Component breakdown */
-.comp-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(–border);}
-.comp-row:last-child{border-bottom:none;}
-.comp-name{font-size:10px;color:var(–muted);}
-.comp-val{font-size:11px;font-weight:700;}
-.comp-score{font-size:10px;padding:2px 8px;border-radius:3px;background:#1a1f2e;}
-/* State machine legend */
-.state-row{padding:6px 0;border-bottom:1px solid var(–border);font-size:10px;display:flex;align-items:center;gap:8px;}
-.state-row:last-child{border-bottom:none;}
-.badge{padding:2px 8px;border-radius:3px;font-size:9px;font-weight:700;letter-spacing:1px;}
-.bg-normal{background:#0a1a0f;color:#10b981;}
-.bg-obs{background:#0a1020;color:#60a5fa;}
-.bg-retreat{background:#1a1a0a;color:#f59e0b;}
-.bg-strike{background:#1a0a0a;color:#ef4444;}
-.bg-recover{background:#0a1a0f;color:#10b981;}
-/* Status */
-#status{font-size:9px;color:var(–muted);text-align:center;min-height:16px;margin-top:4px;}
-.ok{color:var(–green)!important;} .err{color:var(–red)!important;}
-/* API key input */
+.sub{font-size:9px;color:var(--muted);text-align:center;margin-bottom:20px;letter-spacing:1px;}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px;}
+.card-title{font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:10px;}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:8px;}
+.field label{font-size:9px;color:var(--muted);letter-spacing:1px;}
+.field input, .field select{background:#0d0f14;border:1px solid var(--border2);color:var(--text);padding:8px 10px;border-radius:4px;font-family:inherit;font-size:12px;width:100%;}
 .apirow{display:flex;gap:6px;align-items:center;}
-.apirow input{flex:1;background:#0d0f14;border:1px solid var(–border2);color:var(–text);padding:7px 10px;border-radius:4px;font-family:inherit;font-size:11px;}
-.apirow input::placeholder{color:var(–muted);}
+.apirow input{flex:1;background:#0d0f14;border:1px solid var(--border2);color:var(--text);padding:7px 10px;border-radius:4px;font-family:inherit;font-size:11px;}
+.apirow input::placeholder{color:var(--muted);}
+.btn{padding:10px 20px;background:var(--accent);color:#000;border:none;border-radius:6px;font-family:inherit;font-size:11px;font-weight:700;letter-spacing:2px;cursor:pointer;}
+.btn:active{opacity:.8;}
+.btn-full{width:100%;}
+#status{font-size:9px;color:var(--muted);text-align:center;min-height:16px;margin-top:6px;}
+.ok{color:var(--green)!important;} .err{color:var(--red)!important;}
+.progress-bar{background:#1a1f2e;border-radius:4px;height:8px;margin-top:6px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--accent);border-radius:4px;transition:width .3s;width:0%;}
+
+/* Stats grid */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.stat-box{background:#0d0f14;border:1px solid var(–border2);border-radius:6px;padding:10px;text-align:center;}
+.stat-label{font-size:8px;color:var(–muted);letter-spacing:1px;margin-bottom:4px;}
+.stat-val{font-size:18px;font-weight:900;}
+.stat-sub{font-size:8px;color:var(–muted);margin-top:2px;}
+
+/* Compare table */
+.cmp-table{width:100%;border-collapse:collapse;font-size:10px;}
+.cmp-table th{color:var(–muted);font-size:8px;letter-spacing:1px;padding:5px 8px;text-align:left;border-bottom:1px solid var(–border);}
+.cmp-table td{padding:6px 8px;border-bottom:1px solid var(–border);}
+.cmp-table tr:last-child td{border-bottom:none;}
+.tag-old{color:var(–gold);}
+.tag-new{color:var(–green);}
+.tag-bh{color:var(–muted);}
+
+canvas{max-width:100%;margin-top:8px;}
+.chart-wrap{position:relative;height:220px;}
+
+/* Yearly table */
+.yr-table{width:100%;border-collapse:collapse;font-size:9px;}
+.yr-table th{color:var(–muted);font-size:8px;padding:4px 6px;border-bottom:1px solid var(–border);text-align:right;}
+.yr-table th:first-child{text-align:left;}
+.yr-table td{padding:4px 6px;border-bottom:1px solid var(–border2);text-align:right;}
+.yr-table td:first-child{text-align:left;color:var(–muted);}
+.pos{color:var(–green);} .neg{color:var(–red);}
+
+.loading-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(10,12,16,.85);z-index:100;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+.loading-overlay.show{display:flex;}
+.loading-text{font-size:11px;color:var(–accent);letter-spacing:2px;}
+.spinner{width:32px;height:32px;border:3px solid var(–border2);border-top-color:var(–accent);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
 </style>
+
 </head>
 <body>
-<h1>矛 與 盾　即時分數</h1>
-<div class="sub">V5.0 PRO ｜ SHIELD SCORE CALCULATOR</div><!-- FRED API --><div class="card">
-  <div class="card-title">[ FRED 即時數據 ]</div>
-  <div class="field" style="margin-bottom:8px;">
-    <label>FRED API KEY（免費申請：fred.stlouisfed.org）</label>
+
+<h1>矛 與 盾　回測工具</h1>
+<div class="sub">新舊 F5 邏輯 vs Buy & Hold｜FRED 數據驅動</div>
+
+<!-- Loading overlay -->
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">載入數據中...</div>
+  <div class="progress-bar" style="width:200px;"><div class="progress-fill" id="progressFill"></div></div>
+</div>
+
+<!-- API Key -->
+
+<div class="card">
+  <div class="card-title">[ FRED API 設定 ]</div>
+  <div class="field">
+    <label>FRED API KEY</label>
     <div class="apirow">
       <input type="text" id="apiKey" placeholder="貼上你的 FRED API Key..." autocomplete="off">
-      <button class="btn-sm" onclick="fetchFRED()">拉取數據</button>
     </div>
   </div>
-  <div id="status">— 輸入 API Key 後點擊拉取，或直接手動填入下方數值 —</div>
-</div><!-- Manual Inputs --><div class="card">
-  <div class="card-title">[ 手動輸入數值 ]</div>
-  <div class="grid2" style="margin-bottom:10px;">
-    <div class="field">
-      <label>CAPE（Shiller P/E）</label>
-      <input type="number" id="iCape" value="36.5" step="0.1" oninput="calc()">
-      <div class="src">source: multpl.com</div>
-    </div>
-    <div class="field">
-      <label>TIPS 10Y 實質殖利率 (%)</label>
-      <input type="number" id="iTips" value="2.1" step="0.01" oninput="calc()">
-      <div class="src">FRED: DFII10</div>
-    </div>
+  <div class="field">
+    <label>CORS Proxy</label>
+    <select id="proxySelect">
+      <option value="allorigins">allorigins.win（推薦）</option>
+      <option value="corsproxy">corsproxy.io</option>
+    </select>
   </div>
-  <div class="grid2" style="margin-bottom:10px;">
-    <div class="field">
-      <label>HY Spread 現值 (bp)</label>
-      <input type="number" id="iHy" value="320" step="1" oninput="calc()">
-      <div class="src">FRED: BAMLH0A0HYM2 ×100</div>
-    </div>
-    <div class="field">
-      <label>HY Spread 3個月前 (bp)</label>
-      <input type="number" id="iHyPrev" value="290" step="1" oninput="calc()">
-      <div class="src">約63個交易日前</div>
-    </div>
+  <div class="field">
+    <label>回測起始年份（BAMLH0A0HYM2 最早 1997）</label>
+    <select id="startYear">
+      <option value="1997">1997（最長）</option>
+      <option value="2000">2000</option>
+      <option value="2005">2005</option>
+      <option value="2010" selected>2010</option>
+      <option value="2015">2015</option>
+    </select>
   </div>
-  <div class="grid3">
-    <div class="field">
-      <label>VIX 昨日</label>
-      <input type="number" id="iVixPrev" value="18.5" step="0.1" oninput="calc()">
-      <div class="src">FRED: VIXCLS</div>
-    </div>
-    <div class="field">
-      <label>VIX 今日</label>
-      <input type="number" id="iVixNow" value="17.2" step="0.1" oninput="calc()">
-    </div>
-    <div class="field">
-      <label>VIX 觸發閥值</label>
-      <input type="number" id="iVixThr" value="35" step="1" oninput="calc()">
-    </div>
-  </div>
-</div><!-- Shield Score Display --><div class="card">
-  <div class="card-title">[ 盾牌分數 ]</div>
-  <div class="shield-big">
-    <div class="shield-num" id="shieldNum">--</div>
-    <div class="shield-label" id="shieldLabel" style="color:var(--muted)">計算中...</div>
-    <div id="modeBadge" class="mode-badge" style="display:none"></div>
-  </div>
-  <!-- breakdown bars -->
-  <div class="bar-wrap">
-    <div class="bar-label"><span>F1（ERP 估值）</span><span id="f1val">--</span></div>
-    <div class="bar-bg"><div class="bar-fill" id="f1bar" style="width:0%;background:var(--green)"></div></div>
-  </div>
-  <div class="bar-wrap" style="margin-top:8px;">
-    <div class="bar-label"><span>F5（信用利差）</span><span id="f5val">--</span></div>
-    <div class="bar-bg"><div class="bar-fill" id="f5bar" style="width:0%;background:var(--blue)"></div></div>
-  </div>
-</div><!-- Component Breakdown --><div class="card">
-  <div class="card-title">[ 指標分解 ]</div>
-  <div class="comp-row">
-    <span class="comp-name">ERP（股票風險溢酬）</span>
-    <span class="comp-val" id="cErp">--</span>
-  </div>
-  <div class="comp-row">
-    <span class="comp-name">收益率 (100/CAPE)</span>
-    <span class="comp-val" id="cEy">--</span>
-  </div>
-  <div class="comp-row">
-    <span class="comp-name">TIPS 實質殖利率</span>
-    <span class="comp-val" id="cTips">--</span>
-  </div>
-  <div class="comp-row">
-    <span class="comp-name">HY Delta（3M 變化）</span>
-    <span class="comp-val" id="cHyD">--</span>
-  </div>
-  <div class="comp-row">
-    <span class="comp-name">VIX 回落觸發</span>
-    <span class="comp-val" id="cVixTrig">--</span>
-  </div>
-  <div class="comp-row">
-    <span class="comp-name">F1 分數</span>
-    <span class="comp-score" id="csF1">--</span>
-  </div>
-  <div class="comp-row">
-    <span class="comp-name">F5 分數</span>
-    <span class="comp-score" id="csF5">--</span>
-  </div>
-</div><!-- Threshold Settings --><div class="card">
-  <div class="card-title">[ 閥值設定 ]</div>
-  <div class="grid2">
-    <div class="field">
-      <label>加碼門檻（≥）</label>
-      <input type="number" id="tS150" value="60" step="1" oninput="calc()">
-    </div>
-    <div class="field">
-      <label>標準門檻（≥）</label>
-      <input type="number" id="tS100" value="40" step="1" oninput="calc()">
-    </div>
-  </div>
-  <div class="field" style="margin-top:10px;">
-    <label>HY Delta 警戒 (bp)</label>
-    <input type="number" id="tHyD" value="50" step="5" oninput="calc()">
-  </div>
-</div><!-- State Machine --><div class="card">
-  <div class="card-title">[ 策略狀態機 ]</div>
-  <div class="state-row"><span class="badge bg-normal">NORMAL</span><span style="color:var(--muted)">盾牌分≥40，持倉 1.0x（≥60 標示 1.5x）</span></div>
-  <div class="state-row"><span class="badge bg-obs">OBS</span><span style="color:var(--muted)">盾牌分首日跌破40，保持 1.0x 觀察</span></div>
-  <div class="state-row"><span class="badge bg-retreat">RETREAT</span><span style="color:var(--muted)">連續第2天 &lt;40，VIX未觸發 → 清倉 0%</span></div>
-  <div class="state-row"><span class="badge bg-strike">STRIKE</span><span style="color:var(--muted)">前日VIX≥35且今日回落 → 建倉 0.3x</span></div>
-  <div class="state-row"><span class="badge bg-recover">RECOVER</span><span style="color:var(--muted)">低倉狀態盾牌分重回≥40 → 補滿 1.0x</span></div>
-</div><script>
-// ── FRED fetch ────────────────────────────────────────────────────
-async function fetchFRED(){
-  var key = document.getElementById('apiKey').value.trim();
-  if(!key){ setStatus('請先輸入 FRED API Key','err'); return; }
-  setStatus('拉取中...','');
+  <button class="btn btn-full" onclick="runBacktest()">▶ 開始回測</button>
+  <div id="status">— 輸入 API Key 後開始回測 —</div>
+</div>
 
-  var series = {
-    DFII10:    'iTips',
-    BAMLH0A0HYM2: 'iHy',
-    VIXCLS:    'iVixNow'
-  };
+<!-- Results (hidden until run) -->
 
-  var today = new Date();
-  var obs_end = today.toISOString().slice(0,10);
-  var obs_start_d = new Date(today); obs_start_d.setDate(today.getDate()-120);
-  var obs_start = obs_start_d.toISOString().slice(0,10);
+<div id="results" style="display:none;">
 
-  var fetched = 0;
-  var errors = [];
+  <!-- Summary -->
 
-  for(var sid in series){
-    var inputId = series[sid];
-    var url = 'https://api.stlouisfed.org/fred/series/observations'
-      + '?series_id='+sid
-      + '&api_key='+key
-      + '&file_type=json'
-      + '&observation_start='+obs_start
-      + '&observation_end='+obs_end
-      + '&sort_order=desc&limit=70';
-    try {
-      var r = await fetch(url);
-      var d = await r.json();
-      if(d.observations && d.observations.length){
-        // Latest valid value
-        var latest = null;
-        for(var i=0;i<d.observations.length;i++){
-          if(d.observations[i].value !== '.'){
-            latest = parseFloat(d.observations[i].value);
-            break;
-          }
-        }
-        if(latest !== null){
-          if(sid === 'BAMLH0A0HYM2'){
-            // Convert % to bp
-            document.getElementById('iHy').value = (latest*100).toFixed(0);
-            // 3M prev: find ~63 days back (index ~63 in sorted desc)
-            var prev = null;
-            for(var j=60;j<d.observations.length;j++){
-              if(d.observations[j].value !== '.'){
-                prev = parseFloat(d.observations[j].value);
-                break;
-              }
-            }
-            if(prev !== null) document.getElementById('iHyPrev').value = (prev*100).toFixed(0);
-          } else if(sid === 'VIXCLS'){
-            // Latest = today, second = yesterday
-            document.getElementById('iVixNow').value = latest.toFixed(1);
-            var vPrev = null;
-            for(var k=1;k<d.observations.length;k++){
-              if(d.observations[k].value !== '.'){
-                vPrev = parseFloat(d.observations[k].value);
-                break;
-              }
-            }
-            if(vPrev !== null) document.getElementById('iVixPrev').value = vPrev.toFixed(1);
-          } else {
-            document.getElementById(inputId).value = latest.toFixed(3);
-          }
-          fetched++;
-        }
-      } else if(d.error_message){
-        errors.push(sid+': '+d.error_message);
-      }
-    } catch(e){
-      errors.push(sid+': '+e.message);
-    }
-  }
+  <div class="card">
+    <div class="card-title">[ 總覽比較 ]</div>
+    <table class="cmp-table">
+      <thead>
+        <tr>
+          <th>指標</th>
+          <th class="tag-old">舊邏輯</th>
+          <th class="tag-new">新邏輯</th>
+          <th class="tag-bh">Buy & Hold</th>
+        </tr>
+      </thead>
+      <tbody id="summaryTable"></tbody>
+    </table>
+  </div>
 
-  // CAPE is not on FRED - remind user
-  if(fetched > 0){
-    setStatus('拉取成功 '+fetched+'/3 項（CAPE 請手動更新：multpl.com/shiller-pe）','ok');
+  <!-- Equity curve -->
+
+  <div class="card">
+    <div class="card-title">[ 淨值曲線（以100起算）]</div>
+    <div class="chart-wrap"><canvas id="equityChart"></canvas></div>
+  </div>
+
+  <!-- Drawdown -->
+
+  <div class="card">
+    <div class="card-title">[ 最大回撤曲線 ]</div>
+    <div class="chart-wrap"><canvas id="ddChart"></canvas></div>
+  </div>
+
+  <!-- Shield score distribution -->
+
+  <div class="card">
+    <div class="card-title">[ 盾牌分數分佈（舊 vs 新）]</div>
+    <div class="chart-wrap"><canvas id="scoreChart"></canvas></div>
+  </div>
+
+  <!-- Yearly returns -->
+
+  <div class="card">
+    <div class="card-title">[ 年度報酬對比 ]</div>
+    <div style="overflow-x:auto;">
+      <table class="yr-table">
+        <thead>
+          <tr>
+            <th>年份</th>
+            <th class="tag-old">舊邏輯</th>
+            <th class="tag-new">新邏輯</th>
+            <th class="tag-bh">Buy & Hold</th>
+            <th>SP500</th>
+          </tr>
+        </thead>
+        <tbody id="yearlyTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Proxy ─────────────────────────────────────────────────────────
+async function fetchFRED(seriesId, startDate, endDate, key) {
+  const proxy = document.getElementById('proxySelect').value;
+  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${key}&file_type=json&observation_start=${startDate}&observation_end=${endDate}&sort_order=asc&limit=10000`;
+
+  let proxyUrl, r, raw;
+  if (proxy === 'allorigins') {
+    proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+    r = await fetch(proxyUrl);
+    const wrapper = await r.json();
+    raw = JSON.parse(wrapper.contents);
   } else {
-    setStatus('拉取失敗：'+errors.join(' | '),'err');
+    proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
+    r = await fetch(proxyUrl);
+    raw = await r.json();
   }
-  calc();
+  if (raw.error_message) throw new Error(raw.error_message);
+  // Convert to { date: value } map
+  const map = {};
+  for (const obs of raw.observations) {
+    if (obs.value !== '.') map[obs.date] = parseFloat(obs.value);
+  }
+  return map;
 }
 
-// ── Score calculation ─────────────────────────────────────────────
-function lerp(x, x0, x1, y0, y1){
-  var t = (x - x0) / (x1 - x0);
-  t = Math.max(0, Math.min(1, t));
+// ── Score functions ───────────────────────────────────────────────
+function lerp(x, x0, x1, y0, y1) {
+  const t = Math.max(0, Math.min(1, (x - x0) / (x1 - x0)));
   return y0 + t * (y1 - y0);
 }
 
-function calc(){
-  var cape    = parseFloat(document.getElementById('iCape').value)    || 36;
-  var tips    = parseFloat(document.getElementById('iTips').value)    || 2.0;
-  var hy      = parseFloat(document.getElementById('iHy').value)      || 320;
-  var hyPrev  = parseFloat(document.getElementById('iHyPrev').value)  || 300;
-  var vixNow  = parseFloat(document.getElementById('iVixNow').value)  || 18;
-  var vixPrev = parseFloat(document.getElementById('iVixPrev').value) || 18;
-  var vixThr  = parseFloat(document.getElementById('iVixThr').value)  || 35;
-  var s150    = parseFloat(document.getElementById('tS150').value)    || 60;
-  var s100    = parseFloat(document.getElementById('tS100').value)    || 40;
-  var hyDThr  = parseFloat(document.getElementById('tHyD').value)     || 50;
+function calcF1(cape, tips) {
+  const ey = 100 / cape;
+  const erp = ey - tips;
+  return Math.round(lerp(erp, 0, 4, 10, 100));
+}
 
-  // ERP
-  var ey  = 100 / cape;
-  var erp = ey - tips;
+// 舊 F5
+function calcF5Old(hy_bp, hyPrev_bp) {
+  const hyD = hy_bp - hyPrev_bp;
+  const f5base = Math.round(lerp(hy_bp, 250, 600, 80, 20));
+  const f5penalty = hyD > 50 ? 20 : 0;
+  return Math.max(0, f5base - f5penalty);
+}
 
-  // F1: lerp(ERP, 0, 4, 10, 100)
-  var f1  = Math.round(lerp(erp, 0, 4, 10, 100));
-
-  // F5
-  var hyD      = hy - hyPrev;
-  var f5base   = Math.round(lerp(hy, 250, 600, 80, 20));
-  var f5penalty = hyD > hyDThr ? 20 : 0;
-  var f5       = Math.max(0, f5base - f5penalty);
-
-  // Shield
-  var shield = Math.round(f1 * 0.5 + f5 * 0.5);
-
-  // VIX trigger
-  var vixTrig = vixPrev >= vixThr && vixNow < vixPrev;
-
-  // Update display
-  var numEl = document.getElementById('shieldNum');
-  var lblEl = document.getElementById('shieldLabel');
-  var badgeEl = document.getElementById('modeBadge');
-
-  numEl.textContent = shield;
-
-  var numColor, lbl, badgeClass, badgeTxt;
-  if(shield >= s150){
-    numColor = 'var(--green)'; lbl = '加碼區 ≥'+s150+'（標示 1.5x，上限 1.0x）';
-    badgeClass='bg-normal'; badgeTxt='NORMAL 1.5x';
-  } else if(shield >= s100){
-    numColor = 'var(--accent)'; lbl = '標準區 ≥'+s100+'，持倉 1.0x';
-    badgeClass='bg-normal'; badgeTxt='NORMAL 1.0x';
+// 新 F5
+function calcF5New(hy_bp, hyPrev_bp) {
+  const hyD = hy_bp - hyPrev_bp;
+  const f5_level = Math.round(lerp(hy_bp, 250, 800, 90, 10));
+  let f5_delta;
+  if (hyD > 0) {
+    f5_delta = Math.round(lerp(hyD, 0, 200, 50, 0));
   } else {
-    numColor = 'var(--red)'; lbl = '警戒區 <'+s100+'，觀察或撤退';
-    if(vixTrig){ badgeClass='bg-strike'; badgeTxt='STRIKE 信號 0.3x↓VIX'; }
-    else { badgeClass='bg-retreat'; badgeTxt='RETREAT / OBS 觀察中'; }
+    f5_delta = 50;
   }
-  numEl.style.color = numColor;
-  lblEl.textContent = lbl;
-  lblEl.style.color = numColor;
-  badgeEl.style.display = '';
-  badgeEl.className = 'mode-badge ' + badgeClass;
-  badgeEl.textContent = badgeTxt;
-
-  // Bars
-  document.getElementById('f1bar').style.width = Math.min(100,Math.max(0,f1))+'%';
-  document.getElementById('f1bar').style.background = f1>=60?'var(--green)':f1>=40?'var(--accent)':'var(--red)';
-  document.getElementById('f1val').textContent = f1;
-  document.getElementById('f5bar').style.width = Math.min(100,Math.max(0,f5))+'%';
-  document.getElementById('f5bar').style.background = f5>=60?'var(--green)':f5>=40?'var(--accent)':'var(--red)';
-  document.getElementById('f5val').textContent = f5;
-
-  // Components
-  document.getElementById('cErp').textContent  = erp.toFixed(2)+'%';
-  document.getElementById('cEy').textContent   = ey.toFixed(2)+'%';
-  document.getElementById('cTips').textContent = tips.toFixed(2)+'%';
-  var hyDCol = hyD > hyDThr ? 'var(--red)' : 'var(--green)';
-  document.getElementById('cHyD').innerHTML = '<span style="color:'+hyDCol+'">'+(hyD>0?'+':'')+hyD.toFixed(0)+' bp</span>';
-  document.getElementById('cVixTrig').innerHTML = vixTrig
-    ? '<span style="color:var(--red)">觸發！前日'+vixPrev+'≥'+vixThr+' 且今日'+vixNow+'回落</span>'
-    : '<span style="color:var(--muted)">未觸發（前日'+vixPrev+' / 今日'+vixNow+'）</span>';
-  document.getElementById('csF1').textContent = f1 + ' (ERP='+erp.toFixed(2)+'%)';
-  document.getElementById('csF1').style.color = f1>=50?'var(--green)':'var(--red)';
-  document.getElementById('csF5').textContent = f5 + ' (HY='+hy+'bp, Δ'+(hyD>0?'+':'')+hyD.toFixed(0)+')';
-  document.getElementById('csF5').style.color = f5>=50?'var(--green)':'var(--red)';
+  return Math.max(0, Math.round(f5_level * 0.6 + f5_delta * 0.4));
 }
 
-function setStatus(msg, cls){
-  var el = document.getElementById('status');
+function calcShield(f1, f5) {
+  return Math.round(f1 * 0.5 + f5 * 0.5);
+}
+
+// ── Backtest engine ───────────────────────────────────────────────
+function runStrategy(dates, spMap, hyMap, tipsMap, shieldFn, s100 = 40) {
+  // Position: 1.0 when shield >= s100, 0 otherwise (simplified: no OBS/RETREAT state machine)
+  let equity = 100;
+  let inMarket = true;
+  const equityCurve = [];
+  const ddCurve = [];
+  const shieldHistory = [];
+  let peak = 100;
+
+  // We need 63 days of HY history to compute prev
+  const dateList = dates;
+
+  for (let i = 63; i < dateList.length; i++) {
+    const d = dateList[i];
+    const dPrev = dateList[i - 1];
+    const dPrev63 = dateList[i - 63];
+
+    if (!spMap[d] || !spMap[dPrev]) continue;
+
+    const sp_ret = spMap[d] / spMap[dPrev] - 1;
+
+    // Get HY (convert % to bp)
+    const hy_bp = hyMap[d] ? hyMap[d] * 100 : null;
+    const hyPrev_bp = hyMap[dPrev63] ? hyMap[dPrev63] * 100 : null;
+    const tips = tipsMap[d] || 2.0;
+    // CAPE: we don't have daily CAPE - use fixed reasonable value per era
+    // approximate: use inverse of earnings yield proxy from VIX period
+    const cape = 30; // fixed approximation for scoring purposes
+
+    let shield = 50; // default
+    if (hy_bp && hyPrev_bp) {
+      const f1 = calcF1(cape, tips);
+      const f5 = shieldFn(hy_bp, hyPrev_bp);
+      shield = calcShield(f1, f5);
+    }
+
+    shieldHistory.push({ date: d, shield });
+
+    // Position decision based on previous day's shield
+    const pos = shield >= s100 ? 1.0 : 0.0;
+    const dailyReturn = pos * sp_ret;
+    equity *= (1 + dailyReturn);
+    peak = Math.max(peak, equity);
+    const dd = (equity - peak) / peak * 100;
+
+    equityCurve.push({ date: d, value: equity });
+    ddCurve.push({ date: d, value: dd });
+  }
+
+  return { equityCurve, ddCurve, shieldHistory };
+}
+
+function calcStats(curve, spMap, dates) {
+  if (curve.length < 2) return {};
+  const start = curve[0].value;
+  const end = curve[curve.length - 1].value;
+  const totalReturn = (end / start - 1) * 100;
+  const years = curve.length / 252;
+  const cagr = (Math.pow(end / start, 1 / years) - 1) * 100;
+
+  // Daily returns for Sharpe
+  const dailyRets = [];
+  for (let i = 1; i < curve.length; i++) {
+    dailyRets.push(curve[i].value / curve[i-1].value - 1);
+  }
+  const mean = dailyRets.reduce((a,b) => a+b, 0) / dailyRets.length;
+  const std = Math.sqrt(dailyRets.map(r => (r-mean)**2).reduce((a,b)=>a+b,0) / dailyRets.length);
+  const sharpe = std > 0 ? (mean / std * Math.sqrt(252)).toFixed(2) : '--';
+
+  // Max drawdown
+  let peak = -Infinity, maxDD = 0;
+  for (const pt of curve) {
+    peak = Math.max(peak, pt.value);
+    maxDD = Math.min(maxDD, (pt.value - peak) / peak * 100);
+  }
+
+  // Win rate (days in profit vs SP500)
+  return {
+    totalReturn: totalReturn.toFixed(1),
+    cagr: cagr.toFixed(2),
+    sharpe,
+    maxDD: maxDD.toFixed(1),
+    days: curve.length
+  };
+}
+
+function calcYearly(curve) {
+  const byYear = {};
+  for (const pt of curve) {
+    const yr = pt.date.slice(0, 4);
+    if (!byYear[yr]) byYear[yr] = [];
+    byYear[yr].push(pt.value);
+  }
+  const result = {};
+  for (const yr in byYear) {
+    const vals = byYear[yr];
+    result[yr] = ((vals[vals.length-1] / vals[0]) - 1) * 100;
+  }
+  return result;
+}
+
+// ── Charts ────────────────────────────────────────────────────────
+let equityChartInst, ddChartInst, scoreChartInst;
+
+function destroyCharts() {
+  if (equityChartInst) { equityChartInst.destroy(); equityChartInst = null; }
+  if (ddChartInst) { ddChartInst.destroy(); ddChartInst = null; }
+  if (scoreChartInst) { scoreChartInst.destroy(); scoreChartInst = null; }
+}
+
+function buildEquityChart(oldCurve, newCurve, bhCurve) {
+  const labels = oldCurve.map(p => p.date);
+  equityChartInst = new Chart(document.getElementById('equityChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '舊邏輯', data: oldCurve.map(p=>p.value), borderColor:'#f59e0b', borderWidth:1.5, pointRadius:0, tension:0.1 },
+        { label: '新邏輯', data: newCurve.map(p=>p.value), borderColor:'#10b981', borderWidth:1.5, pointRadius:0, tension:0.1 },
+        { label: 'Buy & Hold', data: bhCurve.map(p=>p.value), borderColor:'#4a5568', borderWidth:1, pointRadius:0, tension:0.1 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color:'#e2e8f0', font:{family:'Courier New',size:10} } } },
+      scales: {
+        x: { ticks:{ color:'#4a5568', maxTicksLimit:8, font:{size:9} }, grid:{ color:'#1e2330' } },
+        y: { ticks:{ color:'#4a5568', font:{size:9} }, grid:{ color:'#1e2330' } }
+      }
+    }
+  });
+}
+
+function buildDDChart(oldDD, newDD, bhDD) {
+  const labels = oldDD.map(p => p.date);
+  ddChartInst = new Chart(document.getElementById('ddChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '舊邏輯', data: oldDD.map(p=>p.value), borderColor:'#f59e0b', borderWidth:1.5, pointRadius:0, fill:true, backgroundColor:'rgba(245,158,11,.05)' },
+        { label: '新邏輯', data: newDD.map(p=>p.value), borderColor:'#10b981', borderWidth:1.5, pointRadius:0, fill:true, backgroundColor:'rgba(16,185,129,.05)' },
+        { label: 'Buy & Hold', data: bhDD.map(p=>p.value), borderColor:'#4a5568', borderWidth:1, pointRadius:0, fill:true, backgroundColor:'rgba(74,85,104,.05)' },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color:'#e2e8f0', font:{family:'Courier New',size:10} } } },
+      scales: {
+        x: { ticks:{ color:'#4a5568', maxTicksLimit:8, font:{size:9} }, grid:{ color:'#1e2330' } },
+        y: { ticks:{ color:'#4a5568', font:{size:9} }, grid:{ color:'#1e2330' } }
+      }
+    }
+  });
+}
+
+function buildScoreChart(oldScores, newScores) {
+  // Histogram: bucket 0-100 in bins of 10
+  const bins = Array.from({length:10}, (_,i) => `${i*10}-${i*10+10}`);
+  const oldHist = new Array(10).fill(0);
+  const newHist = new Array(10).fill(0);
+  for (const s of oldScores) { const b = Math.min(9, Math.floor(s/10)); oldHist[b]++; }
+  for (const s of newScores) { const b = Math.min(9, Math.floor(s/10)); newHist[b]++; }
+
+  scoreChartInst = new Chart(document.getElementById('scoreChart'), {
+    type: 'bar',
+    data: {
+      labels: bins,
+      datasets: [
+        { label: '舊邏輯', data: oldHist, backgroundColor:'rgba(245,158,11,.6)', borderColor:'#f59e0b', borderWidth:1 },
+        { label: '新邏輯', data: newHist, backgroundColor:'rgba(16,185,129,.6)', borderColor:'#10b981', borderWidth:1 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color:'#e2e8f0', font:{family:'Courier New',size:10} } } },
+      scales: {
+        x: { ticks:{ color:'#4a5568', font:{size:9} }, grid:{ color:'#1e2330' } },
+        y: { ticks:{ color:'#4a5568', font:{size:9} }, grid:{ color:'#1e2330' } }
+      }
+    }
+  });
+}
+
+// ── Main ──────────────────────────────────────────────────────────
+async function runBacktest() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) { setStatus('請先輸入 FRED API Key', 'err'); return; }
+
+  const startYear = document.getElementById('startYear').value;
+  const startDate = `${startYear}-01-01`;
+  const endDate = new Date().toISOString().slice(0,10);
+
+  showLoading(true, '抓取 SP500...', 10);
+
+  try {
+    // Fetch all series
+    setLoadingText('抓取 SP500...'); setProgress(10);
+    const spMap = await fetchFRED('SP500', startDate, endDate, key);
+
+    setLoadingText('抓取 HY Spread...'); setProgress(30);
+    const hyMap = await fetchFRED('BAMLH0A0HYM2', startDate, endDate, key);
+
+    setLoadingText('抓取 TIPS 10Y...'); setProgress(55);
+    const tipsMap = await fetchFRED('DFII10', startDate, endDate, key);
+
+    setLoadingText('計算回測...'); setProgress(75);
+
+    // Build sorted date list from SP500
+    const dates = Object.keys(spMap).sort();
+
+    // BH curve
+    const bhCurve = [];
+    const bhDD = [];
+    let bhEq = 100, bhPeak = 100;
+    for (let i = 64; i < dates.length; i++) {
+      const d = dates[i], dp = dates[i-1];
+      if (!spMap[d] || !spMap[dp]) continue;
+      const ret = spMap[d] / spMap[dp] - 1;
+      bhEq *= (1 + ret);
+      bhPeak = Math.max(bhPeak, bhEq);
+      bhCurve.push({ date: d, value: bhEq });
+      bhDD.push({ date: d, value: (bhEq - bhPeak) / bhPeak * 100 });
+    }
+
+    // Old strategy
+    const oldResult = runStrategy(dates, spMap, hyMap, tipsMap, calcF5Old);
+    // New strategy
+    const newResult = runStrategy(dates, spMap, hyMap, tipsMap, calcF5New);
+
+    setLoadingText('繪製圖表...'); setProgress(90);
+
+    // Stats
+    const oldStats = calcStats(oldResult.equityCurve);
+    const newStats = calcStats(newResult.equityCurve);
+    const bhStats  = calcStats(bhCurve);
+
+    // Summary table
+    const rows = [
+      ['總報酬 %', oldStats.totalReturn+'%', newStats.totalReturn+'%', bhStats.totalReturn+'%'],
+      ['年化報酬 CAGR', oldStats.cagr+'%', newStats.cagr+'%', bhStats.cagr+'%'],
+      ['Sharpe Ratio', oldStats.sharpe, newStats.sharpe, bhStats.sharpe],
+      ['最大回撤', oldStats.maxDD+'%', newStats.maxDD+'%', bhStats.maxDD+'%'],
+    ];
+    const tbody = document.getElementById('summaryTable');
+    tbody.innerHTML = '';
+    for (const row of rows) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td style="color:var(--muted)">${row[0]}</td>
+        <td class="tag-old">${row[1]}</td>
+        <td class="tag-new">${row[2]}</td>
+        <td class="tag-bh">${row[3]}</td>`;
+      tbody.appendChild(tr);
+    }
+
+    // Yearly table
+    const oldYr = calcYearly(oldResult.equityCurve);
+    const newYr = calcYearly(newResult.equityCurve);
+    const bhYr  = calcYearly(bhCurve);
+    const spYr  = calcYearly(bhCurve); // same as BH for SP500
+    const allYears = [...new Set([...Object.keys(oldYr), ...Object.keys(newYr)])].sort();
+    const ytbody = document.getElementById('yearlyTable');
+    ytbody.innerHTML = '';
+    for (const yr of allYears) {
+      const o = oldYr[yr] != null ? oldYr[yr].toFixed(1) : '--';
+      const n = newYr[yr] != null ? newYr[yr].toFixed(1) : '--';
+      const b = bhYr[yr]  != null ? bhYr[yr].toFixed(1)  : '--';
+      const colorClass = (v) => parseFloat(v) >= 0 ? 'pos' : 'neg';
+      ytbody.innerHTML += `<tr>
+        <td>${yr}</td>
+        <td class="${colorClass(o)} tag-old">${o}%</td>
+        <td class="${colorClass(n)} tag-new">${n}%</td>
+        <td class="${colorClass(b)} tag-bh">${b}%</td>
+      </tr>`;
+    }
+
+    // Charts
+    destroyCharts();
+    buildEquityChart(oldResult.equityCurve, newResult.equityCurve, bhCurve);
+    buildDDChart(oldResult.ddCurve, newResult.ddCurve, bhDD);
+
+    const oldScores = oldResult.shieldHistory.map(s => s.shield);
+    const newScores = newResult.shieldHistory.map(s => s.shield);
+    buildScoreChart(oldScores, newScores);
+
+    setProgress(100);
+    showLoading(false);
+    document.getElementById('results').style.display = 'block';
+    setStatus('回測完成！數據區間：' + dates[63] + ' ~ ' + dates[dates.length-1], 'ok');
+
+  } catch(e) {
+    showLoading(false);
+    setStatus('錯誤：' + e.message, 'err');
+  }
+}
+
+function showLoading(show, text='', pct=0) {
+  document.getElementById('loadingOverlay').classList.toggle('show', show);
+  if (text) setLoadingText(text);
+  setProgress(pct);
+}
+function setLoadingText(t) { document.getElementById('loadingText').textContent = t; }
+function setProgress(p) { document.getElementById('progressFill').style.width = p + '%'; }
+function setStatus(msg, cls) {
+  const el = document.getElementById('status');
   el.textContent = msg;
-  el.className = cls;
+  el.className = cls || '';
 }
+</script>
 
-// Init
-calc();
-</script></body>
+</body>
 </html>
