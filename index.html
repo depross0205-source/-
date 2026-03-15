@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>矛與盾 V7.1 — 雙核回測引擎</title>
+<title>矛與盾 V7.3 — 實戰儀表板</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700;900&display=swap');
 
@@ -32,18 +32,31 @@ border-bottom:2px solid var(--border-hi); padding-bottom:18px;margin-bottom:24px
 .hdr-title span.v{font-size:12px;font-weight:600;background:var(--green);color:#000;padding:2px 8px;border-radius:3px;}
 .hdr-sub{font-size:13px;color:var(--muted);margin-top:4px;}
 
-/* ── 手動更新列 ── */
+/* ── 手動更新列與最新狀態 ── */
+.dashboard-top { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
 .data-bar{
-display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-background:var(--surface);border:1px solid var(--border);
-padding:12px 16px;margin-bottom:20px; font-size:13px;
+flex: 1; display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+background:var(--surface);border:1px solid var(--border); padding:12px 16px; font-size:13px; min-width: 300px;
 }
 .data-bar .input-group{display:flex;align-items:center;gap:6px;background:var(--bg);padding:4px 10px;border:1px solid var(--border-hi);}
 .data-bar label{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;}
-.data-bar input{background:transparent;border:none;color:var(--white);font-family:'IBM Plex Mono';width:60px;font-weight:700;outline:none;}
+.data-bar input{background:transparent;border:none;color:var(--white);font-family:'IBM Plex Mono';width:50px;font-weight:700;outline:none;}
+
+.status-box {
+flex: 1; display: flex; gap: 10px; background:var(--surface);border:1px solid var(--border); padding:12px 16px; min-width: 300px;
+}
+.status-col { flex: 1; border-right: 1px solid var(--border); padding-right: 10px; }
+.status-col:last-child { border-right: none; padding-right: 0; }
+.status-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.status-val { font-size: 15px; font-weight: 700; font-family: 'IBM Plex Mono'; }
+.badge { font-size: 11px; padding: 2px 6px; border-radius: 3px; font-weight: 700; margin-left: 6px; }
+.b-norm { background: var(--border-hi); color: var(--white); }
+.b-obs { background: var(--yellow-dim); color: var(--yellow); border: 1px solid var(--yellow); }
+.b-strike { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+.b-ret { background: var(--red-dim); color: var(--red); border: 1px solid var(--red); }
 
 /* ── Tabs ── */
-.tabs{display:flex;gap:0;margin-bottom:24px;border-bottom:2px solid var(--border);}
+.tabs{display:flex;gap:0;margin-bottom:24px;border-bottom:2px solid var(--border); overflow-x: auto; white-space: nowrap;}
 .tab{
 padding:10px 22px;font-size:14px;font-weight:600;cursor:pointer;color:var(--muted);
 border:none;border-bottom:3px solid transparent;background:none;transition:0.15s;
@@ -56,14 +69,11 @@ border:none;border-bottom:3px solid transparent;background:none;transition:0.15s
 @media(max-width:700px){.cfg-grid{grid-template-columns:1fr;}}
 .cfg-box{background:var(--surface);border:1px solid var(--border);padding:18px;}
 .cfg-box h5{font-size:11px;letter-spacing:2px;color:var(--muted);font-weight:700;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:8px;text-transform:uppercase;}
-
 .f{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;}
 .f label{color:var(--text);font-size:14px;flex:1;}
 .f input, .f select{background:var(--bg);border:1px solid var(--border-hi);color:var(--white);font-family:'IBM Plex Mono';font-size:14px;padding:6px;text-align:right;max-width:120px;}
 
-.upload-box{
-background:var(--surface2);border:2px dashed var(--border-hi);padding:20px;text-align:center;margin-bottom:18px;transition:0.2s;
-}
+.upload-box{ background:var(--surface2);border:2px dashed var(--border-hi);padding:20px;text-align:center;margin-bottom:18px;transition:0.2s; }
 .upload-box:hover{border-color:var(--accent);}
 .upload-box label{cursor:pointer;color:var(--accent);font-weight:700;}
 input[type="file"]{display:none;}
@@ -71,13 +81,18 @@ input[type="file"]{display:none;}
 .btn{padding:12px 28px;font-weight:700;cursor:pointer;border:2px solid;transition:0.15s;font-family:inherit;}
 .btn-primary{background:var(--green);color:#000;border-color:var(--green);}
 .btn-primary:hover{background:#00ffb3;}
-.btn-update{background:transparent;color:var(--yellow);border-color:var(--yellow);padding:8px 16px;font-size:13px;}
+.btn-update{background:transparent;color:var(--yellow);border-color:var(--yellow);padding:6px 12px;font-size:12px;}
 
 /* ── 儀表板組件 ── */
-.kpi-strip{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px;}
-.kpi{background:var(--surface);border:1px solid var(--border);padding:16px;flex:1;min-width:150px;}
-.kpi-label{font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;}
-.kpi-val{font-size:24px;font-weight:900;font-family:'IBM Plex Mono';}
+.metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.metric-card { background: var(--surface); border: 1px solid var(--border); padding: 16px; text-align: center; }
+.metric-card.m-a { border-top: 3px solid var(--yellow); }
+.metric-card.m-b { border-top: 3px solid var(--green); }
+.metric-card.m-bh { border-top: 3px solid var(--muted); }
+.m-title { font-size: 13px; color: var(--muted); font-weight: 700; margin-bottom: 12px; }
+.m-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; border-bottom: 1px dashed var(--border-hi); padding-bottom: 4px; }
+.m-row:last-child { border-bottom: none; margin-bottom: 0; }
+.m-val { font-family: 'IBM Plex Mono'; font-weight: 700; }
 
 .chart-wrap{background:var(--surface);border:1px solid var(--border);padding:18px;margin-bottom:16px;}
 .table-wrap{background:var(--surface);border:1px solid var(--border);overflow-x:auto;margin-bottom:16px;max-height:500px;}
@@ -85,6 +100,7 @@ table{width:100%;border-collapse:collapse;font-size:14px;}
 th{padding:10px;color:var(--muted);text-align:left;background:var(--surface2);position:sticky;top:0;z-index:2;}
 td{padding:10px;border-bottom:1px solid var(--border);}
 .tg{color:var(--green);font-weight:700;}.tr{color:var(--red);font-weight:700;}.ty{color:var(--yellow);font-weight:700;}
+.log-row:hover { background: var(--surface2); }
 
 .loading-overlay{position:fixed;inset:0;background:rgba(10,12,16,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:16px;}
 .hidden{display:none;}
@@ -96,36 +112,50 @@ td{padding:10px;border-bottom:1px solid var(--border);}
 
 <div class="loading-overlay hidden" id="loadingOverlay">
   <div class="spinner"></div>
-  <div class="loading-text">計算中...</div>
+  <div class="loading-text">引擎運算中...</div>
 </div>
 
 <div class="wrap">
   <div class="hdr">
     <div class="hdr-left">
-      <div class="hdr-title">🛡️ 矛與盾 <span class="v">V7.1 雙核版</span></div>
-      <div class="hdr-sub">A/B 方法雙軌比較 ｜ CSV 上傳 ｜ 即時手動更新</div>
+      <div class="hdr-title">🛡️ 矛與盾 <span class="v">V7.3 實戰儀表板</span></div>
+      <div class="hdr-sub">完整量化指標 ｜ 狀態切換追蹤 ｜ 手動觀測推演</div>
     </div>
     <div id="dataSourceBadge" style="font-size:12px;padding:4px 12px;border:1px solid var(--border-hi);color:var(--muted);font-family:monospace;">● 初始數據模式</div>
   </div>
 
-  <div class="data-bar">
-    <span class="mono" style="color:var(--yellow);font-weight:700;">今日觀測：</span>
-    <div class="input-group"><label>HY OAS %</label><input type="number" id="mHY" value="3.1" step="0.01"></div>
-    <div class="input-group"><label>TIPS 10Y %</label><input type="number" id="mTIPS" value="1.9" step="0.01"></div>
-    <div class="input-group"><label>VIX</label><input type="number" id="mVIX" value="18.0" step="0.1"></div>
-    <button class="btn btn-update mono" onclick="applyManualData()">⚡ 更新最後一日</button>
+  <div class="dashboard-top">
+    <div class="data-bar">
+      <span class="mono" style="color:var(--yellow);font-weight:700;">今日觀測：</span>
+      <div class="input-group"><label>HY OAS</label><input type="number" id="mHY" value="3.1" step="0.01"></div>
+      <div class="input-group"><label>TIPS</label><input type="number" id="mTIPS" value="1.9" step="0.01"></div>
+      <div class="input-group"><label>VIX</label><input type="number" id="mVIX" value="18.0" step="0.1"></div>
+      <button class="btn btn-update mono" onclick="applyManualData()">⚡ 執行推演</button>
+    </div>
+
+    <div class="status-box">
+      <div class="status-col">
+        <div class="status-title" style="color:var(--yellow)">方法 A 狀態</div>
+        <div class="status-val" id="liveA">--</div>
+      </div>
+      <div class="status-col">
+        <div class="status-title" style="color:var(--green)">方法 B 狀態</div>
+        <div class="status-val" id="liveB">--</div>
+      </div>
+    </div>
   </div>
 
   <div class="tabs">
     <button class="tab active" onclick="switchTab(event,'config')">⚙ 設定與上傳</button>
-    <button class="tab" onclick="switchTab(event,'result')">📊 回測報告</button>
+    <button class="tab" onclick="switchTab(event,'result')">📊 完整績效報告</button>
     <button class="tab" onclick="switchTab(event,'yearly')">📅 逐年比較</button>
+    <button class="tab" onclick="switchTab(event,'history')">🔁 訊號切換歷程</button>
   </div>
 
   <div class="panel active" id="panel-config">
     <div class="upload-box">
       <p style="margin-bottom:10px;">📤 <b>上傳整合資料庫</b></p>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:15px;">請選擇 Shield_Merged_Database.csv (欄位: Date, SP500, HY_Spread, TIPS_10Y, VIX, CAPE)</p>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:15px;">請選擇 CSV (欄位: Date, SP500, HY_Spread, TIPS_10Y, VIX, CAPE, SP500EW)</p>
       <label for="csvUpload">點擊選擇檔案</label>
       <input type="file" id="csvUpload" accept=".csv" onchange="handleFileUpload(event)">
       <div id="fileNameDisplay" style="margin-top:10px;font-size:12px;color:var(--green);"></div>
@@ -140,13 +170,11 @@ td{padding:10px;border-bottom:1px solid var(--border);}
             <option value="A">僅執行 方法 A (固定 Delta)</option>
             <option value="B">僅執行 方法 B (Z-Score)</option>
           </select>
-          <span style="font-size:12px;color:var(--muted);">選擇要回測的引擎邏輯。雙軌比較可同時渲染兩套策略的績效。</span>
         </div>
       </div>
 
       <div class="cfg-box">
         <h5>一般參數 <span class="mono">GLOBAL</span></h5>
-        <div class="f"><label>起始年份</label><select id="cfgStart"><option value="2000">所有歷史</option><option value="2016">2016</option></select></div>
         <div class="f"><label>初始資金</label><input type="number" id="cfgCap" value="100000"></div>
         <div class="f"><label>交易成本(bp)</label><input type="number" id="cfgCost" value="5"></div>
         <div class="f"><label>VIX 觸發</label><input type="number" id="cfgVix" value="35"></div>
@@ -154,26 +182,25 @@ td{padding:10px;border-bottom:1px solid var(--border);}
 
       <div class="cfg-box">
         <h5 style="color:var(--yellow)">方法 A：固定 Delta <span class="mono">METHOD A</span></h5>
-        <div class="f"><label>加碼門檻 (≥)</label><input type="number" id="cfgAS150" value="60"></div>
-        <div class="f"><label>標準門檻 (≥)</label><input type="number" id="cfgAS100" value="40"></div>
-        <div class="f"><label>Delta 閥值(bp)</label><input type="number" id="cfgA_Delta" value="50"></div>
-        <div class="f"><label>觀測窗口(天)</label><input type="number" id="cfgA_Win" value="120" title="計算過去 N 天的最低點"></div>
+        <div class="f"><label>加碼門檻</label><input type="number" id="cfgAS150" value="60"></div>
+        <div class="f"><label>標準門檻</label><input type="number" id="cfgAS100" value="40"></div>
+        <div class="f"><label>Delta(bp)</label><input type="number" id="cfgA_Delta" value="50"></div>
+        <div class="f"><label>觀測(天)</label><input type="number" id="cfgA_Win" value="120"></div>
       </div>
 
       <div class="cfg-box">
         <h5 style="color:var(--green)">方法 B：Z-Score <span class="mono">METHOD B</span></h5>
-        <div class="f"><label>加碼門檻 (≥)</label><input type="number" id="cfgBS150" value="60"></div>
-        <div class="f"><label>標準門檻 (≥)</label><input type="number" id="cfgBS100" value="40"></div>
-        <div class="f"><label>Z-Score 閥值</label><input type="number" id="cfgB_Z" value="1.5" step="0.1"></div>
+        <div class="f"><label>加碼門檻</label><input type="number" id="cfgBS150" value="60"></div>
+        <div class="f"><label>標準門檻</label><input type="number" id="cfgBS100" value="40"></div>
+        <div class="f"><label>Z閥值</label><input type="number" id="cfgB_Z" value="1.5" step="0.1"></div>
         <div class="f"><label>窗口(天)</label><input type="number" value="500" disabled style="opacity:0.5"></div>
       </div>
     </div>
-
     <button class="btn btn-primary" style="width:100%" onclick="runBacktest()">▶ 執行回測引擎</button>
   </div>
 
   <div class="panel" id="panel-result">
-    <div class="kpi-strip" id="kpiStrip"></div>
+    <div class="metrics-grid" id="metricsGrid"></div>
     <div class="chart-wrap"><canvas id="navChart" height="350"></canvas></div>
     <div class="chart-wrap"><canvas id="ddChart" height="200"></canvas></div>
   </div>
@@ -181,10 +208,19 @@ td{padding:10px;border-bottom:1px solid var(--border);}
   <div class="panel" id="panel-yearly">
     <div class="table-wrap">
       <table id="yearlyTable">
-        <thead>
-          <tr id="yHead"></tr>
-        </thead>
+        <thead><tr id="yHead"></tr></thead>
         <tbody id="yrBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-history">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>日期</th><th>引擎</th><th>原狀態</th><th>新狀態</th><th>大盤點位</th><th>當日 Shield</th></tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
       </table>
     </div>
   </div>
@@ -195,7 +231,7 @@ td{padding:10px;border-bottom:1px solid var(--border);}
 <script>
 'use strict';
 
-let DATES = [], SP = [], HY = [], TIPS = [], VIX = [], CAPE = [];
+let DATES = [], SP = [], HY = [], TIPS = [], VIX = [], CAPE = [], EW = [];
 let BT_RESULT = null;
 let charts = {};
 
@@ -204,7 +240,7 @@ function initEmptyData() {
   for(let i=0; i<600; i++) {
     const d = new Date(now); d.setDate(d.getDate()-i);
     DATES.unshift(d.toISOString().slice(0,10));
-    SP.unshift(4000 + i*2); HY.unshift(3.5); TIPS.unshift(1.5); VIX.unshift(18); CAPE.unshift(30);
+    SP.unshift(4000 + i*2); HY.unshift(3.5); TIPS.unshift(1.5); VIX.unshift(18); CAPE.unshift(30); EW.unshift(4000 + i*2);
   }
 }
 initEmptyData();
@@ -217,19 +253,30 @@ function handleFileUpload(event) {
   reader.onload = function(e) {
     const lines = e.target.result.split('\n').filter(l => l.trim().length > 0);
     const headers = lines[0].split(',').map(h => h.trim());
-    const idx = { date: headers.indexOf('Date'), sp: headers.indexOf('SP500'), hy: headers.indexOf('HY_Spread'), tips: headers.indexOf('TIPS_10Y'), vix: headers.indexOf('VIX'), cape: headers.indexOf('CAPE') };
+    const idx = { 
+      date: headers.indexOf('Date'), sp: headers.indexOf('SP500'), hy: headers.indexOf('HY_Spread'), 
+      tips: headers.indexOf('TIPS_10Y'), vix: headers.indexOf('VIX'), cape: headers.indexOf('CAPE'), ew: headers.indexOf('SP500EW')
+    };
     
-    DATES = []; SP = []; HY = []; TIPS = []; VIX = []; CAPE = [];
+    DATES = []; SP = []; HY = []; TIPS = []; VIX = []; CAPE = []; EW = [];
     for(let i=1; i<lines.length; i++) {
       const col = lines[i].split(',');
       if(col.length < 5) continue;
       DATES.push(col[idx.date]); SP.push(parseFloat(col[idx.sp])); HY.push(parseFloat(col[idx.hy]));
       TIPS.push(parseFloat(col[idx.tips])); VIX.push(parseFloat(col[idx.vix])); CAPE.push(parseFloat(col[idx.cape]) || 30);
+      let ewVal = idx.ew > -1 ? parseFloat(col[idx.ew]) : parseFloat(col[idx.sp]);
+      EW.push(ewVal);
     }
-    fillNaN(HY); fillNaN(TIPS); fillNaN(VIX); fillNaN(SP);
+    fillNaN(HY); fillNaN(TIPS); fillNaN(VIX); fillNaN(SP); fillNaN(EW);
     
     document.getElementById('dataSourceBadge').textContent = '● CSV 模式 (' + DATES.length + ' 筆)';
     document.getElementById('dataSourceBadge').style.color = 'var(--green)';
+    
+    // 將最後一筆資料帶入輸入框
+    document.getElementById('mHY').value = HY[HY.length-1];
+    document.getElementById('mTIPS').value = TIPS[TIPS.length-1];
+    document.getElementById('mVIX').value = VIX[VIX.length-1];
+    
     alert("上傳成功！");
   };
   reader.readAsText(file);
@@ -248,7 +295,35 @@ function applyManualData() {
   runBacktest();
 }
 
-// ── 核心運算 ──
+// ── 核心運算與指標 ──
+function getBadge(mode) {
+  if(mode==='NORMAL') return '<span class="badge b-norm">NORM</span>';
+  if(mode==='OBS') return '<span class="badge b-obs">OBS</span>';
+  if(mode==='STRIKE') return '<span class="badge b-strike">STRK</span>';
+  return '<span class="badge b-ret">RET</span>';
+}
+
+function calcPerformance(curve, key) {
+  let peak = 0, mdd = 0;
+  let rets = [];
+  for(let i=1; i<curve.length; i++){
+    let val = curve[i][key];
+    if(val > peak) peak = val;
+    let dd = (val - peak) / peak;
+    if(dd < mdd) mdd = dd;
+    rets.push((val - curve[i-1][key]) / curve[i-1][key]);
+  }
+  let years = curve.length / 252;
+  let totalRet = curve[curve.length-1][key] / curve[0][key] - 1;
+  let cagr = Math.pow(1 + totalRet, 1/years) - 1;
+  
+  let avgRet = rets.reduce((a,b)=>a+b,0) / rets.length;
+  let stdDev = Math.sqrt(rets.reduce((a,b)=>a+Math.pow(b-avgRet,2),0) / rets.length);
+  let sharpe = stdDev === 0 ? 0 : (avgRet / stdDev) * Math.sqrt(252);
+  
+  return { mdd: (mdd*100).toFixed(2), cagr: (cagr*100).toFixed(2), sharpe: sharpe.toFixed(2), total: (totalRet*100).toFixed(1) };
+}
+
 function runBacktest() {
   const cfg = {
     mode: document.getElementById('cfgMode').value,
@@ -264,7 +339,14 @@ function runBacktest() {
   setTimeout(() => {
     let eqA = cfg.cap, eqB = cfg.cap, bh = cfg.cap;
     let modeA = 'NORMAL', modeB = 'NORMAL', posA = 1.0, posB = 1.0;
-    const curve = [], yrData = {};
+    const curve = [], yrData = {}, logs = [];
+    
+    // 用於記錄最後一天的狀態
+    let lastStatusA = { s:0, m:'NORMAL', p:1.0 };
+    let lastStatusB = { s:0, m:'NORMAL', p:1.0 };
+
+    let mddA = [], mddB = [], mddBH = [];
+    let peakA = cfg.cap, peakB = cfg.cap, peakBH = cfg.cap;
 
     for(let i=1; i < DATES.length; i++) {
       const spRet = (SP[i] - SP[i-1]) / SP[i-1];
@@ -272,8 +354,28 @@ function runBacktest() {
       const erp = (100 / CAPE[i]) - TIPS[i];
       const f1 = lerp(erp, 0, 4, 10, 100);
       const f5b = lerp(hyNow, 250, 600, 80, 20);
+      
+      let rsi = 50;
+      if (i >= 14) {
+        let gains = 0, losses = 0;
+        for (let j = i - 13; j <= i; j++) {
+          let diff = SP[j] - SP[j - 1];
+          if (diff >= 0) gains += diff; else losses -= diff;
+        }
+        let rs = gains / (losses || 1);
+        rsi = 100 - (100 / (1 + rs));
+      }
+      
+      let zBias = 0;
+      if (i >= 20) {
+        const slice = [];
+        for(let j = i - 19; j <= i; j++) slice.push(EW[j] / SP[j]);
+        const mean = slice.reduce((a, b) => a + b, 0) / 20;
+        const std = Math.sqrt(slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / 20) || 1;
+        zBias = ((EW[i] / SP[i]) - mean) / std;
+      }
 
-      // ── Method A (Delta) ──
+      // Method A
       let resA = { shield: 100 };
       if(cfg.mode === 'A' || cfg.mode === 'BOTH') {
         const startA = Math.max(0, i - cfg.A.win);
@@ -281,49 +383,69 @@ function runBacktest() {
         for(let j=startA; j<i; j++) { if(HY[j]*100 < minHy) minHy = HY[j]*100; }
         const penaltyA = (hyNow - minHy) >= cfg.A.delta ? 20 : 0;
         resA.shield = Math.round(f1*0.5 + Math.max(0, f5b - penaltyA)*0.5);
-        const nextA = nextMode(modeA, resA.shield, VIX[i], VIX[i-1], cfg.vix, cfg.A.s100, cfg.A.s150);
+        const nextA = nextMode(modeA, resA.shield, VIX[i], VIX[i-1], cfg.vix, cfg.A.s100, cfg.A.s150, rsi, zBias);
+        
+        if(nextA.mode !== modeA) logs.push({ d:DATES[i], mtd:'A (Delta)', fm:modeA, to:nextA.mode, sp:SP[i].toFixed(1), s:resA.shield });
+        
         const cA = (nextA.pos !== posA) ? cfg.cost : 0;
         eqA *= (1 + nextA.pos * spRet * (1 - cA));
         posA = nextA.pos; modeA = nextA.mode;
+        if(i === DATES.length-1) lastStatusA = { s:resA.shield, m:modeA, p:posA };
       }
 
-      // ── Method B (Z-Score) ──
+      // Method B
       let resB = { shield: 100 };
       if(cfg.mode === 'B' || cfg.mode === 'BOTH') {
         const startB = Math.max(0, i - cfg.B.win);
         const slice = HY.slice(startB, i);
         const mean = slice.reduce((a,b)=>a+b, 0) / slice.length;
         const std = Math.sqrt(slice.reduce((a,b)=>a+(b-mean)**2, 0) / slice.length) || 1;
-        const zScore = (HY[i] - mean) / std;
-        const penaltyB = zScore > cfg.B.z ? 20 : 0;
+        const penaltyB = ((HY[i] - mean) / std) > cfg.B.z ? 20 : 0;
         resB.shield = Math.round(f1*0.5 + Math.max(0, f5b - penaltyB)*0.5);
-        const nextB = nextMode(modeB, resB.shield, VIX[i], VIX[i-1], cfg.vix, cfg.B.s100, cfg.B.s150);
+        const nextB = nextMode(modeB, resB.shield, VIX[i], VIX[i-1], cfg.vix, cfg.B.s100, cfg.B.s150, rsi, zBias);
+        
+        if(nextB.mode !== modeB) logs.push({ d:DATES[i], mtd:'B (Z-Score)', fm:modeB, to:nextB.mode, sp:SP[i].toFixed(1), s:resB.shield });
+        
         const cB = (nextB.pos !== posB) ? cfg.cost : 0;
         eqB *= (1 + nextB.pos * spRet * (1 - cB));
         posB = nextB.pos; modeB = nextB.mode;
+        if(i === DATES.length-1) lastStatusB = { s:resB.shield, m:modeB, p:posB };
       }
 
       bh *= (1 + spRet);
       curve.push({ d:DATES[i], vA:eqA, vB:eqB, b:bh });
+
+      // Calculate DD arrays for charting
+      if(eqA > peakA) peakA = eqA; mddA.push((eqA - peakA)/peakA * 100);
+      if(eqB > peakB) peakB = eqB; mddB.push((eqB - peakB)/peakB * 100);
+      if(bh > peakBH) peakBH = bh; mddBH.push((bh - peakBH)/peakBH * 100);
 
       const yr = DATES[i].slice(0,4);
       if(!yrData[yr]) yrData[yr] = { A0:eqA, Ae:eqA, B0:eqB, Be:eqB, bh0:bh, bhe:bh };
       yrData[yr].Ae = eqA; yrData[yr].Be = eqB; yrData[yr].bhe = bh;
     }
     
-    BT_RESULT = { cfg, curve, yrData };
+    // 更新 Live 面板
+    document.getElementById('liveA').innerHTML = `${lastStatusA.s}分 ${getBadge(lastStatusA.m)} <span style="font-size:12px;color:var(--muted)">x${lastStatusA.p}倉</span>`;
+    document.getElementById('liveB').innerHTML = `${lastStatusB.s}分 ${getBadge(lastStatusB.m)} <span style="font-size:12px;color:var(--muted)">x${lastStatusB.p}倉</span>`;
+
+    BT_RESULT = { cfg, curve, yrData, logs: logs.reverse(), mdd: { A:mddA, B:mddB, BH:mddBH } };
     renderUI();
     document.getElementById('loadingOverlay').classList.add('hidden');
     switchTab({target:document.querySelectorAll('.tab')[1]}, 'result');
   }, 100);
 }
 
-function nextMode(curMode, shield, vNow, vPrev, trgVix, s100, s150) {
-  const vTrigger = vPrev >= trgVix && vNow < vPrev;
-  if(shield >= s100) return { mode:'NORMAL', pos: (shield >= s150 ? 1.5 : 1.0) };
-  if(curMode === 'NORMAL') return { mode:'OBS', pos: 1.0 };
-  if(vTrigger) return { mode:'STRIKE', pos: 0.3 };
-  return { mode:'RETREAT', pos: 0.0 };
+function nextMode(curMode, shield, vNow, vPrev, trgVix, s100, s150, rsi, zBias) {
+  const cond1 = rsi < 35; 
+  const cond2 = vPrev >= trgVix && vNow < vPrev;
+  const cond3 = zBias <= -2.0;
+  const strikeTrigger = [cond1, cond2, cond3].filter(Boolean).length >= 2;
+
+  if (shield >= s100) return { mode: 'NORMAL', pos: (shield >= s150 ? 1.5 : 1.0) };
+  if (curMode === 'NORMAL') return { mode: 'OBS', pos: 1.0 };
+  if (strikeTrigger) return { mode: 'STRIKE', pos: 0.3 };
+  return { mode: 'RETREAT', pos: 0.0 };
 }
 
 function lerp(x, x0, x1, y0, y1) {
@@ -334,42 +456,82 @@ function lerp(x, x0, x1, y0, y1) {
 // ── UI 渲染 ──
 function renderUI() {
   const r = BT_RESULT;
-  const last = r.curve[r.curve.length-1];
-  const start = r.curve[0];
   
-  let kpiHtml = '';
-  if(r.cfg.mode === 'A' || r.cfg.mode === 'BOTH') kpiHtml += `<div class="kpi"><div class="kpi-label" style="color:var(--yellow)">方法 A (Delta) 總報酬</div><div class="kpi-val" style="color:var(--yellow)">+${((last.vA/start.vA-1)*100).toFixed(1)}%</div></div>`;
-  if(r.cfg.mode === 'B' || r.cfg.mode === 'BOTH') kpiHtml += `<div class="kpi"><div class="kpi-label" style="color:var(--green)">方法 B (Z-Score) 總報酬</div><div class="kpi-val" style="color:var(--green)">+${((last.vB/start.vB-1)*100).toFixed(1)}%</div></div>`;
-  kpiHtml += `<div class="kpi"><div class="kpi-label">B&H 總報酬</div><div class="kpi-val" style="color:var(--muted)">+${((last.b/start.b-1)*100).toFixed(1)}%</div></div>`;
-  document.getElementById('kpiStrip').innerHTML = kpiHtml;
+  // 渲染績效矩陣
+  let mHTML = '';
+  const perfBH = calcPerformance(r.curve, 'b');
+  
+  if(r.cfg.mode === 'A' || r.cfg.mode === 'BOTH') {
+    const pA = calcPerformance(r.curve, 'vA');
+    mHTML += `
+    <div class="metric-card m-a">
+      <div class="m-title">方法 A (Delta)</div>
+      <div class="m-row"><span>總報酬</span><span class="m-val ty">+${pA.total}%</span></div>
+      <div class="m-row"><span>CAGR</span><span class="m-val">${pA.cagr}%</span></div>
+      <div class="m-row"><span>Max Drawdown</span><span class="m-val tr">${pA.mdd}%</span></div>
+      <div class="m-row"><span>Sharpe Ratio</span><span class="m-val">${pA.sharpe}</span></div>
+    </div>`;
+  }
+  
+  if(r.cfg.mode === 'B' || r.cfg.mode === 'BOTH') {
+    const pB = calcPerformance(r.curve, 'vB');
+    mHTML += `
+    <div class="metric-card m-b">
+      <div class="m-title">方法 B (Z-Score)</div>
+      <div class="m-row"><span>總報酬</span><span class="m-val tg">+${pB.total}%</span></div>
+      <div class="m-row"><span>CAGR</span><span class="m-val">${pB.cagr}%</span></div>
+      <div class="m-row"><span>Max Drawdown</span><span class="m-val tr">${pB.mdd}%</span></div>
+      <div class="m-row"><span>Sharpe Ratio</span><span class="m-val">${pB.sharpe}</span></div>
+    </div>`;
+  }
+  
+  mHTML += `
+    <div class="metric-card m-bh">
+      <div class="m-title">B&H 基準</div>
+      <div class="m-row"><span>總報酬</span><span class="m-val">+${perfBH.total}%</span></div>
+      <div class="m-row"><span>CAGR</span><span class="m-val">${perfBH.cagr}%</span></div>
+      <div class="m-row"><span>Max Drawdown</span><span class="m-val tr">${perfBH.mdd}%</span></div>
+      <div class="m-row"><span>Sharpe Ratio</span><span class="m-val">${perfBH.sharpe}</span></div>
+    </div>`;
+  document.getElementById('metricsGrid').innerHTML = mHTML;
 
-  drawNavChart(r);
+  drawCharts(r);
   renderYearly(r);
+  renderHistory(r);
 }
 
-function drawNavChart(r) {
-  const ctx = document.getElementById('navChart').getContext('2d');
-  if(charts.nav) charts.nav.destroy();
+function drawCharts(r) {
+  const ctxNav = document.getElementById('navChart').getContext('2d');
+  const ctxDd = document.getElementById('ddChart').getContext('2d');
+  if(charts.nav) { charts.nav.destroy(); charts.dd.destroy(); }
   
-  let datasets = [{ label: 'B&H', data: r.curve.map(d => d.b), borderColor: '#3d4a66', borderWidth: 1, pointRadius: 0 }];
-  if(r.cfg.mode === 'A' || r.cfg.mode === 'BOTH') datasets.push({ label: '方法 A', data: r.curve.map(d => d.vA), borderColor: '#ffb830', borderWidth: 2, pointRadius: 0 });
-  if(r.cfg.mode === 'B' || r.cfg.mode === 'BOTH') datasets.push({ label: '方法 B', data: r.curve.map(d => d.vB), borderColor: '#00e5a0', borderWidth: 2, pointRadius: 0 });
+  let dNav = [{ label: 'B&H', data: r.curve.map(d => d.b), borderColor: '#3d4a66', borderWidth: 1, pointRadius: 0 }];
+  let dDd = [{ label: 'B&H', data: r.mdd.BH, borderColor: '#3d4a66', borderWidth: 1, pointRadius: 0, fill:true, backgroundColor:'rgba(61, 74, 102, 0.2)' }];
 
-  charts.nav = new Chart(ctx, {
-    type: 'line', data: { labels: r.curve.map(d => d.d), datasets },
-    options: { responsive: true, maintainAspectRatio: false, scales: { y: { type: 'logarithmic' } }, interaction: { intersect: false, mode: 'index' } }
-  });
+  if(r.cfg.mode === 'A' || r.cfg.mode === 'BOTH') {
+    dNav.push({ label: '方法 A', data: r.curve.map(d => d.vA), borderColor: '#ffb830', borderWidth: 2, pointRadius: 0 });
+    dDd.push({ label: '方法 A', data: r.mdd.A, borderColor: '#ffb830', borderWidth: 1, pointRadius: 0 });
+  }
+  if(r.cfg.mode === 'B' || r.cfg.mode === 'BOTH') {
+    dNav.push({ label: '方法 B', data: r.curve.map(d => d.vB), borderColor: '#00e5a0', borderWidth: 2, pointRadius: 0 });
+    dDd.push({ label: '方法 B', data: r.mdd.B, borderColor: '#00e5a0', borderWidth: 1, pointRadius: 0 });
+  }
+
+  const commonOpt = { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' } };
+  
+  charts.nav = new Chart(ctxNav, { type: 'line', data: { labels: r.curve.map(d => d.d), datasets: dNav }, options: { ...commonOpt, scales: { y: { type: 'logarithmic' } } } });
+  charts.dd = new Chart(ctxDd, { type: 'line', data: { labels: r.curve.map(d => d.d), datasets: dDd }, options: { ...commonOpt, plugins:{ legend:{display:false} } } });
 }
 
 function renderYearly(r) {
   const h = document.getElementById('yHead');
   h.innerHTML = `<th>年份</th>`;
-  if(r.cfg.mode === 'A' || r.cfg.mode === 'BOTH') h.innerHTML += `<th class="ty">方法 A 報酬</th>`;
-  if(r.cfg.mode === 'B' || r.cfg.mode === 'BOTH') h.innerHTML += `<th class="tg">方法 B 報酬</th>`;
+  if(r.cfg.mode === 'A' || r.cfg.mode === 'BOTH') h.innerHTML += `<th class="ty">方法 A</th>`;
+  if(r.cfg.mode === 'B' || r.cfg.mode === 'BOTH') h.innerHTML += `<th class="tg">方法 B</th>`;
   h.innerHTML += `<th>B&H</th>`;
 
   const body = document.getElementById('yrBody');
-  body.innerHTML = Object.keys(r.yrData).sort().map(yr => {
+  body.innerHTML = Object.keys(r.yrData).sort().reverse().map(yr => {
     const y = r.yrData[yr];
     const retA = ((y.Ae / y.A0) - 1) * 100;
     const retB = ((y.Be / y.B0) - 1) * 100;
@@ -380,6 +542,25 @@ function renderYearly(r) {
     if(r.cfg.mode === 'B' || r.cfg.mode === 'BOTH') tr += `<td class="${retB>0?'tg':'tr'}">${retB.toFixed(1)}%</td>`;
     tr += `<td class="${retBH>0?'':'tr'}">${retBH.toFixed(1)}%</td></tr>`;
     return tr;
+  }).join('');
+}
+
+function renderHistory(r) {
+  const body = document.getElementById('historyBody');
+  if(r.logs.length === 0) {
+    body.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted)">區間內無切換紀錄</td></tr>`;
+    return;
+  }
+  body.innerHTML = r.logs.map(L => {
+    const color = L.mtd.includes('A') ? 'var(--yellow)' : 'var(--green)';
+    return `<tr class="log-row">
+      <td class="mono">${L.d}</td>
+      <td style="color:${color};font-weight:700;">${L.mtd}</td>
+      <td>${getBadge(L.fm)}</td>
+      <td>➔ ${getBadge(L.to)}</td>
+      <td class="mono">${L.sp}</td>
+      <td class="mono">${L.s}</td>
+    </tr>`;
   }).join('');
 }
 
