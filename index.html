@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>矛與盾 V7.6 — 四象限決策版</title>
+<title>矛與盾 V7.7 — 完整量化指標版</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700;900&display=swap');
 
@@ -88,7 +88,7 @@ input[type="file"]{display:none;}
 .btn-primary:hover{background:#00ffb3;}
 
 /* ── 儀表板組件 ── */
-.metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; margin-bottom: 20px; }
 .metric-card { background: var(--surface); border: 1px solid var(--border); padding: 16px; text-align: center; }
 .metric-card.m-a { border-top: 3px solid var(--yellow); }
 .metric-card.m-b { border-top: 3px solid var(--green); }
@@ -122,8 +122,8 @@ td{padding:10px;border-bottom:1px solid var(--border);}
 <div class="wrap">
   <div class="hdr">
     <div class="hdr-left">
-      <div class="hdr-title">🛡️ 矛與盾 <span class="v">V7.6 四象限決策版</span></div>
-      <div class="hdr-sub">加碼/常態/清倉/短打 ｜ 動量軌跡追蹤 ｜ A/B 獨立參數</div>
+      <div class="hdr-title">🛡️ 矛與盾 <span class="v">V7.7 完整量化指標版</span></div>
+      <div class="hdr-sub">最大回撤 ｜ 年化標準差 ｜ 夏普指數評估</div>
     </div>
     <div id="dataSourceBadge" style="font-size:12px;padding:4px 12px;border:1px solid var(--border-hi);color:var(--muted);font-family:monospace;">● 初始數據模式</div>
   </div>
@@ -314,9 +314,10 @@ function getBadge(mode) {
 }
 
 function calcPerformance(curve, key) {
-  if(curve.length === 0) return { mdd: '0.00', cagr: '0.00', sharpe: '0.00', total: '0.0' };
+  if(curve.length === 0) return { mdd: '0.00', cagr: '0.00', sharpe: '0.00', total: '0.0', std: '0.00' };
   let peak = 0, mdd = 0;
   let rets = [];
+  
   for(let i=1; i<curve.length; i++){
     let val = curve[i][key];
     if(val > peak) peak = val;
@@ -324,15 +325,26 @@ function calcPerformance(curve, key) {
     if(dd < mdd) mdd = dd;
     rets.push((val - curve[i-1][key]) / curve[i-1][key]);
   }
+  
   let years = Math.max(0.1, curve.length / 252);
   let totalRet = curve[curve.length-1][key] / curve[0][key] - 1;
   let cagr = Math.pow(1 + Math.max(totalRet, -0.999), 1/years) - 1;
   
+  // 計算標準差與夏普指數
   let avgRet = rets.reduce((a,b)=>a+b,0) / (rets.length || 1);
-  let stdDev = Math.sqrt(rets.reduce((a,b)=>a+Math.pow(b-avgRet,2),0) / (rets.length || 1));
-  let sharpe = stdDev === 0 ? 0 : (avgRet / stdDev) * Math.sqrt(252);
+  let dailyStdDev = Math.sqrt(rets.reduce((a,b)=>a+Math.pow(b-avgRet,2),0) / (rets.length || 1));
+  let annStdDev = dailyStdDev * Math.sqrt(252); // 年化標準差 (假設一年252個交易日)
   
-  return { mdd: (mdd*100).toFixed(2), cagr: (cagr*100).toFixed(2), sharpe: sharpe.toFixed(2), total: (totalRet*100).toFixed(1) };
+  // 夏普指數：(年化報酬 - 無風險利率) / 年化標準差。這裡簡化無風險利率為0進行策略互比
+  let sharpe = annStdDev === 0 ? 0 : (avgRet * 252) / annStdDev; 
+  
+  return { 
+    mdd: (mdd*100).toFixed(2), 
+    cagr: (cagr*100).toFixed(2), 
+    sharpe: sharpe.toFixed(2), 
+    total: (totalRet*100).toFixed(1),
+    std: (annStdDev*100).toFixed(2)
+  };
 }
 
 function runBacktest() {
@@ -463,13 +475,10 @@ function runBacktest() {
 // 狀態機：嚴格限縮為 加碼/常態/清倉/短打 四階段
 function nextMode(shield, daysBelow, mCfg, strkCfg, posCfg, vNow, vPrev, rsi, zBias) {
   if (shield >= mCfg.s100) {
-    // 高於清倉線，分為加碼或常態
     if (shield >= mCfg.s150) return { mode: 'PLUS', pos: posCfg.max };
     return { mode: 'NORMAL', pos: posCfg.base };
   } else {
-    // 低於清倉線，檢查時間濾網
     if (daysBelow >= mCfg.clearDays) {
-      // 滿足連續天數，執行撤退或逆襲短打
       const cond1 = rsi < strkCfg.rsi; 
       const cond2 = vPrev >= strkCfg.vix && vNow < vPrev;
       const cond3 = zBias <= strkCfg.bias;
@@ -478,7 +487,6 @@ function nextMode(shield, daysBelow, mCfg, strkCfg, posCfg, vNow, vPrev, rsi, zB
       if (strikeTrigger) return { mode: 'STRIKE', pos: posCfg.strike };
       return { mode: 'CLEAR', pos: 0.0 }; // 完全清倉
     } else {
-      // 雖然低於清倉線，但連續天數還沒達標 (尚未確認)，此時維持常態倉位不動作
       return { mode: 'NORMAL', pos: posCfg.base };
     }
   }
@@ -489,7 +497,21 @@ function lerp(x, x0, x1, y0, y1) {
   return y0 + (y1-y0)*t;
 }
 
-// ── UI 渲染 ──
+// ── UI 渲染 (套用績效函式模板) ──
+function getMetricCardHTML(title, p, cssClass) {
+  const isPos = parseFloat(p.total) > 0;
+  return `
+    <div class="metric-card ${cssClass}">
+      <div class="m-title">${title}</div>
+      <div class="m-row"><span>區間報酬</span><span class="m-val ${isPos?'ty':''}">${isPos?'+':''}${p.total}%</span></div>
+      <div class="m-row"><span>年化報酬 (CAGR)</span><span class="m-val">${p.cagr}%</span></div>
+      <div class="m-row"><span>最大回撤 (MDD)</span><span class="m-val tr">${p.mdd}%</span></div>
+      <div class="m-row"><span>年化標準差 (StdDev)</span><span class="m-val">${p.std}%</span></div>
+      <div class="m-row"><span>夏普指數 (Sharpe)</span><span class="m-val tg">${p.sharpe}</span></div>
+    </div>
+  `;
+}
+
 function renderUI() {
   const r = BT_RESULT;
   let mHTML = '';
@@ -497,13 +519,14 @@ function renderUI() {
   
   if(r.cfg.mode === 'A' || r.cfg.mode === 'BOTH') {
     const pA = calcPerformance(r.curve, 'vA');
-    mHTML += `<div class="metric-card m-a"><div class="m-title">方法 A (Delta)</div><div class="m-row"><span>區間報酬</span><span class="m-val ty">+${pA.total}%</span></div><div class="m-row"><span>CAGR</span><span class="m-val">${pA.cagr}%</span></div><div class="m-row"><span>Max Drawdown</span><span class="m-val tr">${pA.mdd}%</span></div></div>`;
+    mHTML += getMetricCardHTML('方法 A (Delta)', pA, 'm-a');
   }
   if(r.cfg.mode === 'B' || r.cfg.mode === 'BOTH') {
     const pB = calcPerformance(r.curve, 'vB');
-    mHTML += `<div class="metric-card m-b"><div class="m-title">方法 B (Z-Score)</div><div class="m-row"><span>區間報酬</span><span class="m-val tg">+${pB.total}%</span></div><div class="m-row"><span>CAGR</span><span class="m-val">${pB.cagr}%</span></div><div class="m-row"><span>Max Drawdown</span><span class="m-val tr">${pB.mdd}%</span></div></div>`;
+    mHTML += getMetricCardHTML('方法 B (Z-Score)', pB, 'm-b');
   }
-  mHTML += `<div class="metric-card m-bh"><div class="m-title">B&H 基準</div><div class="m-row"><span>區間報酬</span><span class="m-val">+${perfBH.total}%</span></div><div class="m-row"><span>CAGR</span><span class="m-val">${perfBH.cagr}%</span></div><div class="m-row"><span>Max Drawdown</span><span class="m-val tr">${perfBH.mdd}%</span></div></div>`;
+  mHTML += getMetricCardHTML('B&H 基準', perfBH, 'm-bh');
+  
   document.getElementById('metricsGrid').innerHTML = mHTML;
 
   drawCharts(r);
