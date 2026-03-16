@@ -234,4 +234,417 @@ function syncArrays() {
     if(nextD.getDay()===0) nextD.setDate(nextD.getDate()+1);
     setVal('dbDate', nextD.toISOString().slice(0,10));
 
-    setVal('dbSP', last.sp); setVal('dbEW', last.ew); setVal('dbHY', last.hy); setVal('dbTIPS', last.tips);
+    setVal('dbSP', last.sp); setVal('dbEW', last.ew); setVal('dbHY', last.hy); setVal('dbTIPS', last.tips);// 接續上一段的 JS 程式碼...
+
+async function fetchWebData() {
+  const key = document.getElementById('apiFredKey').value.trim();
+  let proxy = document.getElementById('apiProxy').value.trim();
+  const cape = parseFloat(document.getElementById('apiCape').value) || 30.0;
+  
+  if(!key) { alert("請輸入 FRED API 金鑰！"); return; }
+  
+  if (proxy && !proxy.includes('url=')) {
+    proxy = proxy.endsWith('/') ? proxy + '?url=' : proxy + '/?url=';
+    document.getElementById('apiProxy').value = proxy; 
+  }
+  
+  document.getElementById('loadingOverlay').classList.remove('hidden');
+
+  try {
+    const getUrl = (targetUrl) => proxy ? proxy + encodeURIComponent(targetUrl) : targetUrl;
+
+    const getFred = async (seriesId) => {
+      const url = getUrl(`https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${key}&file_type=json`);
+      const res = await fetch(url);
+      if(!res.ok) throw new Error("FRED API 連線失敗或金鑰錯誤");
+      const json = await res.json();
+      let dict = {};
+      json.observations.forEach(o => {
+        if(o.value !== '.') dict[o.date] = parseFloat(o.value);
+      });
+      return dict;
+    };
+
+    const getYf = async (ticker) => {
+      const url = getUrl(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=2y&interval=1d`);
+      const res = await fetch(url);
+      if(!res.ok) throw new Error(`Yahoo Finance 連線失敗 (${ticker})`);
+      const json = await res.json();
+      let dict = {};
+      const chart = json.chart.result[0];
+      const times = chart.timestamp;
+      const closes = chart.indicators.quote[0].close;
+      for(let i=0; i<times.length; i++) {
+        if(closes[i] !== null) {
+          let d = new Date(times[i]*1000).toISOString().slice(0,10);
+          dict[d] = closes[i];
+        }
+      }
+      return dict;
+    };
+
+    // 新增 T10Y2Y 與 NFCI (NFCI 為週頻率，後續會用 LOCF 補齊)
+    const [hyData, tipsData, spData, ewData, vixData, t10yData, nfciData] = await Promise.all([
+      getFred('BAMLH0A0HYM2'), getFred('DFII10'),
+      getYf('^GSPC'), getYf('RSP'), getYf('^VIX'),
+      getFred('T10Y2Y'), getFred('NFCI')
+    ]);
+
+    let updatedCount = 0;
+    let newRecords = 0;
+    const sortedSpDates = Object.keys(spData).sort();
+    
+    let lastHy = 3.5, lastTips = 1.5, lastT10y = 1.0, lastNfci = -0.2;
+
+    // 將週頻率或較慢更新的指標對齊 SP500 交易日 (強制前值填充 LOCF)
+    const sortedNfciDates = Object.keys(nfciData).sort();
+    let nfciIdx = 0;
+
+    sortedSpDates.forEach(d => {
+      if(hyData[d] !== undefined) lastHy = hyData[d];
+      if(tipsData[d] !== undefined) lastTips = tipsData[d];
+      if(t10yData[d] !== undefined) lastT10y = t10yData[d];
+      
+      // NFCI 是週發布，找尋小於等於當前日期的最新值
+      while(nfciIdx < sortedNfciDates.length - 1 && sortedNfciDates[nfciIdx + 1] <= d) {
+          nfciIdx++;
+      }
+      if(sortedNfciDates[nfciIdx] <= d) lastNfci = nfciData[sortedNfciDates[nfciIdx]];
+
+      if(ewData[d] !== undefined && vixData[d] !== undefined) {
+        const row = {
+          d: d, sp: parseFloat(spData[d].toFixed(4)), ew: parseFloat(ewData[d].toFixed(4)), 
+          hy: parseFloat(lastHy.toFixed(2)), tips: parseFloat(lastTips.toFixed(2)), 
+          vix: parseFloat(vixData[d].toFixed(2)), cape: cape,
+          t10y: parseFloat(lastT10y.toFixed(2)), nfci: parseFloat(lastNfci.toFixed(2))
+        };
+        
+        const existingIdx = dbData.findIndex(x => x.d === d);
+        if(existingIdx > -1) {
+          dbData[existingIdx] = row;
+          updatedCount++;
+        } else {
+          dbData.push(row);
+          newRecords++;
+        }
+      }
+    });
+
+    dbData.sort((a,b) => a.d.localeCompare(b.d));
+    syncArrays();
+    alert(`✅ API 抓取與補齊完成！\n新增/補齊紀錄：${newRecords} 筆\n覆蓋更新：${updatedCount} 筆\n已成功匯入 T10Y2Y 與 NFCI 數據。`);
+
+  } catch (error) {
+    console.error(error);
+    alert("❌ 抓取過程發生錯誤：\n" + error.message + "\n\n請確認您的 Proxy 網址與金鑰是否正確。");
+  } finally {
+    document.getElementById('loadingOverlay').classList.add('hidden');
+  }
+}
+
+function getBadge(mode) {
+  if(mode==='PLUS') return '<span style="background:var(--blue-dim);color:var(--blue);border:1px solid var(--blue);padding:2px 8px;border-radius:3px;font-size:12px;">加碼</span>';
+  if(mode==='NORMAL') return '<span style="background:var(--surface2);color:var(--white);border:1px solid var(--border-hi);padding:2px 8px;border-radius:3px;font-size:12px;">常態</span>';
+  if(mode==='CLEAR') return '<span style="background:var(--red-dim);color:var(--red);border:1px solid var(--red);padding:2px 8px;border-radius:3px;font-size:12px;">清倉</span>';
+  return '<span style="background:var(--yellow-dim);color:var(--yellow);border:1px solid var(--yellow);padding:2px 8px;border-radius:3px;font-size:12px;">短打</span>';
+}
+
+function calcPerformance(curve, key) {
+  if(curve.length === 0) return { mdd: '0.00', cagr: '0.00', sharpe: '0.00', calmar: '0.00', total: '0.0', std: '0.00' };
+  let peak = 0, mdd = 0; let rets = [];
+  for(let i=1; i<curve.length; i++){
+    let val = curve[i][key];
+    if(val > peak) peak = val;
+    let dd = (val - peak) / peak;
+    if(dd < mdd) mdd = dd;
+    rets.push((val - curve[i-1][key]) / curve[i-1][key]);
+  }
+  let years = Math.max(0.1, curve.length / 252);
+  let totalRet = curve[curve.length-1][key] / curve[0][key] - 1;
+  let cagr = Math.pow(1 + Math.max(totalRet, -0.999), 1/years) - 1;
+  let avgRet = rets.reduce((a,b)=>a+b,0) / (rets.length || 1);
+  let dailyStdDev = Math.sqrt(rets.reduce((a,b)=>a+Math.pow(b-avgRet,2),0) / (rets.length || 1));
+  let annStdDev = dailyStdDev * Math.sqrt(252);
+  let sharpe = annStdDev === 0 ? 0 : (avgRet * 252) / annStdDev; 
+  let calmar = mdd === 0 ? 0 : cagr / Math.abs(mdd);
+  return { mdd: (mdd*100).toFixed(2), cagr: (cagr*100).toFixed(2), sharpe: sharpe.toFixed(2), calmar: calmar.toFixed(2), total: (totalRet*100).toFixed(1), std: (annStdDev*100).toFixed(2) };
+}
+
+function nextMode(shield, daysBelow, mCfg, strkCfg, posCfg, vNow, vPrev, rsi, zBias, prevMode, enableLock) {
+  if (shield >= mCfg.s100) {
+    if (shield >= mCfg.s150) return { mode: 'PLUS', pos: posCfg.max };
+    return { mode: 'NORMAL', pos: posCfg.base };
+  } else {
+    if (enableLock && prevMode === 'STRIKE') {
+        return { mode: 'STRIKE', pos: posCfg.strike }; 
+    }
+    if (daysBelow >= mCfg.clearDays) {
+      if (rsi < strkCfg.rsi || (vPrev >= strkCfg.vix && vNow < vPrev) || zBias <= strkCfg.bias) {
+        if ([rsi < strkCfg.rsi, vPrev >= strkCfg.vix && vNow < vPrev, zBias <= strkCfg.bias].filter(Boolean).length >= 2) {
+          return { mode: 'STRIKE', pos: posCfg.strike };
+        }
+      }
+      return { mode: 'CLEAR', pos: 0.0 };
+    } else {
+      return { mode: 'NORMAL', pos: posCfg.base };
+    }
+  }
+}
+
+function lerp(x, x0, x1, y0, y1) { const t = Math.max(0, Math.min(1, (x-x0)/(x1-x0))); return y0 + (y1-y0)*t; }
+
+function runBacktest() {
+  if(DATES.length === 0) { alert("無歷史資料！請先上傳 CSV。"); return; }
+  
+  const cfg = {
+    mode: document.getElementById('cpMode').value, cap: 100000, cost: 5 / 10000,
+    start: document.getElementById('cpStart').value, end: document.getElementById('cpEnd').value,
+    A: { s150: parseInt(document.getElementById('cpA150').value), s100: parseInt(document.getElementById('cpA100').value), clearDays: parseInt(document.getElementById('cpADays').value), delta: parseFloat(document.getElementById('cpADelta').value), win: 120 },
+    B: { s150: parseInt(document.getElementById('cpB150').value), s100: parseInt(document.getElementById('cpB100').value), clearDays: parseInt(document.getElementById('cpBDays').value), z: parseFloat(document.getElementById('cpBZ').value), win: 500 },
+    strk: { rsi: parseFloat(document.getElementById('cpRsi').value), vix: parseFloat(document.getElementById('cpVix').value), bias: parseFloat(document.getElementById('cpBias').value) },
+    pos: { max: parseFloat(document.getElementById('cpPosMax').value), base: parseFloat(document.getElementById('cpPosBase').value), strike: parseFloat(document.getElementById('cpPosStrk').value) }
+  };
+
+  document.getElementById('loadingOverlay').classList.remove('hidden');
+  
+  setTimeout(() => {
+    let eqA = cfg.cap, eqB = cfg.cap, eqC = cfg.cap, bh = cfg.cap;
+    let modeA = 'NORMAL', modeB = 'NORMAL', modeC = 'NORMAL';
+    let posA = cfg.pos.base, posB = cfg.pos.base, posC = cfg.pos.base;
+    let daysBelowA = 0, daysBelowB = 0; 
+    let prevShieldA = 100, prevShieldB = 100;
+    
+    const curve = [], yrData = [], logs = [];
+    let lastStatusA = {}, lastStatusB = {}, lastStatusC = {};
+    let mddA = [], mddB = [], mddC = [], mddBH = [];
+    let peakA = cfg.cap, peakB = cfg.cap, peakC = cfg.cap, peakBH = cfg.cap;
+
+    let sIdx = 1, eIdx = DATES.length - 1;
+    for(let i=0; i<DATES.length; i++) if(DATES[i] >= cfg.start) { sIdx = Math.max(1, i); break; }
+    for(let i=DATES.length-1; i>=0; i--) if(DATES[i] <= cfg.end) { eIdx = i; break; }
+
+    let initialSP = SP[sIdx-1] || SP[0];
+
+    for(let i = sIdx; i <= eIdx; i++) {
+      const spRet = (SP[i] - SP[i-1]) / SP[i-1];
+      const hyNow = HY[i] * 100;
+      const f1 = lerp((100 / CAPE[i]) - TIPS[i], 0, 4, 10, 100);
+      const f5b = lerp(hyNow, 250, 600, 80, 20);
+      
+      let rsi = 50, zBias = 0;
+      if (i >= 70) { 
+        let wCloses = [SP[i]]; 
+        for(let j = i - 1; j >= 0; j--) {
+            let dayOld = new Date(DATES[j]).getDay();
+            let dayNew = new Date(DATES[j+1]).getDay();
+            if(dayOld >= dayNew) { wCloses.push(SP[j]); if(wCloses.length === 15) break; }
+        }
+        if (wCloses.length === 15) {
+            wCloses.reverse(); 
+            let gains = 0, losses = 0;
+            for (let k = 1; k < 15; k++) {
+                let diff = wCloses[k] - wCloses[k-1];
+                if (diff >= 0) gains += diff; else losses -= diff;
+            }
+            rsi = 100 - (100 / (1 + (gains / (losses || 1))));
+        }
+      }
+
+      if (i >= 20) {
+        const slice = [];
+        for(let j = i - 19; j <= i; j++) slice.push(EW[j] / SP[j]);
+        const mean = slice.reduce((a, b) => a + b, 0) / 20;
+        const std = Math.sqrt(slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / 20) || 1;
+        zBias = ((EW[i] / SP[i]) - mean) / std;
+      }
+
+      // === 新增：宏觀懲罰計算 (Macro Penalty) ===
+      let t10yNow = T10Y[i], nfciNow = NFCI[i];
+      let penaltyYC = 0, penaltyNFCI = 0;
+      
+      // 判斷過去半年(約126個交易日)殖利率曲線是否曾倒掛
+      let wasInverted = false;
+      let lookback = Math.max(0, i - 126);
+      for(let j = lookback; j < i; j++) { if(T10Y[j] < 0) { wasInverted = true; break; } }
+      
+      // YC 懲罰：倒掛 -10，陡峭化(解倒掛) -25
+      if (t10yNow < 0) penaltyYC = 10;
+      else if (t10yNow > 0.2 && wasInverted) penaltyYC = 25;
+
+      // NFCI 懲罰：微緊縮 -10，危機狀態 -20
+      if (nfciNow >= 0.5) penaltyNFCI = 20;
+      else if (nfciNow > 0) penaltyNFCI = 10;
+      // =====================================
+
+      // 引入動態滑價成本：VIX > 30 時，流動性變差，滑價加倍
+      const currentVix = VIX[i] || 15;
+      const dynamicCost = currentVix > 30 ? cfg.cost * 2.5 : cfg.cost;
+
+      if(cfg.mode === 'A' || cfg.mode === 'ALL') {
+        const startA = Math.max(0, i - cfg.A.win);
+        let minHy = hyNow;
+        for(let j=startA; j<i; j++) { if(HY[j]*100 < minHy) minHy = HY[j]*100; }
+        
+        // 加入懲罰扣分機制，最低0分
+        let baseShieldA = Math.round(f1*0.5 + Math.max(0, f5b - ((hyNow - minHy) >= cfg.A.delta ? 20 : 0))*0.5);
+        const shieldA = Math.max(0, baseShieldA - penaltyYC - penaltyNFCI);
+        
+        if (shieldA < cfg.A.s100) daysBelowA++; else daysBelowA = 0;
+        
+        const nextA = nextMode(shieldA, daysBelowA, cfg.A, cfg.strk, cfg.pos, VIX[i], VIX[i-1], rsi, zBias, modeA, false);
+        if(nextA.mode !== modeA) logs.push({ d:DATES[i], mtd:'A', fm:modeA, to:nextA.mode, sp:SP[i].toFixed(1), s:shieldA, ps:prevShieldA, db:daysBelowA });
+        
+        eqA *= (1 + nextA.pos * spRet * (1 - ((nextA.pos !== posA) ? dynamicCost : 0)));
+        posA = nextA.pos; modeA = nextA.mode; prevShieldA = shieldA;
+        if(i === eIdx) lastStatusA = { s:shieldA, ps:prevShieldA, m:modeA, p:posA };
+      }
+
+      let shieldB = 100;
+      if(cfg.mode === 'B' || cfg.mode === 'BC' || cfg.mode === 'ALL') {
+        const startB = Math.max(0, i - cfg.B.win);
+        const slice = HY.slice(startB, i);
+        const mean = slice.reduce((a,b)=>a+b, 0) / slice.length;
+        const std = Math.sqrt(slice.reduce((a,b)=>a+(b-mean)**2, 0) / slice.length) || 1;
+        
+        // 加入懲罰扣分機制，最低0分
+        let baseShieldB = Math.round(f1*0.5 + Math.max(0, f5b - (((HY[i] - mean) / std) > cfg.B.z ? 20 : 0))*0.5);
+        shieldB = Math.max(0, baseShieldB - penaltyYC - penaltyNFCI);
+        
+        if (shieldB < cfg.B.s100) daysBelowB++; else daysBelowB = 0;
+      }
+
+      if(cfg.mode === 'B' || cfg.mode === 'BC' || cfg.mode === 'ALL') {
+        const nextB = nextMode(shieldB, daysBelowB, cfg.B, cfg.strk, cfg.pos, VIX[i], VIX[i-1], rsi, zBias, modeB, false);
+        if(nextB.mode !== modeB) logs.push({ d:DATES[i], mtd:'B', fm:modeB, to:nextB.mode, sp:SP[i].toFixed(1), s:shieldB, ps:prevShieldB, db:daysBelowB });
+        eqB *= (1 + nextB.pos * spRet * (1 - ((nextB.pos !== posB) ? dynamicCost : 0)));
+        posB = nextB.pos; modeB = nextB.mode;
+        if(i === eIdx) lastStatusB = { s:shieldB, ps:prevShieldB, m:modeB, p:posB };
+      }
+
+      if(cfg.mode === 'C' || cfg.mode === 'BC' || cfg.mode === 'ALL') {
+        const nextC = nextMode(shieldB, daysBelowB, cfg.B, cfg.strk, cfg.pos, VIX[i], VIX[i-1], rsi, zBias, modeC, true);
+        if(nextC.mode !== modeC) logs.push({ d:DATES[i], mtd:'C', fm:modeC, to:nextC.mode, sp:SP[i].toFixed(1), s:shieldB, ps:prevShieldB, db:daysBelowB });
+        eqC *= (1 + nextC.pos * spRet * (1 - ((nextC.pos !== posC) ? dynamicCost : 0)));
+        posC = nextC.pos; modeC = nextC.mode;
+        if(i === eIdx) lastStatusC = { s:shieldB, ps:prevShieldB, m:modeC, p:posC };
+      }
+
+      prevShieldB = shieldB;
+
+      bh = cfg.cap * (SP[i] / initialSP);
+      curve.push({ d:DATES[i], vA:eqA, vB:eqB, vC:eqC, b:bh });
+
+      if(eqA > peakA) peakA = eqA; mddA.push((eqA - peakA)/peakA * 100);
+      if(eqB > peakB) peakB = eqB; mddB.push((eqB - peakB)/peakB * 100);
+      if(eqC > peakC) peakC = eqC; mddC.push((eqC - peakC)/peakC * 100);
+      if(bh > peakBH) peakBH = bh; mddBH.push((bh - peakBH)/peakBH * 100);
+
+      const yr = DATES[i].slice(0,4);
+      if(!yrData[yr]) yrData[yr] = { A0:eqA, Ae:eqA, B0:eqB, Be:eqB, C0:eqC, Ce:eqC, bh0:bh, bhe:bh };
+      yrData[yr].Ae = eqA; yrData[yr].Be = eqB; yrData[yr].Ce = eqC; yrData[yr].bhe = bh;
+    }
+    
+    const getDeltaHtml = (s, ps) => {
+      if(s === undefined || ps === undefined) return '';
+      let diff = s - ps; let sign = diff >= 0 ? '+' + diff : diff;
+      let color = diff > 0 ? 'var(--green)' : (diff < 0 ? 'var(--red)' : 'var(--muted)');
+      let arrow = diff > 0 ? '▲' : (diff < 0 ? '▼' : '▬');
+      return `<div style="display:flex; flex-direction:column; align-items:flex-end;"><span style="color:${color}; font-size:13px; font-weight:700;">${arrow} ${sign} 分</span><span style="font-size:11px; color:var(--muted);">(昨: ${ps}分)</span></div>`;
+    };
+
+    document.getElementById('liveA').innerHTML = cfg.mode==='A'||cfg.mode==='ALL' ? `${getBadge(lastStatusA.m)} <span style="font-size:18px;">${lastStatusA.s}分</span> <div style="flex:1;"></div>${getDeltaHtml(lastStatusA.s, lastStatusA.ps)}<span style="font-size:13px;color:var(--white);margin-left:8px;border-left:1px solid var(--border-hi);padding-left:8px;">x${lastStatusA.p}倉</span>` : '--';
+    document.getElementById('liveB').innerHTML = cfg.mode!=='A' ? `${getBadge(lastStatusB.m)} <span style="font-size:18px;">${lastStatusB.s}分</span> <div style="flex:1;"></div>${getDeltaHtml(lastStatusB.s, lastStatusB.ps)}<span style="font-size:13px;color:var(--white);margin-left:8px;border-left:1px solid var(--border-hi);padding-left:8px;">x${lastStatusB.p}倉</span>` : '--';
+    document.getElementById('liveC').innerHTML = cfg.mode!=='A' ? `${getBadge(lastStatusC.m)} <span style="font-size:18px;">${lastStatusC.s}分</span> <div style="flex:1;"></div>${getDeltaHtml(lastStatusC.s, lastStatusC.ps)}<span style="font-size:13px;color:var(--white);margin-left:8px;border-left:1px solid var(--border-hi);padding-left:8px;">x${lastStatusC.p}倉</span>` : '--';
+
+    BT_RESULT = { cfg, curve, yrData, logs: logs.reverse(), mdd: { A:mddA, B:mddB, C:mddC, BH:mddBH } };
+    renderUI();
+    document.getElementById('loadingOverlay').classList.add('hidden');
+    switchTab({target:document.querySelectorAll('.tab')[2]}, 'result');
+  }, 100);
+}
+
+function renderUI() {
+  const r = BT_RESULT; let mHTML = ''; const perfBH = calcPerformance(r.curve, 'b');
+  if(r.cfg.mode === 'A' || r.cfg.mode === 'ALL') mHTML += getMetricCardHTML('方法 A (Delta)', calcPerformance(r.curve, 'vA'), 'm-a');
+  if(r.cfg.mode === 'B' || r.cfg.mode === 'BC' || r.cfg.mode === 'ALL') mHTML += getMetricCardHTML('方法 B (嚴格出場)', calcPerformance(r.curve, 'vB'), 'm-b');
+  if(r.cfg.mode === 'C' || r.cfg.mode === 'BC' || r.cfg.mode === 'ALL') mHTML += getMetricCardHTML('方法 C (狀態鎖定)', calcPerformance(r.curve, 'vC'), 'm-c');
+  mHTML += getMetricCardHTML('B&H 基準', perfBH, 'm-bh');
+  document.getElementById('metricsGrid').innerHTML = mHTML;
+  drawCharts(r); renderYearly(r); renderHistoryLogs(r);
+}
+
+function getMetricCardHTML(title, p, cssClass) {
+  const isPos = parseFloat(p.total) > 0;
+  return `<div class="metric-card ${cssClass}">
+    <div class="m-title">${title}</div>
+    <div class="m-row"><span>區間報酬</span><span class="m-val ${isPos?'ty':''}">${isPos?'+':''}${p.total}%</span></div>
+    <div class="m-row"><span>CAGR</span><span class="m-val">${p.cagr}%</span></div>
+    <div class="m-row"><span>MDD</span><span class="m-val tr">${p.mdd}%</span></div>
+    <div class="m-row"><span>StdDev</span><span class="m-val">${p.std}%</span></div>
+    <div class="m-row"><span>Sharpe</span><span class="m-val tg">${p.sharpe}</span></div>
+    <div class="m-row"><span>Calmar</span><span class="m-val tc">${p.calmar}</span></div>
+  </div>`;
+}
+
+function drawCharts(r) {
+  const ctxNav = document.getElementById('navChart').getContext('2d'), ctxDd = document.getElementById('ddChart').getContext('2d');
+  if(charts.nav) { charts.nav.destroy(); charts.dd.destroy(); }
+  if(r.curve.length === 0) return;
+  let dNav = [{ label: 'B&H', data: r.curve.map(d => d.b), borderColor: '#3d4a66', borderWidth: 1, pointRadius: 0 }];
+  let dDd = [{ label: 'B&H', data: r.mdd.BH, borderColor: '#3d4a66', borderWidth: 1, pointRadius: 0, fill:true, backgroundColor:'rgba(61, 74, 102, 0.2)' }];
+  
+  if(r.cfg.mode === 'A' || r.cfg.mode === 'ALL') { dNav.push({ label: '方法 A', data: r.curve.map(d => d.vA), borderColor: '#ffb830', borderWidth: 2, pointRadius: 0 }); dDd.push({ label: '方法 A', data: r.mdd.A, borderColor: '#ffb830', borderWidth: 1, pointRadius: 0 }); }
+  if(r.cfg.mode === 'B' || r.cfg.mode === 'BC' || r.cfg.mode === 'ALL') { dNav.push({ label: '方法 B', data: r.curve.map(d => d.vB), borderColor: '#00e5a0', borderWidth: 2, pointRadius: 0 }); dDd.push({ label: '方法 B', data: r.mdd.B, borderColor: '#00e5a0', borderWidth: 1, pointRadius: 0 }); }
+  if(r.cfg.mode === 'C' || r.cfg.mode === 'BC' || r.cfg.mode === 'ALL') { dNav.push({ label: '方法 C', data: r.curve.map(d => d.vC), borderColor: '#7eb8ff', borderWidth: 2, pointRadius: 0 }); dDd.push({ label: '方法 C', data: r.mdd.C, borderColor: '#7eb8ff', borderWidth: 1, pointRadius: 0 }); }
+  
+  const commonOpt = { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' } };
+  charts.nav = new Chart(ctxNav, { type: 'line', data: { labels: r.curve.map(d => d.d), datasets: dNav }, options: { ...commonOpt, scales: { y: { type: 'logarithmic' } } } });
+  charts.dd = new Chart(ctxDd, { type: 'line', data: { labels: r.curve.map(d => d.d), datasets: dDd }, options: { ...commonOpt, plugins:{ legend:{display:false} } } });
+}
+
+function renderYearly(r) {
+  const h = document.getElementById('yHead'); h.innerHTML = `<th>年份</th>`;
+  if(r.cfg.mode === 'A' || r.cfg.mode === 'ALL') h.innerHTML += `<th class="ty">方法 A</th>`;
+  if(r.cfg.mode === 'B' || r.cfg.mode === 'BC' || r.cfg.mode === 'ALL') h.innerHTML += `<th class="tg">方法 B</th>`; 
+  if(r.cfg.mode === 'C' || r.cfg.mode === 'BC' || r.cfg.mode === 'ALL') h.innerHTML += `<th class="tc">方法 C</th>`; 
+  h.innerHTML += `<th>B&H</th>`;
+  
+  document.getElementById('yrBody').innerHTML = Object.keys(r.yrData).sort().reverse().map(yr => {
+    const y = r.yrData[yr], retBH = ((y.bhe / y.bh0) - 1) * 100;
+    let tr = `<tr><td>${yr}</td>`;
+    if(r.cfg.mode === 'A' || r.cfg.mode === 'ALL') { let retA = ((y.Ae / y.A0) - 1) * 100; tr += `<td class="${retA>0?'ty':'tr'}">${retA.toFixed(1)}%</td>`; }
+    if(r.cfg.mode === 'B' || r.cfg.mode === 'BC' || r.cfg.mode === 'ALL') { let retB = ((y.Be / y.B0) - 1) * 100; tr += `<td class="${retB>0?'tg':'tr'}">${retB.toFixed(1)}%</td>`; }
+    if(r.cfg.mode === 'C' || r.cfg.mode === 'BC' || r.cfg.mode === 'ALL') { let retC = ((y.Ce / y.C0) - 1) * 100; tr += `<td class="${retC>0?'tc':'tr'}">${retC.toFixed(1)}%</td>`; }
+    return tr + `<td class="${retBH>0?'':'tr'}">${retBH.toFixed(1)}%</td></tr>`;
+  }).join('');
+}
+
+function renderHistoryLogs(r) {
+  const body = document.getElementById('historyBody');
+  if(r.logs.length === 0) { body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted)">區間內無切換紀錄</td></tr>`; return; }
+  
+  body.innerHTML = r.logs.map(L => {
+    let colorMtd = L.mtd === 'A' ? 'var(--yellow)' : (L.mtd === 'B' ? 'var(--green)' : 'var(--accent)');
+    return `<tr class="log-row">
+      <td class="mono">${L.d}</td>
+      <td style="color:${colorMtd};font-weight:700;">方法 ${L.mtd}</td>
+      <td>${getBadge(L.fm)} <span style="color:var(--muted);font-size:10px;">➔</span> ${getBadge(L.to)}</td>
+      <td class="mono">${L.sp}</td>
+      <td class="mono" style="font-weight:700; color:var(--white);">${L.s}</td>
+      <td class="mono" style="color:var(--muted);">${L.ps}</td>
+      <td class="mono">${L.db}</td>
+    </tr>`;
+  }).join('');
+}
+
+function switchTab(e, name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  e.target.classList.add('active');
+  document.getElementById('panel-'+name).classList.add('active');
+}
+</script>
+
+</body>
+</html>
+
