@@ -3,96 +3,70 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>矛與盾 V7.16 — 終極延遲實戰版</title>
+<title>矛與盾 V7.15 — 總經防禦與無前視偏誤版</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700;900&display=swap');
-
 *{box-sizing:border-box;margin:0;padding:0;}
-:root{
---bg:#0a0c10; --surface:#12161f; --surface2:#1a2030; --border:#252d3d;
---border-hi:#3a4560; --text:#e2eaf8; --muted:#6b7a99; --dim:#3d4a66;
---green:#00e5a0; --green-dim:#003d2a; --red:#ff4d6d; --red-dim:#3d0012;
---yellow:#ffb830; --yellow-dim:#3d2900; --blue:#4d9fff; --blue-dim:#001a3d;
---accent:#7eb8ff; --gold:#ffd166; --white:#f8faff;
-}
-
-body{
-font-family:'IBM Plex Sans',sans-serif; background:var(--bg); color:var(--text);
-min-height:100vh; padding:24px 20px; line-height:1.6;
-}
+:root{--bg:#0a0c10;--surface:#12161f;--surface2:#1a2030;--border:#252d3d;--border-hi:#3a4560;--text:#e2eaf8;--muted:#6b7a99;--dim:#3d4a66;--green:#00e5a0;--red:#ff4d6d;--yellow:#ffb830;--blue:#4d9fff;--accent:#7eb8ff;--white:#f8faff;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:24px 20px;line-height:1.6;}
 .mono{font-family:'IBM Plex Mono',monospace;}
 .wrap{max-width:1200px;margin:0 auto;}
-
-.hdr{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--border-hi); padding-bottom:18px;margin-bottom:20px;}
+.hdr{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--border-hi);padding-bottom:18px;margin-bottom:20px;}
 .hdr-title{font-size:22px;font-weight:900;color:var(--white);display:flex;align-items:center;gap:10px;}
 .hdr-title span.v{font-size:12px;font-weight:600;background:var(--accent);color:#000;padding:2px 8px;border-radius:3px;}
 .hdr-sub{font-size:13px;color:var(--muted);margin-top:4px;}
-
-.tabs{display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid var(--border); overflow-x: auto; white-space: nowrap;}
+.tabs{display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid var(--border);overflow-x:auto;white-space:nowrap;}
 .tab{padding:10px 22px;font-size:14px;font-weight:600;cursor:pointer;color:var(--muted);border:none;border-bottom:3px solid transparent;background:none;transition:0.15s;}
 .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
 .panel{display:none;}.panel.active{display:block;}
-
-.btn{padding:10px 24px;font-weight:700;cursor:pointer;border:2px solid;transition:0.15s;font-family:inherit;}
-.btn-primary{background:var(--green);color:#000;border-color:var(--green); width: 100%; font-size: 15px;}
+.btn{padding:10px 24px;font-weight:700;cursor:pointer;border:2px solid;transition:0.15s;font-family:inherit;width:100%;font-size:15px;}
+.btn-primary{background:var(--green);color:#000;border-color:var(--green);}
 .btn-primary:hover{background:#00ffb3;}
-.btn-outline{background:transparent;color:var(--accent);border-color:var(--accent); width: 100%; font-size: 15px;}
+.btn-outline{background:transparent;color:var(--accent);border-color:var(--accent);}
 .btn-outline:hover{background:var(--accent);color:#000;}
-
-.db-container { display: flex; gap: 20px; flex-wrap: wrap; }
-.db-box { flex: 1; background: var(--surface); border: 1px solid var(--border); padding: 20px; min-width: 300px; }
-.db-box h3 { font-size: 14px; color: var(--accent); margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px;}
-.db-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-.db-item { display: flex; flex-direction: column; gap: 4px; }
-.db-item label { font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; }
-.db-item input { background: var(--bg); border: 1px solid var(--border-hi); color: var(--white); padding: 8px; font-family: 'IBM Plex Mono'; font-size: 14px; }
-.db-item input:focus { outline: none; border-color: var(--accent); }
-
-.metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px; }
-.metric-card { background: var(--surface); border: 1px solid var(--border); padding: 16px; text-align: center; }
-.metric-card.m-a { border-top: 3px solid var(--yellow); }
-.metric-card.m-b { border-top: 3px solid var(--green); }
-.metric-card.m-c { border-top: 3px solid var(--accent); }
-.metric-card.m-bh { border-top: 3px solid var(--muted); }
-.m-title { font-size: 13px; color: var(--muted); font-weight: 700; margin-bottom: 12px; }
-.m-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; border-bottom: 1px dashed var(--border-hi); padding-bottom: 4px; }
-.m-row:last-child { border-bottom: none; margin-bottom: 0; }
-.m-val { font-family: 'IBM Plex Mono'; font-weight: 700; }
-
+.db-container{display:flex;gap:20px;flex-wrap:wrap;}
+.db-box{flex:1;background:var(--surface);border:1px solid var(--border);padding:20px;min-width:300px;}
+.db-box h3{font-size:14px;color:var(--accent);margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px;}
+.db-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
+.db-item{display:flex;flex-direction:column;gap:4px;}
+.db-item label{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;}
+.db-item input{background:var(--bg);border:1px solid var(--border-hi);color:var(--white);padding:8px;font-family:'IBM Plex Mono';font-size:14px;}
+.db-item input:focus{outline:none;border-color:var(--accent);}
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px;}
+.metric-card{background:var(--surface);border:1px solid var(--border);padding:16px;text-align:center;}
+.metric-card.m-a{border-top:3px solid var(--yellow);}
+.metric-card.m-b{border-top:3px solid var(--green);}
+.metric-card.m-c{border-top:3px solid var(--accent);}
+.metric-card.m-bh{border-top:3px solid var(--muted);}
+.m-title{font-size:13px;color:var(--muted);font-weight:700;margin-bottom:12px;}
+.m-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;border-bottom:1px dashed var(--border-hi);padding-bottom:4px;}
+.m-row:last-child{border-bottom:none;margin-bottom:0;}
+.m-val{font-family:'IBM Plex Mono';font-weight:700;}
 .chart-wrap{background:var(--surface);border:1px solid var(--border);padding:18px;margin-bottom:16px;}
 .table-wrap{background:var(--surface);border:1px solid var(--border);overflow-x:auto;margin-bottom:16px;max-height:600px;}
 table{width:100%;border-collapse:collapse;font-size:14px;}
 th{padding:10px;color:var(--muted);text-align:left;background:var(--surface2);position:sticky;top:0;z-index:2;}
 td{padding:10px;border-bottom:1px solid var(--border);}
-.tg{color:var(--green);font-weight:700;}
-.tc{color:var(--accent);font-weight:700;}
-.tr{color:var(--red);font-weight:700;}
-.ty{color:var(--yellow);font-weight:700;}
-.log-row:hover { background: var(--surface2); }
-
+.tg{color:var(--green);font-weight:700;}.tc{color:var(--accent);font-weight:700;}.tr{color:var(--red);font-weight:700;}.ty{color:var(--yellow);font-weight:700;}
+.log-row:hover{background:var(--surface2);}
 .loading-overlay{position:fixed;inset:0;background:rgba(10,12,16,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:16px;}
 .hidden{display:none;}
 .spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
-
-.upload-box{ background:var(--surface);border:2px dashed var(--border-hi);padding:16px;text-align:center;margin-bottom:20px;transition:0.2s; }
+.upload-box{background:var(--surface);border:2px dashed var(--border-hi);padding:16px;text-align:center;margin-bottom:20px;transition:0.2s;}
 .upload-box:hover{border-color:var(--accent);}
 .upload-box label{cursor:pointer;color:var(--accent);font-weight:700;}
 input[type="file"]{display:none;}
 </style>
-</head>
-<body>
+</head><body>
 
-<div class="loading-overlay hidden" id="loadingOverlay">
-  <div class="spinner"></div>
-  <div class="loading-text">處理中... 正在執行運算</div>
-</div>
+<div class="loading-overlay hidden" id="loadingOverlay"><div class="spinner"></div><div style="color:var(--accent);font-weight:700;margin-top:10px;">🛡️ 引擎運算中...</div></div>
 
 <div class="wrap">
   <div class="hdr">
     <div class="hdr-left">
-      <div class="hdr-title">🛡️ 矛與盾 <span class="v">V7.16 終極延遲實戰版</span></div>
-      <div class="hdr-sub">T+1 無前視偏誤 ｜ 總經防禦懲罰 ｜ Calmar 水下指標</div>
+      <div class="hdr-title">🛡️ 矛與盾 <span class="v">V7.15 總經防禦版</span></div>
+      <div class="hdr-sub">無前視偏誤 T+1 ｜ 殖利率與 NFCI 懲罰 ｜ 卡瑪比率</div>
     </div>
     <div id="dataSourceBadge" style="font-size:12px;padding:4px 12px;border:1px solid var(--border-hi);color:var(--muted);font-family:monospace;">● 初始數據模式</div>
   </div>
@@ -106,7 +80,7 @@ input[type="file"]{display:none;}
 
   <div class="panel active" id="panel-database">
     <div class="upload-box">
-      <p style="margin-bottom:10px;">📤 <b>第一步：上傳現有的歷史資料庫 (CSV)</b></p>
+      <p style="margin-bottom:10px;">📤 <b>第一步：上傳現有資料庫 (支援 V7.14 舊版格式，系統將自動補齊新欄位)</b></p>
       <label for="csvUpload">點擊選擇檔案</label>
       <input type="file" id="csvUpload" accept=".csv" onchange="handleFileUpload(event)">
       <div id="fileNameDisplay" style="margin-top:10px;font-size:12px;color:var(--green);"></div>
@@ -115,39 +89,39 @@ input[type="file"]{display:none;}
     <div class="db-container">
       <div class="db-box" style="border-color:var(--blue-dim); background:rgba(0, 26, 61, 0.2);">
         <h3>🤖 第二步 (選用)：自動連線更新與補齊</h3>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">系統將自動對照股市交易日，並引入 10Y-2Y 殖利率曲線與 NFCI 進行總經防禦評估。</p>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">V7.15 將自動過濾重複日期，並新增抓取 T10Y2Y (殖利率曲線) 與 NFCI (金融狀態指數)。</p>
         <div class="db-grid">
           <div class="db-item" style="grid-column: span 2;"><label>FRED API 金鑰 <span style="color:var(--red);">*</span></label><input type="password" id="apiFredKey" placeholder="請填寫您的 32 位 FRED 金鑰"></div>
-          <div class="db-item" style="grid-column: span 2;"><label>專屬 Proxy URL</label><input type="text" id="apiProxy" value="https://api.allorigins.win/raw?url=" placeholder="預設使用公用 Proxy"></div>
+          <div class="db-item" style="grid-column: span 2;"><label>專屬 Proxy URL</label><input type="text" id="apiProxy" value="https://api.allorigins.win/raw?url="></div>
           <div class="db-item" style="grid-column: span 2;"><label>手動輸入最新 CAPE 值</label><input type="number" step="0.01" id="apiCape" value="30.00"></div>
         </div>
-        <button class="btn btn-primary" style="background:var(--blue);border-color:var(--blue);color:#000;" onclick="fetchWebData()">🔄 自動抓取並整併</button>
+        <button class="btn btn-primary" style="background:var(--blue);border-color:var(--blue);color:#000;" onclick="fetchWebData()">🔄 自動抓取並整併最新數據</button>
       </div>
 
       <div class="db-box">
-        <h3>✍️ 第二步 (選用)：手動單日寫入/覆蓋</h3>
+        <h3>✍️ 備用：手動單日寫入/覆蓋</h3>
         <div class="db-grid">
-          <div class="db-item"><label>日期 (Date)</label><input type="date" id="dbDate"></div>
+          <div class="db-item"><label>日期</label><input type="date" id="dbDate"></div>
           <div class="db-item"><label>標普500</label><input type="number" step="0.01" id="dbSP"></div>
           <div class="db-item"><label>等權重</label><input type="number" step="0.01" id="dbEW"></div>
-          <div class="db-item"><label>高收債利差</label><input type="number" step="0.01" id="dbHY"></div>
-          <div class="db-item"><label>10年抗通膨</label><input type="number" step="0.01" id="dbTIPS"></div>
-          <div class="db-item"><label>恐慌指數</label><input type="number" step="0.01" id="dbVIX"></div>
-          <div class="db-item"><label>10Y-2Y 曲線</label><input type="number" step="0.01" id="dbT10Y2Y" placeholder="例如: -0.3"></div>
-          <div class="db-item"><label>NFCI 指數</label><input type="number" step="0.01" id="dbNFCI" placeholder="例如: -0.15"></div>
-          <div class="db-item" style="grid-column: span 2;"><label>CAPE</label><input type="number" step="0.01" id="dbCAPE" placeholder="若無可留空，自動沿用上一日"></div>
+          <div class="db-item"><label>高收債</label><input type="number" step="0.01" id="dbHY"></div>
+          <div class="db-item"><label>10年TIPS</label><input type="number" step="0.01" id="dbTIPS"></div>
+          <div class="db-item"><label>VIX</label><input type="number" step="0.01" id="dbVIX"></div>
+          <div class="db-item"><label>T10Y2Y</label><input type="number" step="0.01" id="dbT10" placeholder="可留空"></div>
+          <div class="db-item"><label>NFCI</label><input type="number" step="0.01" id="dbNFCI" placeholder="可留空"></div>
+          <div class="db-item" style="grid-column: span 2;"><label>CAPE</label><input type="number" step="0.01" id="dbCAPE"></div>
         </div>
-        <button class="btn btn-outline" style="color:var(--white);border-color:var(--border-hi);" onclick="updateDatabase()">💾 寫入記憶體資料庫</button>
+        <button class="btn btn-outline" style="color:var(--white);border-color:var(--border-hi);" onclick="updateDatabase()">💾 寫入記憶體</button>
       </div>
 
       <div class="db-box" style="display:flex; flex-direction:column;">
         <h3>📥 第三步：匯出最新 CSV</h3>
         <div style="margin-top:auto; background:var(--surface2); padding:16px; border-radius:6px; margin-bottom:16px; border:1px dashed var(--border-hi);">
           <div style="font-size:12px;color:var(--muted);">目前記憶體資料庫筆數：</div>
-          <div id="dbCountDisplay" style="font-size:24px; font-weight:700; font-family:'IBM Plex Mono'; color:var(--text);">0 筆</div>
+          <div id="dbCountDisplay" style="font-size:24px; font-weight:700; font-family:'IBM Plex Mono'; color:var(--text);">-- 筆</div>
           <div style="font-size:11px;color:var(--green); margin-top:4px;" id="dbLastDateDisplay">最後更新日期：--</div>
         </div>
-        <button class="btn btn-outline" onclick="exportCSV()">⬇ 下載 Shield_Merged.csv</button>
+        <button class="btn btn-outline" onclick="exportCSV()">⬇ 下載 Shield_V715.csv</button>
       </div>
     </div>
   </div>
@@ -163,29 +137,22 @@ input[type="file"]{display:none;}
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;background:var(--surface);padding:12px;border:1px solid var(--border);">
         <div style="font-size:11px;color:var(--green);text-transform:uppercase;font-weight:700;border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:4px;">方法 B & C (Z-Score) 共同設定</div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;line-height:1.4;">兩者核心分數相同。B採嚴格條件出場，C則鎖定短打狀態直到分數回升及格。</div>
         <div style="display:flex;justify-content:space-between;font-size:13px;"><span>加碼分數 (≥)</span><input type="number" id="cpB150" value="60" style="width:60px;background:var(--bg);color:var(--white);border:1px solid var(--border-hi);text-align:right;"></div>
         <div style="display:flex;justify-content:space-between;font-size:13px;"><span>清倉分數 (<)</span><input type="number" id="cpB100" value="40" style="width:60px;background:var(--bg);color:var(--white);border:1px solid var(--border-hi);text-align:right;"></div>
         <div style="display:flex;justify-content:space-between;font-size:13px;"><span>連跌天數</span><input type="number" id="cpBDays" value="1" style="width:60px;background:var(--bg);color:var(--white);border:1px solid var(--border-hi);text-align:right;"></div>
         <div style="display:flex;justify-content:space-between;font-size:13px;"><span>Z-Score</span><input type="number" id="cpBZ" value="1.5" step="0.1" style="width:60px;background:var(--bg);color:var(--white);border:1px solid var(--border-hi);text-align:right;"></div>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;background:var(--surface);padding:12px;border:1px solid var(--border);">
-        <div style="font-size:11px;color:var(--accent);text-transform:uppercase;font-weight:700;border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:4px;">短打與倉位</div>
-        <div style="display:flex;justify-content:space-between;font-size:13px;"><span>週RSI(<) / VIX(≥)</span><div style="display:flex;gap:4px;"><input type="number" id="cpRsi" value="35" style="width:45px;"><input type="number" id="cpVix" value="35" style="width:45px;"></div></div>
+        <div style="font-size:11px;color:var(--accent);text-transform:uppercase;font-weight:700;border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:4px;">短打與倉位 (支援 T+1 與動態滑價)</div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;"><span>週RSI(<)/VIX(≥)</span><div style="display:flex;gap:4px;"><input type="number" id="cpRsi" value="35" style="width:45px;"><input type="number" id="cpVix" value="35" style="width:45px;"></div></div>
         <div style="display:flex;justify-content:space-between;font-size:13px;"><span>寬度Z (≤)</span><input type="number" id="cpBias" value="-2.0" step="0.1" style="width:60px;"></div>
         <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px;border-top:1px dashed var(--border);padding-top:4px;"><span>倉位(加/常/短)</span><div style="display:flex;gap:4px;"><input type="number" id="cpPosMax" value="1.5" step="0.1" style="width:40px;"><input type="number" id="cpPosBase" value="1.0" step="0.1" style="width:40px;"><input type="number" id="cpPosStrk" value="0.3" step="0.1" style="width:40px;"></div></div>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;background:var(--surface);padding:12px;border:1px solid var(--border);">
-        <div style="font-size:11px;color:var(--white);text-transform:uppercase;font-weight:700;border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:4px;">執行與區間</div>
-        <div style="display:flex;justify-content:space-between;font-size:13px;"><span>引擎模式</span>
-          <select id="cpMode" style="width:130px;">
-            <option value="ALL" selected>A/B/C 三軌比較</option>
-            <option value="BC">B/C 比較 (鎖定效應)</option>
-            <option value="A">僅 方法 A</option>
-          </select>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:13px;"><span>開始日期</span><input type="date" id="cpStart" value="2000-01-01" style="width:110px;"></div>
-        <div style="display:flex;justify-content:space-between;font-size:13px;"><span>結束日期</span><input type="date" id="cpEnd" value="2026-12-31" style="width:110px;"></div>
+        <div style="font-size:11px;color:var(--white);text-transform:uppercase;font-weight:700;border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:4px;">執行區間與濾網</div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;"><span>引擎模式</span><select id="cpMode" style="width:130px;"><option value="ALL" selected>A/B/C 三軌比較</option><option value="BC">B/C 比較</option><option value="A">僅 方法 A</option></select></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;"><span>總經懲罰扣分</span><select id="cpMacro" style="width:130px;color:var(--red);font-weight:700;"><option value="ON" selected>啟用 (YC & NFCI)</option><option value="OFF">關閉 (純基礎分)</option></select></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;"><span>開始與結束</span><div style="display:flex;gap:4px;"><input type="date" id="cpStart" value="2000-01-01" style="width:110px;"><input type="date" id="cpEnd" value="2026-12-31" style="width:110px;"></div></div>
         <button class="btn btn-primary" style="margin-top:auto;padding:6px;" onclick="runBacktest()">▶ 執行推演</button>
       </div>
     </div>
@@ -206,71 +173,52 @@ input[type="file"]{display:none;}
         <div id="liveC" style="font-family:'IBM Plex Mono';font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;">--</div>
       </div>
     </div>
-
     <div class="metrics-grid" id="metricsGrid"></div>
     <div class="chart-wrap"><canvas id="navChart" height="350"></canvas></div>
     <div class="chart-wrap"><canvas id="ddChart" height="200"></canvas></div>
-    
-    <div class="table-wrap">
-      <table id="yearlyTable"><thead><tr id="yHead"></tr></thead><tbody id="yrBody"></tbody></table>
-    </div>
+    <div class="table-wrap"><table id="yearlyTable"><thead><tr id="yHead"></tr></thead><tbody id="yrBody"></tbody></table></div>
   </div>
 
   <div class="panel" id="panel-logs">
     <div style="background:var(--surface); border:1px solid var(--border); padding:20px; margin-bottom: 20px;">
-      <h2 style="font-size:16px; color:var(--white); margin-bottom:8px;">📌 標籤轉換歷程與分數紀錄</h2>
-      <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">這裡記錄了回測區間內每一次「狀態切換」時的詳細分數與條件。</p>
+      <h2 style="font-size:16px; color:var(--white); margin-bottom:8px;">📌 標籤轉換歷程與總經懲罰紀錄</h2>
       <div class="table-wrap" style="max-height:600px;">
         <table id="historyTable">
-          <thead>
-            <tr><th>日期</th><th>引擎</th><th>狀態轉換</th><th>大盤點位</th><th>當日分數</th><th>前日分數</th><th>連跌天數</th></tr>
-          </thead>
-          <tbody id="historyBody">
-            <tr><td colspan="7" style="text-align:center;color:var(--muted)">請先執行回測推演</td></tr>
-          </tbody>
+          <thead><tr><th>日期</th><th>引擎</th><th>狀態轉換</th><th>大盤點位</th><th>當日總分</th><th>總經扣分</th><th>連跌天數</th></tr></thead>
+          <tbody id="historyBody"><tr><td colspan="7" style="text-align:center;color:var(--muted)">請先執行回測推演</td></tr></tbody>
         </table>
       </div>
     </div>
   </div>
-
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</div><script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 'use strict';
 
-window.onerror = function(msg, url, lineNo, columnNo, error) {
-  alert('⚠️ 系統發生錯誤，這可能是網頁沒完整複製導致的。\n錯誤訊息: ' + msg + '\n發生在第 ' + lineNo + ' 行');
-  return false;
-};
+window.onerror = function(msg, url, lineNo, columnNo, error) { alert('⚠️ 錯誤: ' + msg + '\n發生在第 ' + lineNo + ' 行'); return false; };
 
 let dbData = []; 
-let DATES=[], SP=[], EW=[], HY=[], TIPS=[], VIX=[], CAPE=[], T10Y=[], NFCI=[];
+let DATES=[], SP=[], EW=[], HY=[], TIPS=[], VIX=[], CAPE=[], T10=[], NFCI=[];
 let BT_RESULT = null;
 let charts = {};
 
 function initEmptyData() {
-  const now = new Date();
-  dbData = [];
+  const now = new Date(); dbData = [];
   for(let i=0; i<600; i++) {
     const d = new Date(now); d.setDate(d.getDate() - (599-i));
-    dbData.push({ 
-        d: d.toISOString().slice(0,10), sp: 4000 + i*2, ew: 4000 + i*2, 
-        hy: 3.5, tips: 1.5, vix: 18, cape: 30, t10y: 1.2, nfci: -0.2 
-    });
+    dbData.push({ d: d.toISOString().slice(0,10), sp: 4000+i*2, ew: 4000+i*2, hy: 3.5, tips: 1.5, vix: 18, cape: 30, t10y: 1.0, nfci: -0.2 });
   }
   syncArrays();
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-  try { initEmptyData(); } catch (e) { alert("⚠️ 初始化失敗: " + e.message); }
-});
+window.addEventListener('DOMContentLoaded', () => { try { initEmptyData(); } catch (e) { alert("⚠️ 初始化失敗: " + e.message); } });
 
 function syncArrays() {
   DATES = dbData.map(x => x.d); SP = dbData.map(x => x.sp); EW = dbData.map(x => x.ew);
   HY = dbData.map(x => x.hy); TIPS = dbData.map(x => x.tips); VIX = dbData.map(x => x.vix); 
-  CAPE = dbData.map(x => x.cape); T10Y = dbData.map(x => x.t10y !== undefined ? x.t10y : 1.0);
-  NFCI = dbData.map(x => x.nfci !== undefined ? x.nfci : -0.2);
+  CAPE = dbData.map(x => x.cape); 
+  // 統一處理 t10y 與 t10 欄位名稱差異
+  T10 = dbData.map(x => x.t10y !== undefined ? x.t10y : (x.t10 || 0)); 
+  NFCI = dbData.map(x => x.nfci || 0);
   
   const elCount = document.getElementById('dbCountDisplay');
   if(elCount) elCount.textContent = dbData.length + " 筆";
@@ -278,98 +226,110 @@ function syncArrays() {
   if(dbData.length > 0) {
     let last = dbData[dbData.length-1];
     const setVal = (id, val) => { let el = document.getElementById(id); if(el) el.value = val; };
-    
     setVal('cpStart', dbData[0].d); setVal('cpEnd', last.d);
-    setVal('dbDate', new Date().toISOString().slice(0,10));
-    setVal('dbSP', last.sp); setVal('dbEW', last.ew);
-    setVal('dbHY', last.hy); setVal('dbTIPS', last.tips);
-    setVal('dbVIX', last.vix); setVal('dbCAPE', last.cape);
-    setVal('dbT10Y2Y', last.t10y !== undefined ? last.t10y : 1.0);
-    setVal('dbNFCI', last.nfci !== undefined ? last.nfci : -0.2);
+    
+    // UI 日期自動加一天 (略過週末) 方便手動輸入
+    let nextD = new Date(last.d); nextD.setDate(nextD.getDate() + 1);
+    if(nextD.getDay()===6) nextD.setDate(nextD.getDate()+2);
+    if(nextD.getDay()===0) nextD.setDate(nextD.getDate()+1);
+    setVal('dbDate', nextD.toISOString().slice(0,10));
 
-    let elLastDate = document.getElementById('dbLastDateDisplay');
-    if(elLastDate) elLastDate.textContent = "最後紀錄日期：" + last.d;
+    setVal('dbSP', last.sp); setVal('dbEW', last.ew); setVal('dbHY', last.hy); setVal('dbTIPS', last.tips);
+    setVal('dbVIX', last.vix); setVal('dbCAPE', last.cape); 
+    setVal('dbT10', last.t10y !== undefined ? last.t10y : (last.t10 || '')); 
+    setVal('dbNFCI', last.nfci || '');
+    
+    const elLastDate = document.getElementById('dbLastDateDisplay');
+    if(elLastDate) elLastDate.textContent = "最後更新日期：" + last.d;
   }
 }
 
+// 處理 CSV 檔案上傳
 function handleFileUpload(event) {
   const file = event.target.files[0];
-  if(!file) return;
-  document.getElementById('fileNameDisplay').textContent = "正在讀取: " + file.name;
+  if (!file) return;
+  document.getElementById('fileNameDisplay').textContent = "📂 已載入: " + file.name;
+  
   const reader = new FileReader();
   reader.onload = function(e) {
-    const lines = e.target.result.split('\n').filter(l => l.trim().length > 0);
-    const headers = lines[0].split(',').map(h => h.trim().toUpperCase());
-    const idx = { 
-      date: headers.indexOf('DATE'), sp: headers.indexOf('SP500'), hy: headers.indexOf('HY_SPREAD'), 
-      tips: headers.indexOf('TIPS_10Y'), vix: headers.indexOf('VIX'), cape: headers.indexOf('CAPE'), 
-      ew: headers.indexOf('SP500EW'), t10y: headers.indexOf('T10Y2Y'), nfci: headers.indexOf('NFCI')
-    };
-    dbData = [];
-    for(let i=1; i<lines.length; i++) {
-      const col = lines[i].split(','); if(col.length < 5) continue;
-      dbData.push({
-        d: col[idx.date].trim(), sp: parseFloat(col[idx.sp]), 
-        ew: idx.ew > -1 ? parseFloat(col[idx.ew]) : parseFloat(col[idx.sp]),
-        hy: parseFloat(col[idx.hy]), tips: parseFloat(col[idx.tips]), vix: parseFloat(col[idx.vix]), 
-        cape: idx.cape > -1 ? parseFloat(col[idx.cape]) : NaN,
-        t10y: idx.t10y > -1 ? parseFloat(col[idx.t10y]) : NaN,
-        nfci: idx.nfci > -1 ? parseFloat(col[idx.nfci]) : NaN
-      });
+    const text = e.target.result;
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    if (lines.length < 2) { alert("⚠️ CSV 格式錯誤或無資料"); return; }
+
+    const newDb = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(',');
+      if (cols.length >= 6) { 
+        let row = {
+          d: cols[0],
+          sp: parseFloat(cols[1]),
+          ew: parseFloat(cols[2]),
+          hy: parseFloat(cols[3]),
+          tips: parseFloat(cols[4]),
+          vix: parseFloat(cols[5]),
+          cape: cols[6] ? parseFloat(cols[6]) : 30.0,
+          t10y: cols[7] ? parseFloat(cols[7]) : 0.0, 
+          nfci: cols[8] ? parseFloat(cols[8]) : 0.0  
+        };
+        newDb.push(row);
+      }
     }
-    let lastOk = {hy:0, tips:0, vix:0, sp:0, ew:0, cape:30, t10y:1.0, nfci:-0.2};
-    dbData.forEach(r => {
-      if(isNaN(r.hy)) r.hy = lastOk.hy; else lastOk.hy = r.hy;
-      if(isNaN(r.tips)) r.tips = lastOk.tips; else lastOk.tips = r.tips;
-      if(isNaN(r.vix)) r.vix = lastOk.vix; else lastOk.vix = r.vix;
-      if(isNaN(r.sp)) r.sp = lastOk.sp; else lastOk.sp = r.sp;
-      if(isNaN(r.ew)) r.ew = lastOk.ew; else lastOk.ew = r.ew;
-      if(isNaN(r.cape)) r.cape = lastOk.cape; else lastOk.cape = r.cape;
-      if(isNaN(r.t10y)) r.t10y = lastOk.t10y; else lastOk.t10y = r.t10y;
-      if(isNaN(r.nfci)) r.nfci = lastOk.nfci; else lastOk.nfci = r.nfci;
-    });
-    dbData.sort((a,b) => a.d.localeCompare(b.d)); syncArrays();
-    
-    document.getElementById('dataSourceBadge').textContent = '● 真實 CSV 模式 (' + dbData.length + ' 筆)';
-    document.getElementById('dataSourceBadge').style.color = 'var(--green)';
-    alert("歷史資料庫上傳成功！已支援 V7.16 宏觀指標。");
+    newDb.sort((a,b) => a.d.localeCompare(b.d));
+    dbData = newDb;
+    syncArrays();
+    alert("✅ CSV 上傳成功！共載入 " + dbData.length + " 筆歷史資料。");
   };
   reader.readAsText(file);
 }
 
+// 手動單日寫入/覆蓋記憶體
 function updateDatabase() {
-  const dDate = document.getElementById('dbDate').value;
-  if(!dDate) { alert("請輸入日期！"); return; }
-  const dSP = parseFloat(document.getElementById('dbSP').value);
-  const dEW = parseFloat(document.getElementById('dbEW').value);
-  const dHY = parseFloat(document.getElementById('dbHY').value);
-  const dTIPS = parseFloat(document.getElementById('dbTIPS').value);
-  const dVIX = parseFloat(document.getElementById('dbVIX').value);
-  const dT10Y = parseFloat(document.getElementById('dbT10Y2Y').value);
-  const dNFCI = parseFloat(document.getElementById('dbNFCI').value);
-  const dCAPE = parseFloat(document.getElementById('dbCAPE').value) || dbData[dbData.length-1].cape; 
-  if(isNaN(dSP) || isNaN(dHY) || isNaN(dTIPS) || isNaN(dVIX)) { alert("請確認數值欄位是否填寫正確。"); return; }
-  const newRow = { d:dDate, sp:dSP, ew:dEW, hy:dHY, tips:dTIPS, vix:dVIX, cape:dCAPE, t10y:isNaN(dT10Y)?1.0:dT10Y, nfci:isNaN(dNFCI)?-0.2:dNFCI };
-  const existingIdx = dbData.findIndex(x => x.d === dDate);
-  if(existingIdx > -1) { dbData[existingIdx] = newRow; alert(`📅 ${dDate} 的資料已存在，已成功覆蓋！`); } 
-  else { dbData.push(newRow); alert(`✅ 已成功新增 ${dDate} 的資料！`); }
-  dbData.sort((a,b) => a.d.localeCompare(b.d)); syncArrays();
+  const d = document.getElementById('dbDate').value;
+  if (!d) { alert("⚠️ 請填寫日期"); return; }
+  
+  const row = {
+    d: d,
+    sp: parseFloat(document.getElementById('dbSP').value) || 0,
+    ew: parseFloat(document.getElementById('dbEW').value) || 0,
+    hy: parseFloat(document.getElementById('dbHY').value) || 0,
+    tips: parseFloat(document.getElementById('dbTIPS').value) || 0,
+    vix: parseFloat(document.getElementById('dbVIX').value) || 0,
+    cape: parseFloat(document.getElementById('dbCAPE').value) || 30.0,
+    t10y: parseFloat(document.getElementById('dbT10').value) || 0,
+    nfci: parseFloat(document.getElementById('dbNFCI').value) || 0
+  };
+
+  const idx = dbData.findIndex(x => x.d === d);
+  if (idx > -1) {
+    dbData[idx] = row;
+  } else {
+    dbData.push(row); 
+    dbData.sort((a,b) => a.d.localeCompare(b.d));
+  }
+  syncArrays();
+  alert("💾 寫入成功！已更新至日期: " + d);
 }
 
+// 匯出最新 CSV 檔案
 function exportCSV() {
-  if(dbData.length === 0) { alert("無資料可匯出！"); return; }
-  let csvContent = "Date,SP500,SP500EW,HY_Spread,TIPS_10Y,VIX,CAPE,T10Y2Y,NFCI\n";
-  dbData.forEach(r => {
-    let row = [ r.d, r.sp.toFixed(4), r.ew.toFixed(4), r.hy.toFixed(2), r.tips.toFixed(2), r.vix.toFixed(2), r.cape.toFixed(2), (r.t10y !== undefined ? r.t10y.toFixed(2) : '1.00'), (r.nfci !== undefined ? r.nfci.toFixed(2) : '-0.20') ];
-    csvContent += row.join(",") + "\n";
+  if (dbData.length === 0) { alert("⚠️ 沒有資料可匯出"); return; }
+  
+  let csv = "Date,SP500,EW,HY,TIPS,VIX,CAPE,T10Y2Y,NFCI\n";
+  dbData.forEach(row => {
+    let t10y = row.t10y !== undefined ? row.t10y : (row.t10 || 0);
+    csv += `${row.d},${row.sp},${row.ew},${row.hy},${row.tips},${row.vix},${row.cape},${t10y},${row.nfci}\n`;
   });
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
-  const link = document.createElement("a"); link.setAttribute("href", url); link.setAttribute("download", "Shield_Merged_V716.csv");
-  link.style.visibility = 'hidden'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  link.setAttribute('href', url);
+  link.setAttribute('download', 'Shield_V715.csv');
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
-/* ==================== 第一段程式碼結束，請等候第二段 ==================== */// 接續第一段程式碼...
-
 async function fetchWebData() {
   const key = document.getElementById('apiFredKey').value.trim();
   let proxy = document.getElementById('apiProxy').value.trim();
@@ -428,7 +388,6 @@ async function fetchWebData() {
     const sortedSpDates = Object.keys(spData).sort();
     
     let lastHy = 3.5, lastTips = 1.5, lastT10y = 1.0, lastNfci = -0.2;
-
     const sortedNfciDates = Object.keys(nfciData).sort();
     let nfciIdx = 0;
 
@@ -558,12 +517,6 @@ function runBacktest() {
 
     for(let i = sIdx; i <= eIdx; i++) {
       const spRet = (SP[i] - SP[i-1]) / SP[i-1];
-      
-      // T+1 延遲執行：今日結算採用「昨日收盤前」決定之部位
-      eqA *= (1 + posA * spRet);
-      eqB *= (1 + posB * spRet);
-      eqC *= (1 + posC * spRet);
-
       const hyNow = HY[i] * 100;
       const f1 = lerp((100 / CAPE[i]) - TIPS[i], 0, 4, 10, 100);
       const f5b = lerp(hyNow, 250, 600, 80, 20);
@@ -595,12 +548,13 @@ function runBacktest() {
         zBias = ((EW[i] / SP[i]) - mean) / std;
       }
 
-      let t10yNow = T10Y[i], nfciNow = NFCI[i];
+      // === 新增：宏觀懲罰計算 (Macro Penalty) ===
+      let t10yNow = T10[i], nfciNow = NFCI[i];
       let penaltyYC = 0, penaltyNFCI = 0;
       
       let wasInverted = false;
       let lookback = Math.max(0, i - 126);
-      for(let j = lookback; j < i; j++) { if(T10Y[j] < 0) { wasInverted = true; break; } }
+      for(let j = lookback; j < i; j++) { if(T10[j] < 0) { wasInverted = true; break; } }
       
       if (t10yNow < 0) penaltyYC = 10;
       else if (t10yNow > 0.2 && wasInverted) penaltyYC = 25;
@@ -611,7 +565,6 @@ function runBacktest() {
       const currentVix = VIX[i] || 15;
       const dynamicCost = currentVix > 30 ? cfg.cost * 2.5 : cfg.cost;
 
-      // 決定明日要用的部位並結算換倉手續費
       if(cfg.mode === 'A' || cfg.mode === 'ALL') {
         const startA = Math.max(0, i - cfg.A.win);
         let minHy = hyNow;
@@ -623,12 +576,9 @@ function runBacktest() {
         if (shieldA < cfg.A.s100) daysBelowA++; else daysBelowA = 0;
         
         const nextA = nextMode(shieldA, daysBelowA, cfg.A, cfg.strk, cfg.pos, VIX[i], VIX[i-1], rsi, zBias, modeA, false);
+        if(nextA.mode !== modeA) logs.push({ d:DATES[i], mtd:'A', fm:modeA, to:nextA.mode, sp:SP[i].toFixed(1), s:shieldA, ps:prevShieldA, db:daysBelowA });
         
-        if(nextA.pos !== posA) {
-            eqA *= (1 - dynamicCost);
-            logs.push({ d:DATES[i], mtd:'A', fm:modeA, to:nextA.mode, sp:SP[i].toFixed(1), s:shieldA, ps:prevShieldA, db:daysBelowA });
-        }
-        
+        eqA *= (1 + nextA.pos * spRet * (1 - ((nextA.pos !== posA) ? dynamicCost : 0)));
         posA = nextA.pos; modeA = nextA.mode; prevShieldA = shieldA;
         if(i === eIdx) lastStatusA = { s:shieldA, ps:prevShieldA, m:modeA, p:posA };
       }
@@ -648,24 +598,16 @@ function runBacktest() {
 
       if(cfg.mode === 'B' || cfg.mode === 'BC' || cfg.mode === 'ALL') {
         const nextB = nextMode(shieldB, daysBelowB, cfg.B, cfg.strk, cfg.pos, VIX[i], VIX[i-1], rsi, zBias, modeB, false);
-        
-        if(nextB.pos !== posB) {
-            eqB *= (1 - dynamicCost);
-            logs.push({ d:DATES[i], mtd:'B', fm:modeB, to:nextB.mode, sp:SP[i].toFixed(1), s:shieldB, ps:prevShieldB, db:daysBelowB });
-        }
-        
+        if(nextB.mode !== modeB) logs.push({ d:DATES[i], mtd:'B', fm:modeB, to:nextB.mode, sp:SP[i].toFixed(1), s:shieldB, ps:prevShieldB, db:daysBelowB });
+        eqB *= (1 + nextB.pos * spRet * (1 - ((nextB.pos !== posB) ? dynamicCost : 0)));
         posB = nextB.pos; modeB = nextB.mode;
         if(i === eIdx) lastStatusB = { s:shieldB, ps:prevShieldB, m:modeB, p:posB };
       }
 
       if(cfg.mode === 'C' || cfg.mode === 'BC' || cfg.mode === 'ALL') {
         const nextC = nextMode(shieldB, daysBelowB, cfg.B, cfg.strk, cfg.pos, VIX[i], VIX[i-1], rsi, zBias, modeC, true);
-        
-        if(nextC.pos !== posC) {
-            eqC *= (1 - dynamicCost);
-            logs.push({ d:DATES[i], mtd:'C', fm:modeC, to:nextC.mode, sp:SP[i].toFixed(1), s:shieldB, ps:prevShieldB, db:daysBelowB });
-        }
-        
+        if(nextC.mode !== modeC) logs.push({ d:DATES[i], mtd:'C', fm:modeC, to:nextC.mode, sp:SP[i].toFixed(1), s:shieldB, ps:prevShieldB, db:daysBelowB });
+        eqC *= (1 + nextC.pos * spRet * (1 - ((nextC.pos !== posC) ? dynamicCost : 0)));
         posC = nextC.pos; modeC = nextC.mode;
         if(i === eIdx) lastStatusC = { s:shieldB, ps:prevShieldB, m:modeC, p:posC };
       }
@@ -785,6 +727,8 @@ function switchTab(e, name) {
   document.getElementById('panel-'+name).classList.add('active');
 }
 </script>
+
 </body>
 </html>
+
 
