@@ -66,7 +66,7 @@ input[type="file"]{display:none;}
   <div class="hdr">
     <div class="hdr-left">
       <div class="hdr-title">🛡️ 矛與盾 <span class="v">V7.15 總經防禦版</span></div>
-      <div class="hdr-sub">無前視偏誤 T+1 ｜ 殖利率與 NFCI 懲罰 ｜ 卡瑪比率</div>
+      <div class="hdr-sub">無前視偏誤 T+1 ｜ 殖利率與 NFCI 懲罰 ｜ 倒掛解除濾網</div>
     </div>
     <div id="dataSourceBadge" style="font-size:12px;padding:4px 12px;border:1px solid var(--border-hi);color:var(--muted);font-family:monospace;">● 初始數據模式</div>
   </div>
@@ -152,6 +152,7 @@ input[type="file"]{display:none;}
         <div style="font-size:11px;color:var(--white);text-transform:uppercase;font-weight:700;border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:4px;">執行區間與濾網</div>
         <div style="display:flex;justify-content:space-between;font-size:13px;"><span>引擎模式</span><select id="cpMode" style="width:130px;"><option value="ALL" selected>A/B/C 三軌比較</option><option value="BC">B/C 比較</option><option value="A">僅 方法 A</option></select></div>
         <div style="display:flex;justify-content:space-between;font-size:13px;"><span>總經懲罰扣分</span><select id="cpMacro" style="width:130px;color:var(--red);font-weight:700;"><option value="ON" selected>啟用 (YC & NFCI)</option><option value="OFF">關閉 (純基礎分)</option></select></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;"><span>倒掛解除降倉</span><select id="cpUnInvert" style="width:130px;color:var(--yellow);font-weight:700;"><option value="ON" selected>啟用 (限半倉)</option><option value="OFF">關閉</option></select></div>
         <div style="display:flex;justify-content:space-between;font-size:13px;"><span>開始與結束</span><div style="display:flex;gap:4px;"><input type="date" id="cpStart" value="2000-01-01" style="width:110px;"><input type="date" id="cpEnd" value="2026-12-31" style="width:110px;"></div></div>
         <button class="btn btn-primary" style="margin-top:auto;padding:6px;" onclick="runBacktest()">▶ 執行推演</button>
       </div>
@@ -190,7 +191,8 @@ input[type="file"]{display:none;}
       </div>
     </div>
   </div>
-</div><script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 'use strict';
 
@@ -216,7 +218,6 @@ function syncArrays() {
   DATES = dbData.map(x => x.d); SP = dbData.map(x => x.sp); EW = dbData.map(x => x.ew);
   HY = dbData.map(x => x.hy); TIPS = dbData.map(x => x.tips); VIX = dbData.map(x => x.vix); 
   CAPE = dbData.map(x => x.cape); 
-  // 統一處理 t10y 與 t10 欄位名稱差異
   T10 = dbData.map(x => x.t10y !== undefined ? x.t10y : (x.t10 || 0)); 
   NFCI = dbData.map(x => x.nfci || 0);
   
@@ -228,7 +229,6 @@ function syncArrays() {
     const setVal = (id, val) => { let el = document.getElementById(id); if(el) el.value = val; };
     setVal('cpStart', dbData[0].d); setVal('cpEnd', last.d);
     
-    // UI 日期自動加一天 (略過週末) 方便手動輸入
     let nextD = new Date(last.d); nextD.setDate(nextD.getDate() + 1);
     if(nextD.getDay()===6) nextD.setDate(nextD.getDate()+2);
     if(nextD.getDay()===0) nextD.setDate(nextD.getDate()+1);
@@ -244,7 +244,6 @@ function syncArrays() {
   }
 }
 
-// 處理 CSV 檔案上傳
 function handleFileUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -282,7 +281,6 @@ function handleFileUpload(event) {
   reader.readAsText(file);
 }
 
-// 手動單日寫入/覆蓋記憶體
 function updateDatabase() {
   const d = document.getElementById('dbDate').value;
   if (!d) { alert("⚠️ 請填寫日期"); return; }
@@ -310,7 +308,6 @@ function updateDatabase() {
   alert("💾 寫入成功！已更新至日期: " + d);
 }
 
-// 匯出最新 CSV 檔案
 function exportCSV() {
   if (dbData.length === 0) { alert("⚠️ 沒有資料可匯出"); return; }
   
@@ -330,6 +327,7 @@ function exportCSV() {
   link.click();
   document.body.removeChild(link);
 }
+
 async function fetchWebData() {
   const key = document.getElementById('apiFredKey').value.trim();
   let proxy = document.getElementById('apiProxy').value.trim();
@@ -431,7 +429,6 @@ async function fetchWebData() {
     document.getElementById('loadingOverlay').classList.add('hidden');
   }
 }
-
 function getBadge(mode) {
   if(mode==='PLUS') return '<span style="background:var(--blue-dim);color:var(--blue);border:1px solid var(--blue);padding:2px 8px;border-radius:3px;font-size:12px;">加碼</span>';
   if(mode==='NORMAL') return '<span style="background:var(--surface2);color:var(--white);border:1px solid var(--border-hi);padding:2px 8px;border-radius:3px;font-size:12px;">常態</span>';
@@ -489,6 +486,7 @@ function runBacktest() {
   const cfg = {
     mode: document.getElementById('cpMode').value, cap: 100000, cost: 5 / 10000,
     start: document.getElementById('cpStart').value, end: document.getElementById('cpEnd').value,
+    unInvertCap: document.getElementById('cpUnInvert').value === 'ON', // 讀取倒掛降倉設定
     A: { s150: parseInt(document.getElementById('cpA150').value), s100: parseInt(document.getElementById('cpA100').value), clearDays: parseInt(document.getElementById('cpADays').value), delta: parseFloat(document.getElementById('cpADelta').value), win: 120 },
     B: { s150: parseInt(document.getElementById('cpB150').value), s100: parseInt(document.getElementById('cpB100').value), clearDays: parseInt(document.getElementById('cpBDays').value), z: parseFloat(document.getElementById('cpBZ').value), win: 500 },
     strk: { rsi: parseFloat(document.getElementById('cpRsi').value), vix: parseFloat(document.getElementById('cpVix').value), bias: parseFloat(document.getElementById('cpBias').value) },
@@ -514,6 +512,18 @@ function runBacktest() {
     for(let i=DATES.length-1; i>=0; i--) if(DATES[i] <= cfg.end) { eIdx = i; break; }
 
     let initialSP = SP[sIdx-1] || SP[0];
+
+    // --- 前置掃描：確保回測第一天能繼承之前的倒掛解除狀態 ---
+    let globalWasInverted = false;
+    let forceCapDays = 0;
+    for(let i = 0; i < sIdx; i++) {
+      if(T10[i] < 0) globalWasInverted = true;
+      else if (globalWasInverted && T10[i] >= 0) { 
+        globalWasInverted = false; 
+        forceCapDays = 126; // 126天約為半年交易日
+      }
+      if(forceCapDays > 0) forceCapDays--;
+    }
 
     for(let i = sIdx; i <= eIdx; i++) {
       const spRet = (SP[i] - SP[i-1]) / SP[i-1];
@@ -548,19 +558,32 @@ function runBacktest() {
         zBias = ((EW[i] / SP[i]) - mean) / std;
       }
 
-      // === 新增：宏觀懲罰計算 (Macro Penalty) ===
+      // --- 總經懲罰與倒掛降倉狀態更新 ---
       let t10yNow = T10[i], nfciNow = NFCI[i];
       let penaltyYC = 0, penaltyNFCI = 0;
       
-      let wasInverted = false;
+      let wasInvertedForPenalty = false;
       let lookback = Math.max(0, i - 126);
-      for(let j = lookback; j < i; j++) { if(T10[j] < 0) { wasInverted = true; break; } }
+      for(let j = lookback; j < i; j++) { if(T10[j] < 0) { wasInvertedForPenalty = true; break; } }
       
-      if (t10yNow < 0) penaltyYC = 10;
-      else if (t10yNow > 0.2 && wasInverted) penaltyYC = 25;
+      let isMacroOn = document.getElementById('cpMacro').value === 'ON';
+      if (isMacroOn) {
+        if (t10yNow < 0) penaltyYC = 10;
+        else if (t10yNow > 0.2 && wasInvertedForPenalty) penaltyYC = 25;
 
-      if (nfciNow >= 0.5) penaltyNFCI = 20;
-      else if (nfciNow > 0) penaltyNFCI = 10;
+        if (nfciNow >= 0.5) penaltyNFCI = 20;
+        else if (nfciNow > 0) penaltyNFCI = 10;
+      }
+
+      // 更新降倉濾網狀態
+      if (t10yNow < 0) globalWasInverted = true;
+      else if (globalWasInverted && t10yNow >= 0) {
+        globalWasInverted = false;
+        forceCapDays = 126; // 觸發降倉126天
+      }
+      let isCapActive = (forceCapDays > 0);
+      if (forceCapDays > 0) forceCapDays--;
+      // -------------------------------------
 
       const currentVix = VIX[i] || 15;
       const dynamicCost = currentVix > 30 ? cfg.cost * 2.5 : cfg.cost;
@@ -576,6 +599,9 @@ function runBacktest() {
         if (shieldA < cfg.A.s100) daysBelowA++; else daysBelowA = 0;
         
         const nextA = nextMode(shieldA, daysBelowA, cfg.A, cfg.strk, cfg.pos, VIX[i], VIX[i-1], rsi, zBias, modeA, false);
+        // 攔截：如果開啟降倉且處於發動期，最高倉位鎖死在 0.5
+        if (cfg.unInvertCap && isCapActive) nextA.pos = Math.min(nextA.pos, 0.5);
+
         if(nextA.mode !== modeA) logs.push({ d:DATES[i], mtd:'A', fm:modeA, to:nextA.mode, sp:SP[i].toFixed(1), s:shieldA, ps:prevShieldA, db:daysBelowA });
         
         eqA *= (1 + nextA.pos * spRet * (1 - ((nextA.pos !== posA) ? dynamicCost : 0)));
@@ -598,6 +624,9 @@ function runBacktest() {
 
       if(cfg.mode === 'B' || cfg.mode === 'BC' || cfg.mode === 'ALL') {
         const nextB = nextMode(shieldB, daysBelowB, cfg.B, cfg.strk, cfg.pos, VIX[i], VIX[i-1], rsi, zBias, modeB, false);
+        // 攔截降倉
+        if (cfg.unInvertCap && isCapActive) nextB.pos = Math.min(nextB.pos, 0.5);
+
         if(nextB.mode !== modeB) logs.push({ d:DATES[i], mtd:'B', fm:modeB, to:nextB.mode, sp:SP[i].toFixed(1), s:shieldB, ps:prevShieldB, db:daysBelowB });
         eqB *= (1 + nextB.pos * spRet * (1 - ((nextB.pos !== posB) ? dynamicCost : 0)));
         posB = nextB.pos; modeB = nextB.mode;
@@ -606,6 +635,9 @@ function runBacktest() {
 
       if(cfg.mode === 'C' || cfg.mode === 'BC' || cfg.mode === 'ALL') {
         const nextC = nextMode(shieldB, daysBelowB, cfg.B, cfg.strk, cfg.pos, VIX[i], VIX[i-1], rsi, zBias, modeC, true);
+        // 攔截降倉
+        if (cfg.unInvertCap && isCapActive) nextC.pos = Math.min(nextC.pos, 0.5);
+
         if(nextC.mode !== modeC) logs.push({ d:DATES[i], mtd:'C', fm:modeC, to:nextC.mode, sp:SP[i].toFixed(1), s:shieldB, ps:prevShieldB, db:daysBelowB });
         eqC *= (1 + nextC.pos * spRet * (1 - ((nextC.pos !== posC) ? dynamicCost : 0)));
         posC = nextC.pos; modeC = nextC.mode;
@@ -730,5 +762,3 @@ function switchTab(e, name) {
 
 </body>
 </html>
-
-
