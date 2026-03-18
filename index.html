@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>矛與盾 V7.16 — 聯集矩陣版 (修復版)</title>
+<title>矛與盾 V7.16 — 聯集矩陣版 (終極修復版)</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -49,7 +49,7 @@ td{padding:10px;border-bottom:1px solid var(--border);} .tg{color:var(--green);f
 <div class="loading-overlay hidden" id="loadingOverlay"><div class="spinner"></div><div>處理中... 正在執行運算</div></div>
 <div class="wrap">
   <div class="hdr">
-    <div><div class="hdr-title">🛡️ 矛與盾 <span class="v">V7.16 聯集矩陣版</span></div><div class="hdr-sub">修復手動存檔 Bug ｜ 新增方法 D 全狀態聯集跟隨 ｜ 自動抓取 CAPE</div></div>
+    <div><div class="hdr-title">🛡️ 矛與盾 <span class="v">V7.16 聯集矩陣版</span></div><div class="hdr-sub">Nasdaq直連突破 CF 防護 ｜ 全狀態聯集跟隨 ｜ 自動抓取 CAPE</div></div>
     <div id="dataSourceBadge" style="font-size:12px;padding:4px 12px;border:1px solid var(--border-hi);color:var(--muted);">● 初始數據模式</div>
   </div>
   <div class="tabs">
@@ -64,11 +64,11 @@ td{padding:10px;border-bottom:1px solid var(--border);} .tg{color:var(--green);f
     <div class="db-container">
       <div class="db-box" style="border-color:var(--blue-dim);background:rgba(0,26,61,0.2);">
         <h3>🤖 第二步 (選用)：自動連線更新</h3>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">系統將自動抓取 FRED、Yahoo Finance 與 multpl.com (CAPE)。具備雙重 Proxy 備援機制。</p>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">具備 Nasdaq 直連更新 CAPE 功能，並支援 FRED / Yahoo 雙 Proxy 備援機制。</p>
         <div class="db-grid">
           <div class="db-item" style="grid-column:span 2;"><label>FRED API 金鑰</label><input type="text" id="apiFredKey" value="258bf0113f3cc4ec207f3160731c459e"></div>
           <div class="db-item" style="grid-column:span 2;"><label>Proxy URL</label><input type="text" id="apiProxy" value="https://shield-proxy.depross0205.workers.dev?url="></div>
-          <div class="db-item" style="grid-column:span 2;"><label>手動 CAPE (若自動抓取失敗時沿用)</label><input type="number" step="0.01" id="apiCape" value="30.00"></div>
+          <div class="db-item" style="grid-column:span 2;"><label>手動 CAPE (若自動連線失敗時沿用)</label><input type="number" step="0.01" id="apiCape" value="30.00"></div>
         </div>
         <button class="btn btn-primary" style="background:var(--blue);border-color:var(--blue);color:#000;" onclick="fetchWebData()">🔄 自動抓取並補齊</button>
       </div>
@@ -229,11 +229,30 @@ async function fetchWebData() {
   };
 
   try {
+    // 💡 CAPE 抓取策略：優先使用 Nasdaq Data Link 官方 API (原生支援 CORS，無 Cloudflare 阻擋問題)
     try {
-      let html = await fetchAuto('https://www.multpl.com/shiller-pe', false);
-      let match = html.match(/<div id="bignum"[^>]*>\s*([\d.]+)/i);
-      if(match) { cap = parseFloat(match[1]); document.getElementById('apiCape').value = cap; }
-    } catch(e) { console.warn('CAPE抓取失敗，沿用手動值', e); }
+      let r = await fetch('https://data.nasdaq.com/api/v3/datasets/MULTPL/SHILLER_PE_RATIO_MONTH.json');
+      if(r.ok) {
+        let j = await r.json();
+        cap = parseFloat(j.dataset.data[0][1]);
+        document.getElementById('apiCape').value = cap;
+      } else {
+        throw new Error('Nasdaq API 回傳異常');
+      }
+    } catch(e1) {
+      console.warn('Nasdaq 直連失敗，退回代理爬蟲', e1);
+      // 備援：透過 Proxy 爬取 multpl
+      try {
+        let html = await fetchAuto('https://www.multpl.com/shiller-pe', false);
+        let match = html.match(/<div id="bignum"[^>]*>\s*([\d.]+)/i) || html.match(/([\d.]+)\s*<\/div>\s*<div[^>]*>Shiller PE Ratio/i);
+        if(match) { 
+          cap = parseFloat(match[1]); 
+          document.getElementById('apiCape').value = cap; 
+        }
+      } catch(e2) {
+        console.warn('CAPE 雙重抓取皆失敗，沿用畫面手動輸入值', e2);
+      }
+    }
 
     let gf = async(id) => {
       let j = await fetchAuto(`https://api.stlouisfed.org/fred/series/observations?series_id=${id}&api_key=${key}&file_type=json`);
@@ -259,7 +278,7 @@ async function fetchWebData() {
     dbData.sort((a,b)=>a.d.localeCompare(b.d)); syncArrays(); 
     alert(`抓取完成！新增:${nc} 覆蓋:${uc}\n最新席勒本益比 (CAPE): ${cap}`);
   } catch(e) { 
-    alert("❌ API 雙重連線皆失敗，請稍後再試。\n錯誤細節: "+e.message); 
+    alert("❌ API 連線失敗，請稍後再試。\n錯誤細節: "+e.message); 
   } finally { 
     document.getElementById('loadingOverlay').classList.add('hidden'); 
   }
