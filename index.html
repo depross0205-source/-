@@ -46,10 +46,10 @@ td{padding:10px;border-bottom:1px solid var(--border);} .tg{color:var(--green);f
 </style>
 </head>
 <body>
-<div class="loading-overlay hidden" id="loadingOverlay"><div class="spinner"></div><div>處理中... 正在執行矩陣運算</div></div>
+<div class="loading-overlay hidden" id="loadingOverlay"><div class="spinner"></div><div>處理中... 正在執行運算</div></div>
 <div class="wrap">
   <div class="hdr">
-    <div><div class="hdr-title">🛡️ 矛與盾 <span class="v">V7.16 聯集矩陣版</span></div><div class="hdr-sub">修復連跌重置 Bug ｜ 新增方法 D 全狀態聯集跟隨 ｜ 極簡效能核心</div></div>
+    <div><div class="hdr-title">🛡️ 矛與盾 <span class="v">V7.16 聯集矩陣版</span></div><div class="hdr-sub">修復連跌重置 Bug ｜ 新增方法 D 全狀態聯集跟隨 ｜ 自動抓取 CAPE</div></div>
     <div id="dataSourceBadge" style="font-size:12px;padding:4px 12px;border:1px solid var(--border-hi);color:var(--muted);">● 初始數據模式</div>
   </div>
   <div class="tabs">
@@ -64,10 +64,11 @@ td{padding:10px;border-bottom:1px solid var(--border);} .tg{color:var(--green);f
     <div class="db-container">
       <div class="db-box" style="border-color:var(--blue-dim);background:rgba(0,26,61,0.2);">
         <h3>🤖 第二步 (選用)：自動連線更新</h3>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">系統將自動抓取 FRED、Yahoo Finance 與 multpl.com (CAPE)。具備雙重 Proxy 備援機制。</p>
         <div class="db-grid">
           <div class="db-item" style="grid-column:span 2;"><label>FRED API 金鑰</label><input type="text" id="apiFredKey" value="258bf0113f3cc4ec207f3160731c459e"></div>
           <div class="db-item" style="grid-column:span 2;"><label>Proxy URL</label><input type="text" id="apiProxy" value="https://shield-proxy.depross0205.workers.dev?url="></div>
-          <div class="db-item" style="grid-column:span 2;"><label>最新 CAPE</label><input type="number" step="0.01" id="apiCape" value="30.00"></div>
+          <div class="db-item" style="grid-column:span 2;"><label>手動 CAPE (若自動抓取失敗時沿用)</label><input type="number" step="0.01" id="apiCape" value="30.00"></div>
         </div>
         <button class="btn btn-primary" style="background:var(--blue);border-color:var(--blue);color:#000;" onclick="fetchWebData()">🔄 自動抓取並補齊</button>
       </div>
@@ -75,11 +76,11 @@ td{padding:10px;border-bottom:1px solid var(--border);} .tg{color:var(--green);f
         <h3>✍️ 手動寫入</h3>
         <div class="db-grid">
           <div class="db-item"><label>日期</label><input type="date" id="dbDate"></div>
-          <div class="db-item"><label>標普500</label><input type="number" id="dbSP"></div>
-          <div class="db-item"><label>等權重</label><input type="number" id="dbEW"></div>
-          <div class="db-item"><label>高收利差</label><input type="number" id="dbHY"></div>
-          <div class="db-item"><label>10年抗通膨</label><input type="number" id="dbTIPS"></div>
-          <div class="db-item"><label>VIX</label><input type="number" id="dbVIX"></div>
+          <div class="db-item"><label>標普500</label><input type="number" step="0.01" id="dbSP"></div>
+          <div class="db-item"><label>等權重</label><input type="number" step="0.01" id="dbEW"></div>
+          <div class="db-item"><label>高收利差</label><input type="number" step="0.01" id="dbHY"></div>
+          <div class="db-item"><label>10年抗通膨</label><input type="number" step="0.01" id="dbTIPS"></div>
+          <div class="db-item"><label>VIX</label><input type="number" step="0.01" id="dbVIX"></div>
         </div>
         <button class="btn btn-outline" style="color:var(--white);border-color:var(--border-hi);" onclick="updateDatabase()">💾 寫入資料庫</button>
       </div>
@@ -162,7 +163,7 @@ function syncArrays() {
   if(dbData.length>0) {
     let l=dbData[dbData.length-1], sv=(id,v)=>{let e=document.getElementById(id);if(e)e.value=v;};
     sv('cpStart',dbData[0].d); sv('cpEnd',l.d); sv('dbDate',new Date().toISOString().slice(0,10));
-    sv('dbSP',l.sp); sv('dbEW',l.ew); sv('dbHY',l.hy); sv('dbTIPS',l.tips); sv('dbVIX',l.vix);
+    sv('dbSP',l.sp); sv('dbEW',l.ew); sv('dbHY',l.hy); sv('dbTIPS',l.tips); sv('dbVIX',l.vix); sv('dbCAPE',l.cape);
     if(ld) ld.textContent = "最後紀錄："+l.d;
   }
 }
@@ -193,29 +194,53 @@ function handleFileUpload(e) {
 
 function updateDatabase() {
   let d=document.getElementById('dbDate').value; if(!d) return alert("請輸入日期");
-  let r = {d:d, sp:+document.getElementById('dbSP').value, ew:+document.getElementById('dbEW').value, hy:+document.getElementById('dbHY').value, tips:+document.getElementById('dbTIPS').value, vix:+document.getElementById('dbVIX').value, cape:dbData[dbData.length-1].cape};
+  let r = {d:d, sp:+document.getElementById('dbSP').value, ew:+document.getElementById('dbEW').value, hy:+document.getElementById('dbHY').value, tips:+document.getElementById('dbTIPS').value, vix:+document.getElementById('dbVIX').value, cape:+document.getElementById('dbCAPE').value || dbData[dbData.length-1].cape};
   let idx = dbData.findIndex(x=>x.d===d); idx>-1 ? dbData[idx]=r : dbData.push(r);
   dbData.sort((a,b)=>a.d.localeCompare(b.d)); syncArrays(); alert("已寫入！");
 }
 
 async function fetchWebData() {
-  let key=document.getElementById('apiFredKey').value.trim(), px=document.getElementById('apiProxy').value.trim(), cap=+document.getElementById('apiCape').value||30;
-  if(!key) return alert("請輸入金鑰");
-  if(px && !px.includes('url=')) { px += px.endsWith('/')?'?url=':'/?url='; document.getElementById('apiProxy').value=px; }
+  let key=document.getElementById('apiFredKey').value.trim(), cap=+document.getElementById('apiCape').value||30;
+  let px1=document.getElementById('apiProxy').value.trim();
+  if(px1 && !px1.includes('url=')) px1 += px1.endsWith('/')?'?url=':'/?url=';
+  let px2='https://api.allorigins.win/raw?url='; // 自動備援 Proxy
+  
+  if(!key) return alert("請輸入 FRED 金鑰");
   document.getElementById('loadingOverlay').classList.remove('hidden');
+
+  let fetchAuto = async (url, isJson=true) => {
+    let err;
+    for(let px of (px1 ? [px1, px2] : [px2])) {
+      try {
+        let r = await fetch(px + encodeURIComponent(url));
+        if(!r.ok) throw new Error(`HTTP ${r.status}`);
+        return isJson ? await r.json() : await r.text();
+      } catch(e) { err = e; }
+    }
+    throw err;
+  };
+
   try {
+    try {
+      let html = await fetchAuto('https://www.multpl.com/shiller-pe', false);
+      let match = html.match(/<div id="bignum"[^>]*>\s*([\d.]+)/i);
+      if(match) { cap = parseFloat(match[1]); document.getElementById('apiCape').value = cap; }
+    } catch(e) { console.warn('CAPE抓取失敗，沿用手動值', e); }
+
     let gf = async(id) => {
-      let r = await fetch(px?px+encodeURIComponent(`https://api.stlouisfed.org/fred/series/observations?series_id=${id}&api_key=${key}&file_type=json`):`https://api.stlouisfed.org/fred/series/observations?series_id=${id}&api_key=${key}&file_type=json`);
-      let j = await r.json(), d={}; j.observations.forEach(o=>{if(o.value!=='.') d[o.date]=+o.value;}); return d;
+      let j = await fetchAuto(`https://api.stlouisfed.org/fred/series/observations?series_id=${id}&api_key=${key}&file_type=json`);
+      let d={}; j.observations.forEach(o=>{if(o.value!=='.') d[o.date]=+o.value;}); return d;
     };
     let gy = async(tk) => {
-      let r = await fetch(px?px+encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${tk}?range=2y&interval=1d`):`https://query1.finance.yahoo.com/v8/finance/chart/${tk}?range=2y&interval=1d`);
-      let j = await r.json(), d={}, c=j.chart.result[0];
+      let j = await fetchAuto(`https://query1.finance.yahoo.com/v8/finance/chart/${tk}?range=2y&interval=1d`);
+      let d={}, c=j.chart.result[0];
       for(let i=0;i<c.timestamp.length;i++) if(c.indicators.quote[0].close[i]!==null) d[new Date(c.timestamp[i]*1000).toISOString().slice(0,10)]=c.indicators.quote[0].close[i];
       return d;
     };
+
     let [hyD, tipD, spD, ewD, vixD] = await Promise.all([gf('BAMLH0A0HYM2'), gf('DFII10'), gy('^GSPC'), gy('RSP'), gy('^VIX')]);
     let lH=3.5, lT=1.5, uc=0, nc=0;
+    
     Object.keys(spD).sort().forEach(d=>{
       if(hyD[d]!==undefined) lH=hyD[d]; if(tipD[d]!==undefined) lT=tipD[d];
       if(ewD[d]!==undefined && vixD[d]!==undefined) {
@@ -223,8 +248,13 @@ async function fetchWebData() {
         let idx=dbData.findIndex(x=>x.d===d); if(idx>-1){dbData[idx]=r;uc++;}else{dbData.push(r);nc++;}
       }
     });
-    dbData.sort((a,b)=>a.d.localeCompare(b.d)); syncArrays(); alert(`抓取完成！新增:${nc} 覆蓋:${uc}`);
-  } catch(e) { alert("錯誤: "+e.message); } finally { document.getElementById('loadingOverlay').classList.add('hidden'); }
+    dbData.sort((a,b)=>a.d.localeCompare(b.d)); syncArrays(); 
+    alert(`抓取完成！新增:${nc} 覆蓋:${uc}\n最新席勒本益比 (CAPE): ${cap}`);
+  } catch(e) { 
+    alert("❌ API 雙重連線皆失敗，請稍後再試。\n錯誤細節: "+e.message); 
+  } finally { 
+    document.getElementById('loadingOverlay').classList.add('hidden'); 
+  }
 }
 
 function exportCSV() {
