@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>矛與盾 V7.16 — 聯集矩陣版</title>
+<title>矛與盾 V7.16 — 聯集矩陣版 (修復版)</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -49,7 +49,7 @@ td{padding:10px;border-bottom:1px solid var(--border);} .tg{color:var(--green);f
 <div class="loading-overlay hidden" id="loadingOverlay"><div class="spinner"></div><div>處理中... 正在執行運算</div></div>
 <div class="wrap">
   <div class="hdr">
-    <div><div class="hdr-title">🛡️ 矛與盾 <span class="v">V7.16 聯集矩陣版</span></div><div class="hdr-sub">修復連跌重置 Bug ｜ 新增方法 D 全狀態聯集跟隨 ｜ 自動抓取 CAPE</div></div>
+    <div><div class="hdr-title">🛡️ 矛與盾 <span class="v">V7.16 聯集矩陣版</span></div><div class="hdr-sub">修復手動存檔 Bug ｜ 新增方法 D 全狀態聯集跟隨 ｜ 自動抓取 CAPE</div></div>
     <div id="dataSourceBadge" style="font-size:12px;padding:4px 12px;border:1px solid var(--border-hi);color:var(--muted);">● 初始數據模式</div>
   </div>
   <div class="tabs">
@@ -81,6 +81,7 @@ td{padding:10px;border-bottom:1px solid var(--border);} .tg{color:var(--green);f
           <div class="db-item"><label>高收利差</label><input type="number" step="0.01" id="dbHY"></div>
           <div class="db-item"><label>10年抗通膨</label><input type="number" step="0.01" id="dbTIPS"></div>
           <div class="db-item"><label>VIX</label><input type="number" step="0.01" id="dbVIX"></div>
+          <div class="db-item" style="grid-column:span 2;"><label>CAPE</label><input type="number" step="0.01" id="dbCAPE" placeholder="若無可留空，自動沿用上一日"></div>
         </div>
         <button class="btn btn-outline" style="color:var(--white);border-color:var(--border-hi);" onclick="updateDatabase()">💾 寫入資料庫</button>
       </div>
@@ -194,7 +195,14 @@ function handleFileUpload(e) {
 
 function updateDatabase() {
   let d=document.getElementById('dbDate').value; if(!d) return alert("請輸入日期");
-  let r = {d:d, sp:+document.getElementById('dbSP').value, ew:+document.getElementById('dbEW').value, hy:+document.getElementById('dbHY').value, tips:+document.getElementById('dbTIPS').value, vix:+document.getElementById('dbVIX').value, cape:+document.getElementById('dbCAPE').value || dbData[dbData.length-1].cape};
+  let capeEl = document.getElementById('dbCAPE');
+  let capeVal = (capeEl && capeEl.value) ? parseFloat(capeEl.value) : dbData[dbData.length-1].cape;
+  
+  let r = {
+    d:d, sp:+document.getElementById('dbSP').value, ew:+document.getElementById('dbEW').value, 
+    hy:+document.getElementById('dbHY').value, tips:+document.getElementById('dbTIPS').value, 
+    vix:+document.getElementById('dbVIX').value, cape:capeVal
+  };
   let idx = dbData.findIndex(x=>x.d===d); idx>-1 ? dbData[idx]=r : dbData.push(r);
   dbData.sort((a,b)=>a.d.localeCompare(b.d)); syncArrays(); alert("已寫入！");
 }
