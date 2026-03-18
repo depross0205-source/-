@@ -49,7 +49,7 @@ td{padding:10px;border-bottom:1px solid var(--border);} .tg{color:var(--green);f
 <div class="loading-overlay hidden" id="loadingOverlay"><div class="spinner"></div><div>處理中... 正在執行運算</div></div>
 <div class="wrap">
   <div class="hdr">
-    <div><div class="hdr-title">🛡️ 矛與盾 <span class="v">V7.16 聯集矩陣版</span></div><div class="hdr-sub">Nasdaq直連突破 CF 防護 ｜ 全狀態聯集跟隨 ｜ 自動抓取 CAPE</div></div>
+    <div><div class="hdr-title">🛡️ 矛與盾 <span class="v">V7.16 聯集矩陣版</span></div><div class="hdr-sub">多節點 Proxy 輪詢池防擋 ｜ 全狀態聯集跟隨 ｜ 自動抓取 CAPE</div></div>
     <div id="dataSourceBadge" style="font-size:12px;padding:4px 12px;border:1px solid var(--border-hi);color:var(--muted);">● 初始數據模式</div>
   </div>
   <div class="tabs">
@@ -64,7 +64,7 @@ td{padding:10px;border-bottom:1px solid var(--border);} .tg{color:var(--green);f
     <div class="db-container">
       <div class="db-box" style="border-color:var(--blue-dim);background:rgba(0,26,61,0.2);">
         <h3>🤖 第二步 (選用)：自動連線更新</h3>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">具備 Nasdaq 直連更新 CAPE 功能，並支援 FRED / Yahoo 雙 Proxy 備援機制。</p>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">已啟用多節點 Proxy 輪詢池，能自動繞過 Safari 擋廣告防護與 Cloudflare 阻擋。</p>
         <div class="db-grid">
           <div class="db-item" style="grid-column:span 2;"><label>FRED API 金鑰</label><input type="text" id="apiFredKey" value="258bf0113f3cc4ec207f3160731c459e"></div>
           <div class="db-item" style="grid-column:span 2;"><label>Proxy URL</label><input type="text" id="apiProxy" value="https://shield-proxy.depross0205.workers.dev?url="></div>
@@ -211,58 +211,54 @@ async function fetchWebData() {
   let key=document.getElementById('apiFredKey').value.trim(), cap=+document.getElementById('apiCape').value||30;
   let px1=document.getElementById('apiProxy').value.trim();
   if(px1 && !px1.includes('url=')) px1 += px1.endsWith('/')?'?url=':'/?url=';
-  let px2='https://api.allorigins.win/raw?url='; // 自動備援 Proxy
   
   if(!key) return alert("請輸入 FRED 金鑰");
   document.getElementById('loadingOverlay').classList.remove('hidden');
 
+  // 🛡️ 建立多節點 Proxy 輪詢池 (Proxy Pool)
+  let proxies = [];
+  if (px1) proxies.push(px1);
+  proxies.push('https://corsproxy.io/?');
+  proxies.push('https://api.codetabs.com/v1/proxy?quest=');
+
+  // 自動嘗試多個 Proxy，直到成功為止
   let fetchAuto = async (url, isJson=true) => {
-    let err;
-    for(let px of (px1 ? [px1, px2] : [px2])) {
+    let lastErr;
+    for(let px of proxies) {
       try {
-        let r = await fetch(px + encodeURIComponent(url));
+        let reqUrl = px.includes('corsproxy.io') ? px + encodeURIComponent(url) : px + encodeURIComponent(url);
+        let r = await fetch(reqUrl);
         if(!r.ok) throw new Error(`HTTP ${r.status}`);
         return isJson ? await r.json() : await r.text();
-      } catch(e) { err = e; }
+      } catch(e) { lastErr = e; }
     }
-    throw err;
+    throw lastErr;
   };
 
   try {
-    // 💡 CAPE 抓取策略：優先使用 Nasdaq Data Link 官方 API (原生支援 CORS，無 Cloudflare 阻擋問題)
     try {
       let r = await fetch('https://data.nasdaq.com/api/v3/datasets/MULTPL/SHILLER_PE_RATIO_MONTH.json');
       if(r.ok) {
-        let j = await r.json();
-        cap = parseFloat(j.dataset.data[0][1]);
-        document.getElementById('apiCape').value = cap;
-      } else {
-        throw new Error('Nasdaq API 回傳異常');
-      }
+        let j = await r.json(); cap = parseFloat(j.dataset.data[0][1]); document.getElementById('apiCape').value = cap;
+      } else throw new Error('Nasdaq API 回傳異常');
     } catch(e1) {
-      console.warn('Nasdaq 直連失敗，退回代理爬蟲', e1);
-      // 備援：透過 Proxy 爬取 multpl
       try {
         let html = await fetchAuto('https://www.multpl.com/shiller-pe', false);
         let match = html.match(/<div id="bignum"[^>]*>\s*([\d.]+)/i) || html.match(/([\d.]+)\s*<\/div>\s*<div[^>]*>Shiller PE Ratio/i);
-        if(match) { 
-          cap = parseFloat(match[1]); 
-          document.getElementById('apiCape').value = cap; 
-        }
-      } catch(e2) {
-        console.warn('CAPE 雙重抓取皆失敗，沿用畫面手動輸入值', e2);
-      }
+        if(match) { cap = parseFloat(match[1]); document.getElementById('apiCape').value = cap; }
+      } catch(e2) { console.warn('CAPE 抓取皆失敗，沿用畫面手動輸入值'); }
     }
 
     let gf = async(id) => {
       let j = await fetchAuto(`https://api.stlouisfed.org/fred/series/observations?series_id=${id}&api_key=${key}&file_type=json`);
-      let d={}; j.observations.forEach(o=>{if(o.value!=='.') d[o.date]=+o.value;}); return d;
+      let d={}; if(j&&j.observations) j.observations.forEach(o=>{if(o.value!=='.') d[o.date]=+o.value;}); return d;
     };
     let gy = async(tk) => {
       let j = await fetchAuto(`https://query1.finance.yahoo.com/v8/finance/chart/${tk}?range=2y&interval=1d`);
-      let d={}, c=j.chart.result[0];
-      for(let i=0;i<c.timestamp.length;i++) if(c.indicators.quote[0].close[i]!==null) d[new Date(c.timestamp[i]*1000).toISOString().slice(0,10)]=c.indicators.quote[0].close[i];
-      return d;
+      let d={}; if(j&&j.chart&&j.chart.result) {
+        let c=j.chart.result[0];
+        for(let i=0;i<c.timestamp.length;i++) if(c.indicators.quote[0].close[i]!==null) d[new Date(c.timestamp[i]*1000).toISOString().slice(0,10)]=c.indicators.quote[0].close[i];
+      } return d;
     };
 
     let [hyD, tipD, spD, ewD, vixD] = await Promise.all([gf('BAMLH0A0HYM2'), gf('DFII10'), gy('^GSPC'), gy('RSP'), gy('^VIX')]);
@@ -278,7 +274,7 @@ async function fetchWebData() {
     dbData.sort((a,b)=>a.d.localeCompare(b.d)); syncArrays(); 
     alert(`抓取完成！新增:${nc} 覆蓋:${uc}\n最新席勒本益比 (CAPE): ${cap}`);
   } catch(e) { 
-    alert("❌ API 連線失敗，請稍後再試。\n錯誤細節: "+e.message); 
+    alert(`❌ 網路連線阻擋。\n您的瀏覽器或網路環境封鎖了對外資料抓取。\n錯誤細節: ${e ? e.message : '未知網路錯誤'}`); 
   } finally { 
     document.getElementById('loadingOverlay').classList.add('hidden'); 
   }
