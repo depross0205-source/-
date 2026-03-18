@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>矛與盾 V7.16 — 聯集矩陣版 (終極修復版)</title>
+<title>矛與盾 V7.16 — 聯集矩陣版 (手動CAPE版)</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -49,7 +49,7 @@ td{padding:10px;border-bottom:1px solid var(--border);} .tg{color:var(--green);f
 <div class="loading-overlay hidden" id="loadingOverlay"><div class="spinner"></div><div>處理中... 正在執行運算</div></div>
 <div class="wrap">
   <div class="hdr">
-    <div><div class="hdr-title">🛡️ 矛與盾 <span class="v">V7.16 聯集矩陣版</span></div><div class="hdr-sub">多節點 Proxy 輪詢池防擋 ｜ 全狀態聯集跟隨 ｜ 自動抓取 CAPE</div></div>
+    <div><div class="hdr-title">🛡️ 矛與盾 <span class="v">V7.16 聯集矩陣版</span></div><div class="hdr-sub">多節點 Proxy 輪詢池防擋 ｜ 全狀態聯集跟隨 ｜ 手動更新 CAPE</div></div>
     <div id="dataSourceBadge" style="font-size:12px;padding:4px 12px;border:1px solid var(--border-hi);color:var(--muted);">● 初始數據模式</div>
   </div>
   <div class="tabs">
@@ -64,11 +64,11 @@ td{padding:10px;border-bottom:1px solid var(--border);} .tg{color:var(--green);f
     <div class="db-container">
       <div class="db-box" style="border-color:var(--blue-dim);background:rgba(0,26,61,0.2);">
         <h3>🤖 第二步 (選用)：自動連線更新</h3>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">已啟用多節點 Proxy 輪詢池，能自動繞過 Safari 擋廣告防護與 Cloudflare 阻擋。</p>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">已啟用多節點 Proxy 輪詢池。請確認最新的 CAPE 數值是否正確填寫。</p>
         <div class="db-grid">
           <div class="db-item" style="grid-column:span 2;"><label>FRED API 金鑰</label><input type="text" id="apiFredKey" value="258bf0113f3cc4ec207f3160731c459e"></div>
           <div class="db-item" style="grid-column:span 2;"><label>Proxy URL</label><input type="text" id="apiProxy" value="https://shield-proxy.depross0205.workers.dev?url="></div>
-          <div class="db-item" style="grid-column:span 2;"><label>手動 CAPE (若自動連線失敗時沿用)</label><input type="number" step="0.01" id="apiCape" value="30.00"></div>
+          <div class="db-item" style="grid-column:span 2;"><label>手動輸入最新 CAPE 值</label><input type="number" step="0.01" id="apiCape" value="30.00"></div>
         </div>
         <button class="btn btn-primary" style="background:var(--blue);border-color:var(--blue);color:#000;" onclick="fetchWebData()">🔄 自動抓取並補齊</button>
       </div>
@@ -208,20 +208,21 @@ function updateDatabase() {
 }
 
 async function fetchWebData() {
-  let key=document.getElementById('apiFredKey').value.trim(), cap=+document.getElementById('apiCape').value||30;
+  let key=document.getElementById('apiFredKey').value.trim();
+  // 這裡直接取畫面上的數值，不再執行 CAPE 的爬蟲
+  let cap=+document.getElementById('apiCape').value||30; 
+  
   let px1=document.getElementById('apiProxy').value.trim();
   if(px1 && !px1.includes('url=')) px1 += px1.endsWith('/')?'?url=':'/?url=';
   
   if(!key) return alert("請輸入 FRED 金鑰");
   document.getElementById('loadingOverlay').classList.remove('hidden');
 
-  // 🛡️ 建立多節點 Proxy 輪詢池 (Proxy Pool)
   let proxies = [];
   if (px1) proxies.push(px1);
   proxies.push('https://corsproxy.io/?');
   proxies.push('https://api.codetabs.com/v1/proxy?quest=');
 
-  // 自動嘗試多個 Proxy，直到成功為止
   let fetchAuto = async (url, isJson=true) => {
     let lastErr;
     for(let px of proxies) {
@@ -236,19 +237,6 @@ async function fetchWebData() {
   };
 
   try {
-    try {
-      let r = await fetch('https://data.nasdaq.com/api/v3/datasets/MULTPL/SHILLER_PE_RATIO_MONTH.json');
-      if(r.ok) {
-        let j = await r.json(); cap = parseFloat(j.dataset.data[0][1]); document.getElementById('apiCape').value = cap;
-      } else throw new Error('Nasdaq API 回傳異常');
-    } catch(e1) {
-      try {
-        let html = await fetchAuto('https://www.multpl.com/shiller-pe', false);
-        let match = html.match(/<div id="bignum"[^>]*>\s*([\d.]+)/i) || html.match(/([\d.]+)\s*<\/div>\s*<div[^>]*>Shiller PE Ratio/i);
-        if(match) { cap = parseFloat(match[1]); document.getElementById('apiCape').value = cap; }
-      } catch(e2) { console.warn('CAPE 抓取皆失敗，沿用畫面手動輸入值'); }
-    }
-
     let gf = async(id) => {
       let j = await fetchAuto(`https://api.stlouisfed.org/fred/series/observations?series_id=${id}&api_key=${key}&file_type=json`);
       let d={}; if(j&&j.observations) j.observations.forEach(o=>{if(o.value!=='.') d[o.date]=+o.value;}); return d;
@@ -267,12 +255,13 @@ async function fetchWebData() {
     Object.keys(spD).sort().forEach(d=>{
       if(hyD[d]!==undefined) lH=hyD[d]; if(tipD[d]!==undefined) lT=tipD[d];
       if(ewD[d]!==undefined && vixD[d]!==undefined) {
+        // 將手動設定的 cap 直接帶入
         let r={d:d, sp:+(spD[d].toFixed(4)), ew:+(ewD[d].toFixed(4)), hy:+(lH.toFixed(2)), tips:+(lT.toFixed(2)), vix:+(vixD[d].toFixed(2)), cape:cap};
         let idx=dbData.findIndex(x=>x.d===d); if(idx>-1){dbData[idx]=r;uc++;}else{dbData.push(r);nc++;}
       }
     });
     dbData.sort((a,b)=>a.d.localeCompare(b.d)); syncArrays(); 
-    alert(`抓取完成！新增:${nc} 覆蓋:${uc}\n最新席勒本益比 (CAPE): ${cap}`);
+    alert(`抓取完成！新增:${nc} 覆蓋:${uc}`);
   } catch(e) { 
     alert(`❌ 網路連線阻擋。\n您的瀏覽器或網路環境封鎖了對外資料抓取。\n錯誤細節: ${e ? e.message : '未知網路錯誤'}`); 
   } finally { 
