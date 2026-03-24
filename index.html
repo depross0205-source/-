@@ -202,12 +202,18 @@ td{padding:9px;border-bottom:1px solid var(--border)}
     </div>
   </div>
 </div>
-<div class="step-block">
+<div class="step-block" id="csvUploadBlock">
   <div class="step-header"><span class="step-num sn1">1</span>
-    <div><div class="step-title">上傳現有歷史資料庫</div><div class="step-sub">載入 CSV 作為基礎</div></div></div>
+    <div><div class="step-title">上傳現有歷史資料庫</div><div class="step-sub">僅在未執行自動抓取時可用</div></div></div>
   <div class="step-body">
-    <label class="upload-label" for="csvUpload">📂 點擊選擇 CSV 檔案</label>
-    <input type="file" id="csvUpload" accept=".csv" onchange="loadCSV(event)">
+    <div id="csvLockMsg" class="hidden" style="padding:8px 10px;background:var(--surface2);border:1px solid var(--border-hi);border-radius:3px;font-size:12px;color:var(--muted);margin-bottom:8px">
+      🔒 已使用自動抓取（SPY adjclose），CSV 上傳已停用以避免資料不一致。<br>
+      如需重置，請重新整理頁面。
+    </div>
+    <div id="csvUploadArea">
+      <label class="upload-label" for="csvUpload">📂 點擊選擇 CSV 檔案</label>
+      <input type="file" id="csvUpload" accept=".csv" onchange="loadCSV(event)">
+    </div>
     <div id="csvStatus" style="font-size:12px;color:var(--green);min-height:16px;margin-bottom:10px"></div>
     <div class="stat-row">
       <div class="stat-box"><div class="n" id="dbCount">0 筆</div><div class="s">記憶體資料庫</div></div>
@@ -217,11 +223,12 @@ td{padding:9px;border-bottom:1px solid var(--border)}
 </div>
 <div class="step-block">
   <div class="step-header"><span class="step-num sn2">2</span>
-    <div><div class="step-title">自動抓取最新數據</div><div class="step-sub">SPY/RSP adjclose（含股息，Total Return）& FRED → 自動合併</div></div></div>
+    <div><div class="step-title">自動抓取數據</div><div class="step-sub">SPY/RSP adjclose & FRED & CAPE（multpl.com）自動整併</div></div></div>
   <div class="step-body">
-    <div class="field" style="margin-bottom:10px"><label>本月 CAPE</label>
-      <input type="number" id="apiCape" value="36.50" step="0.1" style="width:140px"></div>
-    <button class="btn-blue" onclick="fetchAndMerge()">🔄 自動抓取並整併</button>
+    <div class="grid2" style="margin-bottom:10px">
+      <button class="btn-blue" onclick="fetchAndMerge(false)" style="font-size:12px">🔄 完整抓取（首次/每月）<br><span style="font-weight:400;font-size:10px">全部歷史 + CAPE 月資料</span></button>
+      <button class="btn-outline" onclick="fetchAndMerge(true)" style="font-size:12px">⚡ 每日快速更新<br><span style="font-weight:400;font-size:10px">只補近 15 個交易日</span></button>
+    </div>
     <div id="fetchLog"></div>
   </div>
 </div>
@@ -552,6 +559,15 @@ window.onerror=(m,u,l)=>{ alert('⚠️ 錯誤: '+m+'\n行: '+l); return false; 
 // ════ 全域狀態 ════
 let DB=[], BT_RESULT=null, charts={}, logFilter='ALL';
 let MOM_PRICES={}, MOM_RESULT=null, MOM_CHART={};
+let AUTO_FETCHED=false;  // 自動抓取完成後鎖定 CSV 上傳
+
+function lockCsvUpload(){
+  AUTO_FETCHED=true;
+  const area=$('csvUploadArea');
+  const lock=$('csvLockMsg');
+  if(area) area.classList.add('hidden');
+  if(lock) lock.classList.remove('hidden');
+}
 
 // 動能資產池設定（完整版）
 const MOM_ASSET_DEFS=[
@@ -667,6 +683,11 @@ function updateStrkInfo(){
 }
 
 function loadCSV(event){
+  if(AUTO_FETCHED){
+    alert('⚠ 已使用自動抓取，CSV 上傳已停用。\n如需使用 CSV，請重新整理頁面後直接上傳（勿先執行自動抓取）。');
+    event.target.value='';
+    return;
+  }
   const file=event.target.files[0]; if(!file) return;
   const reader=new FileReader();
   reader.onload=e=>{
@@ -697,38 +718,54 @@ function loadCSV(event){
   reader.readAsText(file);
 }
 
-async function fetchAndMerge(){
+// ── CAPE 月資料填充：同月所有日期使用相同 CAPE 值 ──
+function applyCapeMonthly(capeByMonth){
+  // capeByMonth: {'2024-01': 34.5, '2024-02': 35.1, ...}
+  let changed=0;
+  DB.forEach(r=>{
+    const m=r.d.slice(0,7);
+    if(capeByMonth[m]!==undefined){
+      const newCape=+capeByMonth[m].toFixed(2);
+      if(Math.abs((r.cape||0)-newCape)>0.01){ r.cape=newCape; changed++; }
+    }
+  });
+  return changed;
+}
+
+async function fetchAndMerge(quickMode=false){
   const key=$('apiFredKey').value.trim(); let proxy=$('apiProxy').value.trim();
-  const cape=parseFloat($('apiCape').value)||30;
   if(!key){alert('請填寫 FRED API Key');return;}
   if(proxy&&!proxy.includes('url=')) proxy=proxy.endsWith('/')?proxy+'?url=':proxy+'/?url=';
   const PROXIES=[proxy,'https://api.allorigins.win/raw?url=','https://api.codetabs.com/v1/proxy?quest='].filter(Boolean);
-  $('loadingOverlay').classList.remove('hidden'); setLog('準備連線...');
+  $('loadingOverlay').classList.remove('hidden');
+  setLog(quickMode?'⚡ 每日快速更新中...':'🔄 完整抓取中（含 CAPE）...');
+
   const fetchFB=async url=>{
     let lastErr;
     for(const p of PROXIES){
       try{
         const res=await fetch(p+encodeURIComponent(url));
         if(!res.ok) throw new Error('HTTP '+res.status);
-        if((res.headers.get('content-type')||'').includes('text/html')) throw new Error('Proxy 回傳 HTML');
+        if((res.headers.get('content-type')||'').includes('text/html')){
+          // CAPE HTML 頁面本身就是 HTML，不視為錯誤
+          if(url.includes('multpl')) return res;
+          throw new Error('Proxy 回傳 HTML');
+        }
         return res;
       }catch(e){lastErr=e;}
     }
     throw lastErr||new Error('所有 Proxy 失敗');
   };
-  const getFred=async id=>{ setLog('抓取 FRED: '+id+'...');$('loadingText').textContent='抓取 FRED: '+id;
-    const url='https://api.stlouisfed.org/fred/series/observations?series_id='+id+'&api_key='+key+'&file_type=json';
-    const res=await fetchFB(url);const j=await res.json();
-    if(j.error_message) throw new Error('FRED: '+j.error_message);
-    const d={};j.observations.forEach(o=>{if(o.value!=='.') d[o.date]=parseFloat(o.value);});return d;
-  };
-  // getYf：對股票 ETF 使用 adjclose（含股息），對指數（^開頭）用普通 close
-  const getYf=async ticker=>{ setLog('抓取 Yahoo: '+ticker+'...');$('loadingText').textContent='抓取 Yahoo: '+ticker;
-    const url='https://query1.finance.yahoo.com/v8/finance/chart/'+ticker+'?range=max&interval=1d';
+
+  // Yahoo Finance 抓取（quickMode 只抓近期，完整模式抓全部）
+  const getYf=async ticker=>{
+    setLog((quickMode?'⚡':'🔄')+' Yahoo: '+ticker+'...');
+    $('loadingText').textContent='抓取 '+ticker;
+    const range=quickMode?'1mo':'max';
+    const url='https://query1.finance.yahoo.com/v8/finance/chart/'+ticker+'?range='+range+'&interval=1d';
     const res=await fetchFB(url);const j=await res.json();
     const d={},chart=j.chart.result[0];
     chart.timestamp.forEach((t,i)=>{
-      // adjclose 優先（含股息再投入），^開頭指數無 adjclose 則 fallback 到 close
       const adj=chart.indicators?.adjclose?.[0]?.adjclose?.[i];
       const cl =chart.indicators?.quote?.[0]?.close?.[i];
       const val=adj??cl;
@@ -736,28 +773,117 @@ async function fetchAndMerge(){
     });
     return d;
   };
+
+  // FRED 抓取（quickMode 只抓近 30 天，完整模式全部）
+  const getFred=async id=>{
+    setLog((quickMode?'⚡':'🔄')+' FRED: '+id+'...');
+    $('loadingText').textContent='抓取 FRED: '+id;
+    let url='https://api.stlouisfed.org/fred/series/observations?series_id='+id+'&api_key='+key+'&file_type=json';
+    if(quickMode){
+      const from=new Date(Date.now()-45*86400000).toISOString().slice(0,10);
+      url+='&observation_start='+from;
+    }
+    const res=await fetchFB(url);const j=await res.json();
+    if(j.error_message) throw new Error('FRED: '+j.error_message);
+    const d={};j.observations.forEach(o=>{if(o.value!=='.') d[o.date]=parseFloat(o.value);});return d;
+  };
+
+  // CAPE 月資料抓取（multpl.com，完整模式才抓）
+  const fetchCape=async ()=>{
+    setLog('🔄 CAPE：抓取 multpl.com...');
+    $('loadingText').textContent='抓取 CAPE 歷史...';
+    const url='https://www.multpl.com/shiller-pe/table/by-month';
+    try{
+      const res=await fetchFB(url);
+      const html=await res.text();
+      // 解析 HTML 表格：格式為 <tr><td>Jan 1, 2024</td><td>34.56</td></tr>
+      const rows=html.match(/<tr[^>]*>[\s\S]*?<\/tr>/gi)||[];
+      const capeByMonth={};
+      rows.forEach(row=>{
+        const cells=row.match(/<td[^>]*>([\s\S]*?)<\/td>/gi)||[];
+        if(cells.length>=2){
+          const dateStr=cells[0].replace(/<[^>]+>/g,'').trim();
+          const valStr =cells[1].replace(/<[^>]+>/g,'').trim();
+          const val=parseFloat(valStr);
+          if(isNaN(val)||val<=0) return;
+          // 解析日期：'Jan 1, 2024' 或 'Jan 2024'
+          const d=new Date(dateStr);
+          if(!isNaN(d.getTime())){
+            const m=d.toISOString().slice(0,7);
+            capeByMonth[m]=val;
+          }
+        }
+      });
+      return capeByMonth;
+    }catch(e){
+      setLog('⚠ CAPE 抓取失敗（'+e.message+'），使用現有值');
+      return {};
+    }
+  };
+
   try{
-    // SPY adjclose = S&P 500 Total Return（含股息再投入）
-    // ^GSPC = 純價格指數（不含股息），改用 SPY 讓 ABCD 與動能輪動站同一基礎
     const spD=await getYf('SPY'),ewD=await getYf('RSP'),vixD=await getYf('^VIX');
     const hyD=await getFred('BAMLH0A0HYM2'),tipD=await getFred('DFII10');
     const y10D=await getFred('DGS10'),y2D=await getFred('DGS2');
+
+    // CAPE：完整模式才從 multpl 抓，quickMode 沿用現有值
+    let capeByMonth={};
+    if(!quickMode) capeByMonth=await fetchCape();
+
     setLog('整併資料中...');
     let added=0,updated=0,lHY=3.5,lT=1.5,l10=4.0,l2=3.8;
+
+    // 如果是 quickMode，先從現有 DB 初始化最後一筆的數值
+    if(quickMode&&DB.length>0){
+      const l=DB[DB.length-1];
+      lHY=l.hy||lHY; lT=l.tips||lT; l10=l.y10||l10; l2=l.y2||l2;
+    }
+
+    // 整併日頻資料
     Object.keys(spD).sort().forEach(d=>{
       if(hyD[d]!==undefined)lHY=hyD[d];if(tipD[d]!==undefined)lT=tipD[d];
       if(y10D[d]!==undefined)l10=y10D[d];if(y2D[d]!==undefined)l2=y2D[d];
       if(!vixD[d]) return;
-      const row={d,sp:+spD[d].toFixed(4),ew:ewD[d]?+ewD[d].toFixed(4):+spD[d].toFixed(4),
-        vix:+vixD[d].toFixed(2),hy:+lHY.toFixed(4),tips:+lT.toFixed(2),cape,y10:+l10.toFixed(2),y2:+l2.toFixed(2)};
+      const m=d.slice(0,7);
+      // CAPE：優先用當月 CAPE 月資料，否則沿用上一筆
+      const capeForRow=capeByMonth[m]||null;
       const ei=DB.findIndex(x=>x.d===d);
-      if(ei>-1){DB[ei]=row;updated++;}else{DB.push(row);added++;}
+      if(ei>-1){
+        DB[ei].sp=+spD[d].toFixed(4);
+        DB[ei].ew=ewD[d]?+ewD[d].toFixed(4):+spD[d].toFixed(4);
+        DB[ei].vix=+vixD[d].toFixed(2);
+        DB[ei].hy=+lHY.toFixed(4);
+        DB[ei].tips=+lT.toFixed(2);
+        DB[ei].y10=+l10.toFixed(2);
+        DB[ei].y2=+l2.toFixed(2);
+        if(capeForRow) DB[ei].cape=capeForRow;
+        updated++;
+      }else{
+        const lastCape=DB.length>0?DB[DB.length-1].cape:30;
+        DB.push({d,sp:+spD[d].toFixed(4),ew:ewD[d]?+ewD[d].toFixed(4):+spD[d].toFixed(4),
+          vix:+vixD[d].toFixed(2),hy:+lHY.toFixed(4),tips:+lT.toFixed(2),
+          cape:capeForRow||lastCape,y10:+l10.toFixed(2),y2:+l2.toFixed(2)});
+        added++;
+      }
     });
+
+    // CAPE 月填充：用月資料回填當月所有日
+    let capeChanged=0;
+    if(!quickMode&&Object.keys(capeByMonth).length>0){
+      capeChanged=applyCapeMonthly(capeByMonth);
+    }
+
     sortAndFill();
-    const msg='✅ 完成！新增 '+added+' 筆，更新 '+updated+' 筆。共 '+DB.length+' 筆\n（SP500 欄位已改為 SPY adjclose，含股息再投入）';
+
+    const capeInfo=quickMode?'':`，CAPE更新${capeChanged}筆`;
+    const msg=`✅ ${quickMode?'快速':'完整'}更新完成！新增 ${added}，更新 ${updated}${capeInfo}。共 ${DB.length} 筆`;
     setLog(msg,true);
-    const b=$('dataSourceBadge'); b.textContent='● SPY TR ('+DB.length+' 筆)'; b.style.color='var(--teal)';
-    alert(msg);
+    const b=$('dataSourceBadge');
+    b.textContent=`● ${quickMode?'⚡快速':'完整'}更新 (${DB.length}筆)`;
+    b.style.color=quickMode?'var(--accent)':'var(--teal)';
+    lockCsvUpload();  // 自動抓取完成，鎖定 CSV 上傳
+    if(!quickMode) alert(msg);
+
   }catch(err){setLog('❌ '+err.message,false);console.error(err);alert('❌ 抓取失敗：'+err.message);}
   finally{$('loadingOverlay').classList.add('hidden');}
 }
