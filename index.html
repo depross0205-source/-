@@ -135,7 +135,6 @@ td{padding:9px;border-bottom:1px solid var(--border)}
 .weekend-warn{display:none;margin-top:6px;padding:5px 8px;background:var(--orange-dim);border:1px solid var(--orange);border-radius:3px;font-size:11px;color:var(--orange);font-weight:700}
 .plus-note{background:var(--blue-dim);border:1px solid var(--blue);padding:8px 10px;border-radius:3px;font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:8px}
 .plus-note b{color:var(--blue)}
-/* ── 動能模組專屬 ── */
 .mom-note{background:var(--teal-dim);border:1px solid var(--teal);padding:10px 12px;border-radius:3px;font-size:11px;color:var(--muted);line-height:1.8;margin-bottom:12px}
 .mom-note b{color:var(--teal)}
 .asset-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;margin-bottom:8px}
@@ -171,7 +170,7 @@ td{padding:9px;border-bottom:1px solid var(--border)}
 <div class="hdr">
   <div>
     <div class="hdr-title">🛡️ 矛與盾 × 動能策劃 <span class="v">0324</span></div>
-    <div class="hdr-sub">A/B/C/D 四軌 ｜ Regime ｜ YC ｜ V9.6 動能輪動（多週期z · TS+CS · 相關性過濾 · 分段盾牌）</div>
+    <div class="hdr-sub">A/B/C/D 四軌 ｜ Regime ｜ YC ｜ V9.6 動能輪動（多週期z · TS+CS · 相關性過濾 · 分段盾牌）｜ EW斷層修復</div>
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <span id="momCurrentBadge" class="hidden" style="font-size:11px;padding:3px 10px;border-radius:3px;font-family:monospace;background:var(--teal-dim);color:var(--teal);border:1px solid var(--teal)">MOM: --</span>
@@ -311,7 +310,7 @@ td{padding:9px;border-bottom:1px solid var(--border)}
   <div class="cfg-row"><span>常態</span><input type="number" id="cpPosBase" value="1.0" step="0.1"></div>
   <div class="cfg-row"><span>短打</span><input type="number" id="cpPosStrk" value="0.3" step="0.1"></div>
   <div class="cfg-label" style="color:var(--white);margin-top:10px">執行區間</div>
-  <div class="cfg-row wide"><span>開始</span><input type="date" id="cpStart" value="2003-01-01"></div>
+  <div class="cfg-row wide"><span>開始</span><input type="date" id="cpStart" value="2003-05-01"></div>
   <div class="cfg-row wide"><span>結束</span><input type="date" id="cpEnd" value="2026-12-31"></div>
   <button class="btn-run" onclick="runBacktest()">▶ 執行推演</button>
 </div>
@@ -388,7 +387,6 @@ td{padding:9px;border-bottom:1px solid var(--border)}
 <!-- ══ 動能輪動 ══ -->
 
 <div class="panel" id="panel-mom">
-
 <div class="mom-note">
   <b>V9.5 動能輪動（機構級架構）</b><br>
   ① <b>TS 過濾</b>：R₁₂ &gt; 現金利率+緩衝（個別判斷，Moskowitz 2012）→ 候選池<br>
@@ -397,19 +395,15 @@ td{padding:9px;border-bottom:1px solid var(--border)}
   ④ <b>動能比例加權</b>：分數比例加權，上限 40%<br>
   ⑤ <b>盾牌分段縮放</b>：&lt;30→0%，30–50→0–40%，50–70→40–80%，&gt;70→80–100%
 </div>
-
-<!-- 設定 -->
-
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:16px">
   <div class="cfg-box" style="border-color:var(--teal)">
     <div class="cfg-label" style="color:var(--teal)">動能參數（V9.5）</div>
     <div style="font-size:10px;color:var(--teal);margin-bottom:6px;line-height:1.7;background:var(--surface2);padding:5px 7px;border-radius:3px">
-      分數 = 0.5×z₁₂ + 0.3×z₆ + 0.2×z₃<br>
-      z_k = R_k / σ_k（各週期自身標準化）
+      分數 = 0.5×z₁₂ + 0.3×z₆ + 0.2×z₃<br>z_k = R_k / σ_k（各週期自身標準化）
     </div>
     <div class="cfg-row"><span>現金緩衝 (%)</span><input type="number" id="momBuffer" value="0.5" step="0.5" min="0" max="10" style="width:60px"></div>
     <div class="cfg-row"><span>最大持有標的</span><input type="number" id="momMaxHold" value="5" min="1" max="11" style="width:60px"></div>
-    <div class="cfg-row"><span>交易成本 (%)</span><input type="number" id="momTradeCost" value="0.1" step="0.05" min="0" max="1" style="width:60px" title="單向交易成本，建議 0.05~0.2%"></div>
+    <div class="cfg-row"><span>交易成本 (%)</span><input type="number" id="momTradeCost" value="0.1" step="0.05" min="0" max="1" style="width:60px"></div>
     <div class="cfg-row"><span>相關係數閾值</span>
       <select id="momCorrMode" style="width:110px;padding:4px;font-size:11px;background:var(--bg);border:1px solid var(--border-hi);color:var(--white);border-radius:3px">
         <option value="dynamic">動態（依盾牌）</option>
@@ -433,9 +427,6 @@ td{padding:9px;border-bottom:1px solid var(--border)}
     <div style="font-size:10px;color:var(--muted);margin-top:4px">點擊切換啟用/停用。BIL 為現金基準，固定啟用。</div>
   </div>
 </div>
-
-<!-- 抓取資料 -->
-
 <div class="step-block" style="border-color:var(--teal)">
   <div class="step-header" style="background:var(--teal-dim)">
     <span class="step-num snm">1</span>
@@ -452,9 +443,6 @@ td{padding:9px;border-bottom:1px solid var(--border)}
     </div>
   </div>
 </div>
-
-<!-- 回測 -->
-
 <div class="step-block" style="border-color:var(--teal)">
   <div class="step-header" style="background:var(--teal-dim)">
     <span class="step-num snm">2</span>
@@ -476,9 +464,6 @@ td{padding:9px;border-bottom:1px solid var(--border)}
     <div id="momBacktestLog" style="font-size:12px;color:var(--muted);font-family:monospace;min-height:16px"></div>
   </div>
 </div>
-
-<!-- 即時信號 -->
-
 <div id="momSignalSection" class="hidden">
   <div class="mom-signal-card">
     <div class="mom-signal-title">📡 V9.5 即時信號
@@ -499,9 +484,6 @@ td{padding:9px;border-bottom:1px solid var(--border)}
     </div>
   </div>
 </div>
-
-<!-- 回測結果 -->
-
 <div id="momResultSection" class="hidden">
   <div class="metrics-grid" id="momMetricsGrid"></div>
   <div class="chart-wrap">
@@ -518,13 +500,9 @@ td{padding:9px;border-bottom:1px solid var(--border)}
   <div class="table-wrap">
     <table>
       <thead><tr>
-        <th>進場月</th><th>出場月</th>
-        <th style="color:var(--teal)">標的</th>
-        <th>配重</th>
-        <th>進場價</th><th>出場價</th>
-        <th style="color:var(--accent)">持倉報酬</th>
-        <th style="color:var(--teal)">貢獻（對組合）</th>
-        <th>備注</th>
+        <th>進場月</th><th>出場月</th><th style="color:var(--teal)">標的</th>
+        <th>配重</th><th>進場價</th><th>出場價</th>
+        <th style="color:var(--accent)">持倉報酬</th><th style="color:var(--teal)">貢獻（對組合）</th><th>備注</th>
       </tr></thead>
       <tbody id="momTradeBody"></tbody>
     </table>
@@ -545,8 +523,7 @@ td{padding:9px;border-bottom:1px solid var(--border)}
     </table>
   </div>
 </div>
-
-</div><!-- panel-mom -->
+</div>
 
 <!-- ══ 歷程 ══ -->
 
@@ -577,8 +554,7 @@ td{padding:9px;border-bottom:1px solid var(--border)}
     </table>
   </div>
 </div>
-
-</div><!-- .wrap -->
+</div>
 
 <script>
 'use strict';
@@ -590,22 +566,18 @@ let MOM_PRICES={}, MOM_RESULT=null, MOM_CHART={};
 let AUTO_FETCHED=false;
 
 // ════ localStorage 快取機制 ════
-const LS_KEY_DB       ='shield_DB';
-const LS_KEY_PRICES   ='shield_MOM_PRICES';
-const LS_KEY_UPDATED  ='shield_lastUpdated';
-const LS_KEY_ASSET    ='shield_assetDefs';
+const LS_KEY_DB='shield_DB', LS_KEY_PRICES='shield_MOM_PRICES';
+const LS_KEY_UPDATED='shield_lastUpdated', LS_KEY_ASSET='shield_assetDefs';
 
 function saveToStorage(){
   try{
-    localStorage.setItem(LS_KEY_DB, JSON.stringify(DB));
-    localStorage.setItem(LS_KEY_PRICES, JSON.stringify(MOM_PRICES));
-    localStorage.setItem(LS_KEY_UPDATED, new Date().toISOString());
-    // 儲存資產池啟用狀態
+    localStorage.setItem(LS_KEY_DB,JSON.stringify(DB));
+    localStorage.setItem(LS_KEY_PRICES,JSON.stringify(MOM_PRICES));
+    localStorage.setItem(LS_KEY_UPDATED,new Date().toISOString());
     const assetState=MOM_ASSET_DEFS.map(a=>({ticker:a.ticker,enabled:a.enabled}));
-    localStorage.setItem(LS_KEY_ASSET, JSON.stringify(assetState));
+    localStorage.setItem(LS_KEY_ASSET,JSON.stringify(assetState));
     updateStorageBadge();
   }catch(e){
-    // localStorage 可能滿了（超過 5MB）
     console.warn('localStorage 儲存失敗：',e.message);
     $('storageBadge').textContent='💾 儲存失敗（容量不足）';
     $('storageBadge').style.color='var(--red)';
@@ -614,17 +586,13 @@ function saveToStorage(){
 
 function loadFromStorage(){
   try{
-    const rawDB   =localStorage.getItem(LS_KEY_DB);
+    const rawDB=localStorage.getItem(LS_KEY_DB);
     const rawPrices=localStorage.getItem(LS_KEY_PRICES);
-    const rawAsset =localStorage.getItem(LS_KEY_ASSET);
-    const updated  =localStorage.getItem(LS_KEY_UPDATED);
+    const rawAsset=localStorage.getItem(LS_KEY_ASSET);
+    const updated=localStorage.getItem(LS_KEY_UPDATED);
     if(!rawDB) return false;
-
     DB=JSON.parse(rawDB);
-    if(rawPrices){
-      MOM_PRICES=JSON.parse(rawPrices);
-    }
-    // 還原資產池啟用狀態
+    if(rawPrices) MOM_PRICES=JSON.parse(rawPrices);
     if(rawAsset){
       const states=JSON.parse(rawAsset);
       states.forEach(s=>{
@@ -632,8 +600,7 @@ function loadFromStorage(){
         if(def) def.enabled=s.enabled;
       });
     }
-    sortAndFill();
-    updateMomStatusBar();
+    sortAndFill(); updateMomStatusBar();
     if(updated){
       const dt=new Date(updated);
       const b=$('dataSourceBadge');
@@ -642,53 +609,43 @@ function loadFromStorage(){
       updateStorageBadge(dt);
     }
     return true;
-  }catch(e){
-    console.warn('localStorage 載入失敗：',e.message);
-    return false;
-  }
+  }catch(e){ console.warn('localStorage 載入失敗：',e.message); return false; }
 }
 
 function updateStorageBadge(dt){
-  const badge=$('storageBadge');
-  if(!badge) return;
+  const badge=$('storageBadge'); if(!badge) return;
   const d=dt||new Date(localStorage.getItem(LS_KEY_UPDATED)||Date.now());
   const dateStr=d.toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
   const timeStr=d.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
-  const dbLen=DB.length;
-  badge.textContent=`💾 ${dateStr} ${timeStr}（${dbLen}筆）`;
+  badge.textContent=`💾 ${dateStr} ${timeStr}（${DB.length}筆）`;
   badge.style.color='var(--green)';
-  badge.title=`localStorage 快取：${dbLen} 筆 DB，上次儲存 ${d.toLocaleString('zh-TW')}`;
 }
 
 function clearStorage(){
-  if(!confirm('確定要清除所有 localStorage 快取？\n下次開啟需要重新執行完整抓取。')) return;
+  if(!confirm('確定要清除所有 localStorage 快取？')) return;
   [LS_KEY_DB,LS_KEY_PRICES,LS_KEY_UPDATED,LS_KEY_ASSET].forEach(k=>localStorage.removeItem(k));
   DB=[]; MOM_PRICES={}; AUTO_FETCHED=false;
   sortAndFill(); updateMomStatusBar(); initAssetChips();
-  $('storageBadge').textContent='💾 已清除';
-  $('storageBadge').style.color='var(--muted)';
-  $('dataSourceBadge').textContent='● 初始模式';
-  $('dataSourceBadge').style.color='var(--muted)';
-  // 解鎖 CSV 上傳
+  $('storageBadge').textContent='💾 已清除'; $('storageBadge').style.color='var(--muted)';
+  $('dataSourceBadge').textContent='● 初始模式'; $('dataSourceBadge').style.color='var(--muted)';
   const area=$('csvUploadArea'), lock=$('csvLockMsg');
-  if(area) area.classList.remove('hidden');
-  if(lock) lock.classList.add('hidden');
+  if(area) area.classList.remove('hidden'); if(lock) lock.classList.add('hidden');
   alert('快取已清除。請執行「完整抓取」或上傳 CSV。');
 }
 
-// 動能資產池設定（完整版）
+// ════ 動能資產池 ════
 const MOM_ASSET_DEFS=[
-  {ticker:'SPY', name:'美國大型股',  enabled:true,  group:'股票'},
-  {ticker:'QQQ', name:'科技成長',    enabled:true,  group:'股票'},
-  {ticker:'IWM', name:'美國小型股',  enabled:false, group:'股票'},
-  {ticker:'VEU', name:'全球ex-US',   enabled:true,  group:'國際'},
-  {ticker:'EFA', name:'已開發國際',  enabled:false, group:'國際'},
-  {ticker:'EEM', name:'新興市場',    enabled:false, group:'國際'},
-  {ticker:'TLT', name:'長債20Y',     enabled:true,  group:'債券'},
-  {ticker:'IEF', name:'中債7Y',      enabled:false, group:'債券'},
-  {ticker:'GLD', name:'黃金',        enabled:true,  group:'實物'},
-  {ticker:'VNQ', name:'REIT',        enabled:false, group:'實物'},
-  {ticker:'GSG', name:'商品指數',    enabled:false, group:'實物'},
+  {ticker:'SPY',name:'美國大型股',enabled:true,group:'股票'},
+  {ticker:'QQQ',name:'科技成長',enabled:true,group:'股票'},
+  {ticker:'IWM',name:'美國小型股',enabled:false,group:'股票'},
+  {ticker:'VEU',name:'全球ex-US',enabled:true,group:'國際'},
+  {ticker:'EFA',name:'已開發國際',enabled:false,group:'國際'},
+  {ticker:'EEM',name:'新興市場',enabled:false,group:'國際'},
+  {ticker:'TLT',name:'長債20Y',enabled:true,group:'債券'},
+  {ticker:'IEF',name:'中債7Y',enabled:false,group:'債券'},
+  {ticker:'GLD',name:'黃金',enabled:true,group:'實物'},
+  {ticker:'VNQ',name:'REIT',enabled:false,group:'實物'},
+  {ticker:'GSG',name:'商品指數',enabled:false,group:'實物'},
 ];
 const MOM_CASH_TICKER='BIL';
 
@@ -701,51 +658,33 @@ const setLog=(msg,ok)=>{ const e=$('fetchLog'); if(!e) return; e.textContent=msg
 // ════ 初始化 ════
 function lockCsvUpload(){
   AUTO_FETCHED=true;
-  const area=$('csvUploadArea');
-  const lock=$('csvLockMsg');
-  if(area) area.classList.add('hidden');
-  if(lock) lock.classList.remove('hidden');
+  const area=$('csvUploadArea'), lock=$('csvLockMsg');
+  if(area) area.classList.add('hidden'); if(lock) lock.classList.remove('hidden');
 }
 
 window.addEventListener('DOMContentLoaded',()=>{
   $('dbDate').value=new Date().toISOString().slice(0,10);
   checkWeekend(); updateStrkInfo(); initAssetChips();
-
-  // ── 自動從 localStorage 載入快取 ──
   const loaded=loadFromStorage();
   if(loaded){
     const updated=localStorage.getItem(LS_KEY_UPDATED);
     const dt=updated?new Date(updated):null;
     const daysSince=dt?Math.floor((Date.now()-dt.getTime())/86400000):99;
-    if(daysSince>=1){
-      // 提示需要每日快速更新
-      setLog(`💾 已載入快取（${DB.length}筆），上次更新 ${daysSince} 天前。建議執行「⚡ 每日快速更新」。`,null);
-    } else {
-      setLog(`💾 已載入今日快取（${DB.length}筆）。`,true);
-    }
-    // 標記為已有資料，但未執行自動抓取（允許上傳 CSV）
+    if(daysSince>=1) setLog(`💾 已載入快取（${DB.length}筆），上次更新 ${daysSince} 天前。建議執行「⚡ 每日快速更新」。`,null);
+    else setLog(`💾 已載入今日快取（${DB.length}筆）。`,true);
   } else {
-    $('storageBadge').textContent='💾 無快取';
-    $('storageBadge').style.color='var(--muted)';
+    $('storageBadge').textContent='💾 無快取'; $('storageBadge').style.color='var(--muted)';
     setLog('尚無快取資料，請執行「🔄 完整抓取」或上傳 CSV。',null);
   }
 });
 
 function initAssetChips(){
   const wrap=$('assetChips');
-  // 依 group 分組顯示
   const groups={};
-  MOM_ASSET_DEFS.forEach(a=>{
-    if(!groups[a.group]) groups[a.group]=[];
-    groups[a.group].push(a);
-  });
+  MOM_ASSET_DEFS.forEach(a=>{ if(!groups[a.group]) groups[a.group]=[]; groups[a.group].push(a); });
   wrap.innerHTML=Object.entries(groups).map(([g,assets])=>
     `<div style="font-size:9px;color:var(--dim);text-transform:uppercase;grid-column:1/-1;margin-top:4px;margin-bottom:1px">${g}</div>`+
-    assets.map(a=>
-      `<div class="asset-chip ${a.enabled?'enabled':''}" id="chip_${a.ticker}" onclick="toggleAsset('${a.ticker}')">
-        <span>${a.ticker}</span><span style="font-size:9px;color:var(--muted)">${a.name.slice(0,5)}</span>
-      </div>`
-    ).join('')
+    assets.map(a=>`<div class="asset-chip ${a.enabled?'enabled':''}" id="chip_${a.ticker}" onclick="toggleAsset('${a.ticker}')"><span>${a.ticker}</span><span style="font-size:9px;color:var(--muted)">${a.name.slice(0,5)}</span></div>`).join('')
   ).join('')+
   `<div style="font-size:9px;color:var(--dim);text-transform:uppercase;grid-column:1/-1;margin-top:4px;margin-bottom:1px">現金</div>
    <div class="asset-chip cash">BIL <span style="font-size:9px">停泊</span></div>`;
@@ -753,20 +692,17 @@ function initAssetChips(){
 }
 
 function toggleAsset(ticker){
-  const idx=MOM_ASSET_DEFS.findIndex(a=>a.ticker===ticker);
-  if(idx<0) return;
+  const idx=MOM_ASSET_DEFS.findIndex(a=>a.ticker===ticker); if(idx<0) return;
   MOM_ASSET_DEFS[idx].enabled=!MOM_ASSET_DEFS[idx].enabled;
-  const chip=$('chip_'+ticker);
-  chip.classList.toggle('enabled',MOM_ASSET_DEFS[idx].enabled);
+  $('chip_'+ticker).classList.toggle('enabled',MOM_ASSET_DEFS[idx].enabled);
   updateMomStatusBar();
 }
 
 function updateMomStatusBar(){
   const wrap=$('momAssetStatus');
-  const allTickers=[...MOM_ASSET_DEFS.map(a=>a.ticker), MOM_CASH_TICKER];
+  const allTickers=[...MOM_ASSET_DEFS.map(a=>a.ticker),MOM_CASH_TICKER];
   wrap.innerHTML=allTickers.map(t=>{
-    const prices=MOM_PRICES[t];
-    const hasData=prices&&prices.length>0;
+    const prices=MOM_PRICES[t], hasData=prices&&prices.length>0;
     const enabled=t===MOM_CASH_TICKER||MOM_ASSET_DEFS.find(a=>a.ticker===t)?.enabled;
     if(!enabled) return '';
     const cls=!prices?'mas-pending':hasData?'mas-ok':'mas-fail';
@@ -781,7 +717,32 @@ function sortAndFill(){
   DB.forEach(r=>{ ['sp','ew','vix','hy','tips','cape','y10','y2'].forEach(k=>{
     if(r[k]==null||isNaN(r[k])) r[k]=last[k]; else last[k]=r[k];
   });});
+  fixEWDiscontinuity(); // ← EW 斷層修復
   updateStatus();
+}
+
+// ── EW/SP 比率系列斷層自動修復 ──
+// EW 僅用於計算 EW/SP 比率（zb、spewRelPerf），
+// 因此只要比率在斷層處連續，絕對數值不影響策略邏輯。
+// 典型案例：2003-04（EW=SP）→ 2003-05（EW=RSP ETF），ratio 從 1.000 驟降至 0.311
+function fixEWDiscontinuity(){
+  if(DB.length<2) return;
+  for(let i=1;i<DB.length;i++){
+    const sp_p=DB[i-1].sp, ew_p=DB[i-1].ew;
+    const sp_c=DB[i].sp,   ew_c=DB[i].ew;
+    if(!sp_p||!sp_c||!ew_p||!ew_c) continue;
+    const r_p=ew_p/sp_p, r_c=ew_c/sp_c;
+    if(r_p<=0) continue;
+    const jump=r_c/r_p;
+    // 比率跳躍超過 2 倍或低於 0.5 倍 → 判定為系列斷層
+    if(jump>2.0||jump<0.5){
+      const scale=jump;
+      for(let j=0;j<i;j++){
+        DB[j].ew=+(DB[j].ew*scale).toFixed(6);
+      }
+      console.log(`[EW修復] ${DB[i-1].d}→${DB[i].d}: ratio ${r_p.toFixed(4)}→${r_c.toFixed(4)}, 前${i}筆 ×${scale.toFixed(4)}`);
+    }
+  }
 }
 
 function updateStatus(){
@@ -790,10 +751,10 @@ function updateStatus(){
   if(DB.length>0){
     const l=DB[DB.length-1];
     $('dbDate').value=new Date().toISOString().slice(0,10);
-    $('dbSP').value=l.sp.toFixed(2);$('dbEW').value=l.ew.toFixed(2);
-    $('dbVIX').value=l.vix.toFixed(2);$('dbHY').value=l.hy.toFixed(4);
-    $('dbTIPS').value=l.tips.toFixed(2);$('dbY10').value=l.y10.toFixed(2);$('dbY2').value=l.y2.toFixed(2);
-    $('dbCAPE').value='';$('cpStart').value=DB[0].d;$('cpEnd').value=l.d;
+    $('dbSP').value=l.sp.toFixed(2); $('dbEW').value=l.ew.toFixed(2);
+    $('dbVIX').value=l.vix.toFixed(2); $('dbHY').value=l.hy.toFixed(4);
+    $('dbTIPS').value=l.tips.toFixed(2); $('dbY10').value=l.y10.toFixed(2); $('dbY2').value=l.y2.toFixed(2);
+    $('dbCAPE').value=''; $('cpStart').value=DB[0].d; $('cpEnd').value=l.d;
   }
 }
 
@@ -809,19 +770,15 @@ function toggleVixPB(){ const pb=gc('vixPullback'); $('cpVixPB').disabled=!pb; $
 
 function updateStrkInfo(){
   const active=[];
-  if(gc('useStrkRsi')) active.push('①');if(gc('useStrkVix')) active.push('②');
-  if(gc('useStrkBias')) active.push('③');if(gc('useStrkEWR')) active.push('④');
+  if(gc('useStrkRsi')) active.push('①'); if(gc('useStrkVix')) active.push('②');
+  if(gc('useStrkBias')) active.push('③'); if(gc('useStrkEWR')) active.push('④');
   const cnt=active.length||1; $('strkEnabledCount').textContent=cnt;
   const n=Math.min(Math.max(1,parseInt($('cpStrkN').value)||2),cnt);
   $('strkInfo').textContent=`已啟用: ${active.join('')||'無'} | 需達 ${n} / ${cnt} 條件觸發短打`;
 }
 
 function loadCSV(event){
-  if(AUTO_FETCHED){
-    alert('⚠ 已使用自動抓取，CSV 上傳已停用。\n如需使用 CSV，請重新整理頁面後直接上傳（勿先執行自動抓取）。');
-    event.target.value='';
-    return;
-  }
+  if(AUTO_FETCHED){ alert('⚠ 已使用自動抓取，CSV 上傳已停用。'); event.target.value=''; return; }
   const file=event.target.files[0]; if(!file) return;
   const reader=new FileReader();
   reader.onload=e=>{
@@ -847,15 +804,13 @@ function loadCSV(event){
       sortAndFill();
       $('csvStatus').textContent='✅ 載入 '+rows.length+' 筆，共 '+DB.length+' 筆';
       const b=$('dataSourceBadge'); b.textContent='● CSV ('+DB.length+' 筆)'; b.style.color='var(--green)';
-      saveToStorage();  // CSV 載入後存入 localStorage
+      saveToStorage();
     }catch(err){alert('CSV 解析錯誤：'+err.message);}
   };
   reader.readAsText(file);
 }
 
-// ── CAPE 月資料填充：同月所有日期使用相同 CAPE 值 ──
 function applyCapeMonthly(capeByMonth){
-  // capeByMonth: {'2024-01': 34.5, '2024-02': 35.1, ...}
   let changed=0;
   DB.forEach(r=>{
     const m=r.d.slice(0,7);
@@ -867,115 +822,59 @@ function applyCapeMonthly(capeByMonth){
   return changed;
 }
 
-// 手動套用當月 CAPE
 function applyManualCape(){
   const val=parseFloat($('apiCape').value);
   if(isNaN(val)||val<=0){alert('請輸入有效的 CAPE 值（例如 36.5）');return;}
   const curMonth=new Date().toISOString().slice(0,7);
   const changed=applyCapeMonthly({[curMonth]:val});
-  if(changed>0){
-    sortAndFill(); saveToStorage();
-    alert(`✅ 已將 ${curMonth} 的 ${changed} 筆資料更新為 CAPE=${val}`);
-  }else{
-    alert(`目前資料庫中無 ${curMonth} 的資料，或 CAPE 值已是 ${val}。`);
-  }
+  if(changed>0){ sortAndFill(); saveToStorage(); alert(`✅ 已將 ${curMonth} 的 ${changed} 筆資料更新為 CAPE=${val}`); }
+  else alert(`目前資料庫中無 ${curMonth} 的資料，或 CAPE 值已是 ${val}。`);
 }
 
-// CAPE CSV 上傳（支援日頻或月頻，自動填充至當月所有日）
 function loadCapeCSV(event){
-  const file=event.target.files[0];
-  if(!file) return;
+  const file=event.target.files[0]; if(!file) return;
   const st=$('capeUploadStatus');
-  st.textContent='📂 讀取 '+file.name+'...';
-  st.style.color='var(--muted)';
-
+  st.textContent='📂 讀取 '+file.name+'...'; st.style.color='var(--muted)';
   const reader=new FileReader();
   reader.onload=e=>{
     try{
       const text=e.target.result.trim();
       if(!text){st.textContent='❌ 檔案是空的';st.style.color='var(--red)';return;}
-
       const lines=text.split(/\r?\n/).filter(l=>l.trim());
-      // 偵測並跳過標頭行（首行如果第一欄不是數字開頭）
       const startIdx=/^\d/.test(lines[0].split(/[,\t]/)[0].trim())?0:1;
-
-      const capeByDay={};
-      const capeByMonth={};
+      const capeByDay={}, capeByMonth={};
       let parsed=0, skipped=0;
-
       for(let i=startIdx;i<lines.length;i++){
         const cols=lines[i].split(/[,\t]/).map(c=>c.trim().replace(/"/g,''));
         if(cols.length<2) continue;
         const rawDate=cols[0];
-        // 找第一個有效的數值欄（跳過空欄）
         let val=NaN;
-        for(let j=1;j<cols.length;j++){
-          const v=parseFloat(cols[j]);
-          if(!isNaN(v)&&v>0){val=v;break;}
-        }
+        for(let j=1;j<cols.length;j++){const v=parseFloat(cols[j]);if(!isNaN(v)&&v>0){val=v;break;}}
         if(isNaN(val)||val<=0){skipped++;continue;}
-
         if(/^\d{4}-\d{2}-\d{2}$/.test(rawDate)){
-          capeByDay[rawDate]=val;
-          // 同月最後一筆作為月代表值
-          const m=rawDate.slice(0,7);
-          capeByMonth[m]=val;
-          parsed++;
+          capeByDay[rawDate]=val; capeByMonth[rawDate.slice(0,7)]=val; parsed++;
         }else if(/^\d{4}-\d{2}$/.test(rawDate)){
-          capeByMonth[rawDate]=val;
-          parsed++;
-        }else if(/^\d{4}\/\d{1,2}\/\d{1,2}$/.test(rawDate)||/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(rawDate)){
-          // 支援 2024/1/2 或 1/2/2024 格式
-          const d=new Date(rawDate);
-          if(!isNaN(d.getTime())){
-            const iso=d.toISOString().slice(0,10);
-            capeByDay[iso]=val;
-            capeByMonth[iso.slice(0,7)]=val;
-            parsed++;
-          }else skipped++;
+          capeByMonth[rawDate]=val; parsed++;
         }else skipped++;
       }
-
-      if(parsed===0){
-        st.textContent='❌ 無法解析任何資料。請確認格式：DATE,CAPE（例如 2024-01,34.5）';
-        st.style.color='var(--red)';
-        return;
-      }
-
-      // 如果 DB 為空，先把 CAPE 存到暫存，等 DB 載入後會自動套用
+      if(parsed===0){st.textContent='❌ 無法解析任何資料';st.style.color='var(--red)';return;}
       if(DB.length===0){
-        // 把 capeByMonth 暫存到 localStorage，完整抓取後自動套用
-        localStorage.setItem('shield_pendingCape', JSON.stringify(capeByMonth));
+        localStorage.setItem('shield_pendingCape',JSON.stringify(capeByMonth));
         st.textContent=`⚠ DB 尚無資料，已暫存 ${parsed} 筆 CAPE。執行完整抓取後會自動套用。`;
-        st.style.color='var(--yellow)';
-        return;
+        st.style.color='var(--yellow)'; return;
       }
-
-      // DB 有資料：直接更新
       let changed=0;
       DB.forEach(r=>{
         let newCape=capeByDay[r.d]??capeByMonth[r.d.slice(0,7)]??null;
-        if(newCape!==null){
-          const rounded=+newCape.toFixed(2);
-          if(Math.abs((r.cape||0)-rounded)>0.01){r.cape=rounded;changed++;}
-        }
+        if(newCape!==null){const rounded=+newCape.toFixed(2);if(Math.abs((r.cape||0)-rounded)>0.01){r.cape=rounded;changed++;}}
       });
-
-      sortAndFill();
-      saveToStorage();
-      event.target.value=''; // 允許重複上傳
-      st.textContent=`✅ 解析 ${parsed} 筆（月份${Object.keys(capeByMonth).length}個），更新 DB ${changed} 筆` +
-                     (skipped>0?`，跳過 ${skipped} 筆`:'');
+      sortAndFill(); saveToStorage(); event.target.value='';
+      st.textContent=`✅ 解析 ${parsed} 筆，更新 DB ${changed} 筆`+(skipped>0?`，跳過 ${skipped} 筆`:'');
       st.style.color='var(--green)';
-
-    }catch(err){
-      st.textContent='❌ 解析錯誤：'+err.message;
-      st.style.color='var(--red)';
-      console.error(err);
-    }
+    }catch(err){st.textContent='❌ 解析錯誤：'+err.message;st.style.color='var(--red)';}
   };
-  reader.onerror=()=>{ st.textContent='❌ 讀取檔案失敗'; st.style.color='var(--red)'; };
-  reader.readAsText(file, 'UTF-8');
+  reader.onerror=()=>{st.textContent='❌ 讀取檔案失敗';st.style.color='var(--red)';};
+  reader.readAsText(file,'UTF-8');
 }
 
 async function fetchAndMerge(quickMode=false){
@@ -985,217 +884,128 @@ async function fetchAndMerge(quickMode=false){
   const PROXIES=[proxy,'https://api.allorigins.win/raw?url=','https://api.codetabs.com/v1/proxy?quest='].filter(Boolean);
   $('loadingOverlay').classList.remove('hidden');
   setLog(quickMode?'⚡ 每日快速更新中...':'🔄 完整抓取中（含 CAPE）...');
-
   const fetchFB=async url=>{
     let lastErr;
     for(const p of PROXIES){
       try{
         const res=await fetch(p+encodeURIComponent(url));
         if(!res.ok) throw new Error('HTTP '+res.status);
-        if((res.headers.get('content-type')||'').includes('text/html')){
-          // CAPE HTML 頁面本身就是 HTML，不視為錯誤
-          if(url.includes('multpl')) return res;
-          throw new Error('Proxy 回傳 HTML');
-        }
+        if((res.headers.get('content-type')||'').includes('text/html')&&!url.includes('multpl')) throw new Error('Proxy 回傳 HTML');
         return res;
       }catch(e){lastErr=e;}
     }
     throw lastErr||new Error('所有 Proxy 失敗');
   };
-
-  // Yahoo Finance 抓取（quickMode 只抓近期，完整模式抓全部）
   const getYf=async ticker=>{
     setLog((quickMode?'⚡':'🔄')+' Yahoo: '+ticker+'...');
     $('loadingText').textContent='抓取 '+ticker;
     const range=quickMode?'1mo':'max';
     const url='https://query1.finance.yahoo.com/v8/finance/chart/'+ticker+'?range='+range+'&interval=1d';
-    const res=await fetchFB(url);const j=await res.json();
+    const res=await fetchFB(url); const j=await res.json();
     const d={},chart=j.chart.result[0];
     chart.timestamp.forEach((t,i)=>{
       const adj=chart.indicators?.adjclose?.[0]?.adjclose?.[i];
-      const cl =chart.indicators?.quote?.[0]?.close?.[i];
+      const cl=chart.indicators?.quote?.[0]?.close?.[i];
       const val=adj??cl;
       if(val&&val>0) d[new Date(t*1000).toISOString().slice(0,10)]=val;
     });
     return d;
   };
-
-  // FRED 抓取（quickMode 只抓近 30 天，完整模式全部）
   const getFred=async id=>{
     setLog((quickMode?'⚡':'🔄')+' FRED: '+id+'...');
     $('loadingText').textContent='抓取 FRED: '+id;
     let url='https://api.stlouisfed.org/fred/series/observations?series_id='+id+'&api_key='+key+'&file_type=json';
-    if(quickMode){
-      const from=new Date(Date.now()-45*86400000).toISOString().slice(0,10);
-      url+='&observation_start='+from;
-    }
-    const res=await fetchFB(url);const j=await res.json();
+    if(quickMode){const from=new Date(Date.now()-45*86400000).toISOString().slice(0,10);url+='&observation_start='+from;}
+    const res=await fetchFB(url); const j=await res.json();
     if(j.error_message) throw new Error('FRED: '+j.error_message);
     const d={};j.observations.forEach(o=>{if(o.value!=='.') d[o.date]=parseFloat(o.value);});return d;
   };
-
-  // CAPE 月資料抓取（完整模式才抓）
-  // 來源一：multpl.com JSON API（最可靠）
-  // 來源二：multpl.com HTML 表格（fallback）
-  const fetchCape=async ()=>{
-    setLog('🔄 CAPE：抓取中...');
-    $('loadingText').textContent='抓取 CAPE 歷史...';
+  const fetchCape=async()=>{
+    setLog('🔄 CAPE：抓取中...'); $('loadingText').textContent='抓取 CAPE 歷史...';
     const capeByMonth={};
-
-    // ── 來源一：multpl.com JSON ──
     try{
       const url='https://www.multpl.com/shiller-pe/table/by-month.json';
-      const res=await fetchFB(url);
-      const text=await res.text();
-      // JSON 格式：{"data":[[timestamp_ms, value],...]}
-      // 或 {"rows":[{"date":"Jan 2024","value":"34.5"},...]}}
-      let parsed;
-      try{ parsed=JSON.parse(text); }catch(e){ parsed=null; }
+      const res=await fetchFB(url); const text=await res.text();
+      let parsed; try{parsed=JSON.parse(text);}catch(e){parsed=null;}
       if(parsed){
-        // 嘗試各種可能的 JSON 結構
         const rows=parsed.data||parsed.rows||parsed;
         if(Array.isArray(rows)){
           rows.forEach(row=>{
-            let dateVal, numVal;
-            if(Array.isArray(row)){
-              // [[timestamp_ms, value], ...]
-              dateVal=new Date(row[0]);
-              numVal=parseFloat(row[1]);
-            }else if(row.date&&row.value!==undefined){
-              dateVal=new Date(row.date);
-              numVal=parseFloat(row.value);
-            }
-            if(dateVal&&!isNaN(dateVal)&&!isNaN(numVal)&&numVal>0){
-              const m=dateVal.toISOString().slice(0,7);
-              capeByMonth[m]=numVal;
-            }
+            let dateVal,numVal;
+            if(Array.isArray(row)){dateVal=new Date(row[0]);numVal=parseFloat(row[1]);}
+            else if(row.date&&row.value!==undefined){dateVal=new Date(row.date);numVal=parseFloat(row.value);}
+            if(dateVal&&!isNaN(dateVal)&&!isNaN(numVal)&&numVal>0){capeByMonth[dateVal.toISOString().slice(0,7)]=numVal;}
           });
         }
       }
-      if(Object.keys(capeByMonth).length>10){
-        setLog(`🔄 CAPE：取得 ${Object.keys(capeByMonth).length} 個月資料`);
-        return capeByMonth;
-      }
-    }catch(e){ /* fallback */ }
-
-    // ── 來源二：multpl.com HTML 解析（更強健的版本）──
+      if(Object.keys(capeByMonth).length>10){setLog(`🔄 CAPE：取得 ${Object.keys(capeByMonth).length} 個月資料`);return capeByMonth;}
+    }catch(e){}
     try{
       const url='https://www.multpl.com/shiller-pe/table/by-month';
-      const res=await fetchFB(url);
-      const html=await res.text();
-      // 匹配 <tr> 中的日期和數值
-      // 格式：<td>Jan 1, 2024</td><td>34.56</td>
-      // 或：  <td>Jan 1, 2024</td><td><span>34.56</span></td>
-      const trPattern=/<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-      let trMatch;
+      const res=await fetchFB(url); const html=await res.text();
+      const trPattern=/<tr[^>]*>([\s\S]*?)<\/tr>/gi; let trMatch;
       while((trMatch=trPattern.exec(html))!==null){
         const inner=trMatch[1];
-        // 提取所有 <td> 內文字（去除所有 HTML 標籤）
-        const tdTexts=(inner.match(/<td[^>]*>([\s\S]*?)<\/td>/gi)||[])
-          .map(td=>td.replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ').trim());
+        const tdTexts=(inner.match(/<td[^>]*>([\s\S]*?)<\/td>/gi)||[]).map(td=>td.replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ').trim());
         if(tdTexts.length>=2){
-          const dateStr=tdTexts[0];
           const numVal=parseFloat(tdTexts[1].replace(/,/g,''));
           if(isNaN(numVal)||numVal<=0) continue;
-          // 解析各種日期格式
-          // 'Jan 1, 2024' / 'Jan 2024' / 'January 1, 2024'
-          const cleaned=dateStr.replace(/\s+/g,' ').trim();
-          const d=new Date(cleaned);
-          if(!isNaN(d.getTime())){
-            const m=d.toISOString().slice(0,7);
-            capeByMonth[m]=numVal;
-          }
+          const d=new Date(tdTexts[0].replace(/\s+/g,' ').trim());
+          if(!isNaN(d.getTime())) capeByMonth[d.toISOString().slice(0,7)]=numVal;
         }
       }
-      if(Object.keys(capeByMonth).length>10){
-        setLog(`🔄 CAPE：HTML解析取得 ${Object.keys(capeByMonth).length} 個月資料`);
-        return capeByMonth;
-      }
-    }catch(e){ /* fallback */ }
-
-    setLog('⚠ CAPE 自動抓取失敗，請手動確認。現有資料維持不變。');
-    return capeByMonth; // 空物件，不更新
+      if(Object.keys(capeByMonth).length>10){setLog(`🔄 CAPE：HTML解析取得 ${Object.keys(capeByMonth).length} 個月資料`);return capeByMonth;}
+    }catch(e){}
+    setLog('⚠ CAPE 自動抓取失敗，請手動上傳 CAPE CSV。');
+    return capeByMonth;
   };
-
   try{
     const spD=await getYf('SPY'),ewD=await getYf('RSP'),vixD=await getYf('^VIX');
     const hyD=await getFred('BAMLH0A0HYM2'),tipD=await getFred('DFII10');
     const y10D=await getFred('DGS10'),y2D=await getFred('DGS2');
-
-    // CAPE：完整模式才從 multpl 抓，quickMode 沿用現有值
     let capeByMonth={};
     if(!quickMode) capeByMonth=await fetchCape();
-
     setLog('整併資料中...');
     let added=0,updated=0,lHY=3.5,lT=1.5,l10=4.0,l2=3.8;
-
-    // 如果是 quickMode，先從現有 DB 初始化最後一筆的數值
-    if(quickMode&&DB.length>0){
-      const l=DB[DB.length-1];
-      lHY=l.hy||lHY; lT=l.tips||lT; l10=l.y10||l10; l2=l.y2||l2;
-    }
-
-    // 整併日頻資料
+    if(quickMode&&DB.length>0){const l=DB[DB.length-1];lHY=l.hy||lHY;lT=l.tips||lT;l10=l.y10||l10;l2=l.y2||l2;}
     Object.keys(spD).sort().forEach(d=>{
       if(hyD[d]!==undefined)lHY=hyD[d];if(tipD[d]!==undefined)lT=tipD[d];
       if(y10D[d]!==undefined)l10=y10D[d];if(y2D[d]!==undefined)l2=y2D[d];
       if(!vixD[d]) return;
       const m=d.slice(0,7);
-      // CAPE：優先用當月 CAPE 月資料，否則沿用上一筆
       const capeForRow=capeByMonth[m]||null;
       const ei=DB.findIndex(x=>x.d===d);
       if(ei>-1){
-        DB[ei].sp=+spD[d].toFixed(4);
-        DB[ei].ew=ewD[d]?+ewD[d].toFixed(4):+spD[d].toFixed(4);
-        DB[ei].vix=+vixD[d].toFixed(2);
-        DB[ei].hy=+lHY.toFixed(4);
-        DB[ei].tips=+lT.toFixed(2);
-        DB[ei].y10=+l10.toFixed(2);
-        DB[ei].y2=+l2.toFixed(2);
-        if(capeForRow) DB[ei].cape=capeForRow;
-        updated++;
+        DB[ei].sp=+spD[d].toFixed(4); DB[ei].ew=ewD[d]?+ewD[d].toFixed(4):+spD[d].toFixed(4);
+        DB[ei].vix=+vixD[d].toFixed(2); DB[ei].hy=+lHY.toFixed(4); DB[ei].tips=+lT.toFixed(2);
+        DB[ei].y10=+l10.toFixed(2); DB[ei].y2=+l2.toFixed(2);
+        if(capeForRow) DB[ei].cape=capeForRow; updated++;
       }else{
         const lastCape=DB.length>0?DB[DB.length-1].cape:30;
         DB.push({d,sp:+spD[d].toFixed(4),ew:ewD[d]?+ewD[d].toFixed(4):+spD[d].toFixed(4),
           vix:+vixD[d].toFixed(2),hy:+lHY.toFixed(4),tips:+lT.toFixed(2),
-          cape:capeForRow||lastCape,y10:+l10.toFixed(2),y2:+l2.toFixed(2)});
-        added++;
+          cape:capeForRow||lastCape,y10:+l10.toFixed(2),y2:+l2.toFixed(2)}); added++;
       }
     });
-
-    // CAPE 月填充：用月資料回填當月所有日
     let capeChanged=0;
-    if(!quickMode&&Object.keys(capeByMonth).length>0){
-      capeChanged=applyCapeMonthly(capeByMonth);
-    }
-
+    if(!quickMode&&Object.keys(capeByMonth).length>0) capeChanged=applyCapeMonthly(capeByMonth);
     sortAndFill();
-
     const capeInfo=quickMode?'':`，CAPE更新${capeChanged}筆`;
     const msg=`✅ ${quickMode?'快速':'完整'}更新完成！新增 ${added}，更新 ${updated}${capeInfo}。共 ${DB.length} 筆`;
     setLog(msg,true);
-    const b=$('dataSourceBadge');
-    b.textContent=`● ${quickMode?'⚡快速':'完整'}更新 (${DB.length}筆)`;
-    b.style.color=quickMode?'var(--accent)':'var(--teal)';
-    lockCsvUpload();  // 自動抓取完成，鎖定 CSV 上傳
-
-    // 套用暫存的 CAPE CSV（如果有的話）
+    const b=$('dataSourceBadge'); b.textContent=`● ${quickMode?'⚡快速':'完整'}更新 (${DB.length}筆)`; b.style.color=quickMode?'var(--accent)':'var(--teal)';
+    lockCsvUpload();
     const pendingCape=localStorage.getItem('shield_pendingCape');
     if(pendingCape){
       try{
         const pendingMap=JSON.parse(pendingCape);
         const pendingChanged=applyCapeMonthly(pendingMap);
-        if(pendingChanged>0){
-          setLog(`✅ 套用暫存 CAPE：更新 ${pendingChanged} 筆`);
-          sortAndFill();
-        }
+        if(pendingChanged>0){setLog(`✅ 套用暫存 CAPE：更新 ${pendingChanged} 筆`);sortAndFill();}
         localStorage.removeItem('shield_pendingCape');
       }catch(e){}
     }
-
-    saveToStorage();  // 存入 localStorage
+    saveToStorage();
     if(!quickMode) alert(msg);
-
   }catch(err){setLog('❌ '+err.message,false);console.error(err);alert('❌ 抓取失敗：'+err.message);}
   finally{$('loadingOverlay').classList.add('hidden');}
 }
@@ -1214,7 +1024,7 @@ function manualAdd(){
   const row={d,sp,ew:isNaN(ew)?sp:ew,vix,hy,tips,cape,y10:isNaN(y10)?lastY10:y10,y2:isNaN(y2)?lastY2:y2};
   const ei=DB.findIndex(x=>x.d===d);
   if(ei>-1){DB[ei]=row;}else{DB.push(row);}
-  sortAndFill();alert('✅ '+d+' 已'+(ei>-1?'覆蓋':'新增'));
+  sortAndFill(); alert('✅ '+d+' 已'+(ei>-1?'覆蓋':'新增'));
 }
 
 function exportCSV(){
@@ -1230,169 +1040,107 @@ function exportCSV(){
 // ════════════════════════════════════════
 // 動能輪動模組
 // ════════════════════════════════════════
-
-// ── 取得可用的 Proxy 列表 ──
 function getProxies(){
   let proxy=$('apiProxy').value.trim();
   if(proxy&&!proxy.includes('url=')) proxy=proxy.endsWith('/')?proxy+'?url=':proxy+'/?url=';
   return [proxy,'https://api.allorigins.win/raw?url=','https://api.codetabs.com/v1/proxy?quest='].filter(Boolean);
 }
 
-// ── 用 proxy 抓取月頻 Yahoo 資料 ──
-async function fetchYfMonthly(ticker, proxies){
+async function fetchYfMonthly(ticker,proxies){
   const url=`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=max&interval=1mo`;
   let lastErr;
   for(const p of proxies){
     try{
-      const res=await fetch(p+encodeURIComponent(url));
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      const j=await res.json();
-      const chart=j?.chart?.result?.[0];
-      if(!chart) throw new Error('無資料');
-      const prices=[];
-      chart.timestamp.forEach((t,i)=>{
-        const close=chart.indicators?.adjclose?.[0]?.adjclose?.[i]
-                  ??chart.indicators?.quote?.[0]?.close?.[i];
-        if(close&&close>0){
-          prices.push({date:new Date(t*1000).toISOString().slice(0,7), close:+close.toFixed(4)});
-        }
+      const res=await fetch(p+encodeURIComponent(url)); if(!res.ok) throw new Error('HTTP '+res.status);
+      const j=await res.json(); const chart=j?.chart?.result?.[0]; if(!chart) throw new Error('無資料');
+      const prices=[]; chart.timestamp.forEach((t,i)=>{
+        const close=chart.indicators?.adjclose?.[0]?.adjclose?.[i]??chart.indicators?.quote?.[0]?.close?.[i];
+        if(close&&close>0) prices.push({date:new Date(t*1000).toISOString().slice(0,7),close:+close.toFixed(4)});
       });
-      // 去除重複月份，保留最後一筆
-      const seen={};
-      prices.forEach(p=>{seen[p.date]=p;});
+      const seen={};prices.forEach(p=>{seen[p.date]=p;});
       return Object.values(seen).sort((a,b)=>a.date.localeCompare(b.date));
     }catch(e){lastErr=e;}
   }
   throw lastErr||new Error('抓取失敗');
 }
 
-// ── 抓取所有 ETF 月頻資料 ──
 async function fetchMomData(){
   const proxies=getProxies();
-  const enabledTickers=[...MOM_ASSET_DEFS.filter(a=>a.enabled).map(a=>a.ticker), MOM_CASH_TICKER];
-
-  $('loadingOverlay').classList.remove('hidden');
-  $('momFetchProgress').classList.remove('hidden');
+  const enabledTickers=[...MOM_ASSET_DEFS.filter(a=>a.enabled).map(a=>a.ticker),MOM_CASH_TICKER];
+  $('loadingOverlay').classList.remove('hidden'); $('momFetchProgress').classList.remove('hidden');
   $('momFetchLog').textContent='開始抓取...';
-
-  let done=0;
-  const results={};
-  const failed=[];
-
+  let done=0; const results={}, failed=[];
   for(const ticker of enabledTickers){
     $('loadingText').textContent=`抓取 ${ticker} 月頻資料...`;
     $('momProgressText').textContent=`${ticker} (${done+1}/${enabledTickers.length})`;
     $('momProgressFill').style.width=`${(done/enabledTickers.length)*100}%`;
-    try{
-      const prices=await fetchYfMonthly(ticker, proxies);
-      results[ticker]=prices;
-    }catch(e){
-      failed.push(ticker);
-      results[ticker]=[];
-    }
+    try{ results[ticker]=await fetchYfMonthly(ticker,proxies); }
+    catch(e){ failed.push(ticker); results[ticker]=[]; }
     done++;
   }
-
   $('momProgressFill').style.width='100%';
-  Object.assign(MOM_PRICES, results);
-  updateMomStatusBar();
-
+  Object.assign(MOM_PRICES,results); updateMomStatusBar();
   const okCount=enabledTickers.filter(t=>results[t]?.length>0).length;
   const msg=`✅ 完成 ${okCount}/${enabledTickers.length}${failed.length?'，失敗：'+failed.join(','):''}`;
-  $('momFetchLog').textContent=msg;
-  $('momFetchLog').style.color=failed.length?'var(--yellow)':'var(--green)';
-
-  $('loadingOverlay').classList.add('hidden');
-  $('momFetchProgress').classList.add('hidden');
-
-  // 自動計算即時信號
-  calcMomCurrentSignal();
-  saveToStorage();  // ETF 月頻資料存入 localStorage
+  $('momFetchLog').textContent=msg; $('momFetchLog').style.color=failed.length?'var(--yellow)':'var(--green)';
+  $('loadingOverlay').classList.add('hidden'); $('momFetchProgress').classList.add('hidden');
+  calcMomCurrentSignal(); saveToStorage();
 }
 
-// ── 從 DB 取得某日期的盾牌分數（簡化版：F1×50+F5×50） ──
 function getShieldScore(dateStr){
   if(!DB.length) return 50;
-  // 找最近日期
   let best=DB[DB.length-1];
-  for(const r of DB){
-    if(r.d<=dateStr) best=r;
-    else break;
-  }
-  const f1=lerp((100/(best.cape||30))-(best.tips||1.5), 0, 4, 10, 100);
-  const f5=lerp((best.hy||3.5)*100, 250, 600, 80, 20);
+  for(const r of DB){if(r.d<=dateStr) best=r; else break;}
+  const f1=lerp((100/(best.cape||30))-(best.tips||1.5),0,4,10,100);
+  const f5=lerp((best.hy||3.5)*100,250,600,80,20);
   return f1*0.5+f5*0.5;
 }
 
-// ── 取得某月份的 DGS2 年化利率（作為現金基準） ──
 function getCashRate(yyyymm){
   if(!DB.length) return 0.04;
-  const target=yyyymm+'-15';
-  let best=DB[DB.length-1];
-  for(const r of DB){
-    if(r.d<=target) best=r;
-    else break;
-  }
-  return (best.y2||4.0)/100;  // 年化
+  const target=yyyymm+'-15'; let best=DB[DB.length-1];
+  for(const r of DB){if(r.d<=target) best=r; else break;}
+  return (best.y2||4.0)/100;
 }
 
-// ── 取得 ETF 在某月份的收盤價 ──
-function getMomPrice(ticker, yyyymm){
-  const prices=MOM_PRICES[ticker];
-  if(!prices||!prices.length) return null;
-  // 找最接近的月份
-  const exact=prices.find(p=>p.date===yyyymm);
-  if(exact) return exact.close;
-  // 找最近的之前月份
+function getMomPrice(ticker,yyyymm){
+  const prices=MOM_PRICES[ticker]; if(!prices||!prices.length) return null;
+  const exact=prices.find(p=>p.date===yyyymm); if(exact) return exact.close;
   let best=null;
-  for(const p of prices){
-    if(p.date<=yyyymm) best=p;
-    else break;
-  }
+  for(const p of prices){if(p.date<=yyyymm) best=p; else break;}
   return best?.close||null;
 }
 
-// ── 計算12個月報酬（跳過最後1個月）──
-// ════════════════════════════════════════
-// V9.5 動能引擎（多週期z-score · TS+CS · 相關性過濾 · 分段盾牌縮放）
-// ════════════════════════════════════════
-
-function momCalcVol(ticker, months, idx, n=12){
+function momCalcVol(ticker,months,idx,n=12){
   if(idx<n+1) return null;
   const rets=[];
   for(let i=idx-n;i<idx;i++){
-    const p0=getMomPrice(ticker,months[i-1]);
-    const p1=getMomPrice(ticker,months[i]);
+    const p0=getMomPrice(ticker,months[i-1]);const p1=getMomPrice(ticker,months[i]);
     if(p0&&p1&&p0>0) rets.push(p1/p0-1);
   }
-  // 最低要求：視窗長度的一半（最少2筆），z3只有3個月不需要6筆
-  const minRequired=Math.max(2, Math.floor(n/2));
+  const minRequired=Math.max(2,Math.floor(n/2));
   if(rets.length<minRequired) return null;
   const avg=rets.reduce((a,b)=>a+b,0)/rets.length;
   return Math.sqrt(rets.reduce((a,b)=>a+(b-avg)**2,0)/rets.length)*Math.sqrt(12);
 }
 
-function momCalcZ(ticker, months, idx, nPeriod){
+function momCalcZ(ticker,months,idx,nPeriod){
   if(idx<nPeriod) return null;
-  const p1=getMomPrice(ticker,months[idx-1]);
-  const p0=getMomPrice(ticker,months[idx-nPeriod]);
+  const p1=getMomPrice(ticker,months[idx-1]);const p0=getMomPrice(ticker,months[idx-nPeriod]);
   if(!p1||!p0||p0<=0) return null;
-  // V9.6 FIX: vol 視窗與週期對應，z3用3個月vol，z6用6個月，z12用12個月
-  const volN = Math.min(nPeriod - 1, 12); // nPeriod=13→12, 7→6, 4→3
+  const volN=Math.min(nPeriod-1,12);
   const vol=momCalcVol(ticker,months,idx,volN);
   if(!vol||vol<=0) return null;
   return (p1/p0-1)/vol;
 }
 
-function momCalcScore(ticker, months, idx){
-  const z12=momCalcZ(ticker,months,idx,13);
-  const z6 =momCalcZ(ticker,months,idx,7);
-  const z3 =momCalcZ(ticker,months,idx,4);
+function momCalcScore(ticker,months,idx){
+  const z12=momCalcZ(ticker,months,idx,13);const z6=momCalcZ(ticker,months,idx,7);const z3=momCalcZ(ticker,months,idx,4);
   if(z12===null||z6===null||z3===null) return null;
   return 0.5*z12+0.3*z6+0.2*z3;
 }
 
-function momCalcCorr(t1, t2, months, idx, n=12){
+function momCalcCorr(t1,t2,months,idx,n=12){
   if(idx<n+1) return 0;
   const r1=[],r2=[];
   for(let i=idx-n;i<idx;i++){
@@ -1401,14 +1149,13 @@ function momCalcCorr(t1, t2, months, idx, n=12){
     if(a0&&a1&&a0>0&&b0&&b1&&b0>0){r1.push(a1/a0-1);r2.push(b1/b0-1);}
   }
   if(r1.length<6) return 0;
-  const m1=r1.reduce((a,b)=>a+b,0)/r1.length;
-  const m2=r2.reduce((a,b)=>a+b,0)/r2.length;
+  const m1=r1.reduce((a,b)=>a+b,0)/r1.length;const m2=r2.reduce((a,b)=>a+b,0)/r2.length;
   let num=0,d1=0,d2=0;
   r1.forEach((v,i)=>{num+=(v-m1)*(r2[i]-m2);d1+=(v-m1)**2;d2+=(r2[i]-m2)**2;});
   return num/Math.sqrt((d1*d2)||1);
 }
 
-function momCorrThreshold(shieldScore, corrMode){
+function momCorrThreshold(shieldScore,corrMode){
   if(corrMode!=='dynamic') return parseFloat(corrMode)||0.75;
   if(shieldScore>50) return 0.85;
   if(shieldScore>=30) return 0.75;
@@ -1416,20 +1163,17 @@ function momCorrThreshold(shieldScore, corrMode){
 }
 
 function momShieldExposure(score){
-  if(score<30)  return 0;
-  if(score<50)  return lerp(score,30,50,0,0.4);
-  if(score<70)  return lerp(score,50,70,0.4,0.8);
-  return              lerp(score,70,100,0.8,1.0);
+  if(score<30) return 0;
+  if(score<50) return lerp(score,30,50,0,0.4);
+  if(score<70) return lerp(score,50,70,0.4,0.8);
+  return lerp(score,70,100,0.8,1.0);
 }
 
 function momWeights(scores){
-  const n=scores.length;
-  if(n===0) return [];
-  if(n===1) return [1.0];
-  const CAP=0.4;
-  const EPS=1e-6;
+  const n=scores.length; if(n===0) return []; if(n===1) return [1.0];
+  const CAP=0.4,EPS=1e-6;
   const minS=Math.min(...scores);
-  let sh=scores.map(s=>Math.max(s-minS, EPS));
+  let sh=scores.map(s=>Math.max(s-minS,EPS));
   const shSum=sh.reduce((a,b)=>a+b,0)||EPS;
   let w=sh.map(s=>s/shSum);
   for(let it=0;it<20;it++){
@@ -1438,54 +1182,44 @@ function momWeights(scores){
     const capTotal=capped.filter(Boolean).length*CAP;
     const freeSum=sh.filter((_,i)=>!capped[i]).reduce((a,b)=>a+b,0)||EPS;
     w=w.map((x,i)=>capped[i]?CAP:(sh[i]/freeSum)*(1-capTotal));
-    if(w.some(x=>isNaN(x))){ w=Array(n).fill(1/n); break; } // fallback 等權
+    if(w.some(x=>isNaN(x))){w=Array(n).fill(1/n);break;}
   }
   return w;
 }
 
-function calcMomSignalAt(months, idx, cfg){
+function calcMomSignalAt(months,idx,cfg){
   const enabledAssets=MOM_ASSET_DEFS.filter(a=>a.enabled).map(a=>a.ticker);
   const cashRate=getCashRate(months[idx]);
   const threshold=cashRate+(cfg.buffer||0);
   const shieldScore=cfg.shieldScore||70;
-  const corrThresh=momCorrThreshold(shieldScore, cfg.corrMode||'dynamic');
-  const scoreMap={}, r12Map={};
+  const corrThresh=momCorrThreshold(shieldScore,cfg.corrMode||'dynamic');
+  const scoreMap={},r12Map={};
   for(const t of enabledAssets){
-    const s=momCalcScore(t,months,idx);
-    if(s!==null) scoreMap[t]=s;
-    // R12：絕對報酬（TS過濾用，保持與學術原始定義一致）
-    const p1=getMomPrice(t,months[idx-1]);
-    const p0=idx>=13?getMomPrice(t,months[idx-13]):null;
+    const s=momCalcScore(t,months,idx); if(s!==null) scoreMap[t]=s;
+    const p1=getMomPrice(t,months[idx-1]);const p0=idx>=13?getMomPrice(t,months[idx-13]):null;
     if(p1&&p0&&p0>0) r12Map[t]=p1/p0-1;
   }
   const valid=enabledAssets.filter(t=>r12Map[t]!==undefined&&scoreMap[t]!==undefined);
-  if(!valid.length)
-    return {rawHoldings:{[MOM_CASH_TICKER]:1.0},cashRate,threshold,eligible:[],tsPass:[],scoreMap,r12Map,corrThresh,reason:'資料不足'};
-  // TS 過濾：R12 > 現金利率 + 緩衝（Moskowitz 2012 原始定義，絕對報酬門檻）
+  if(!valid.length) return {rawHoldings:{[MOM_CASH_TICKER]:1.0},cashRate,threshold,eligible:[],tsPass:[],scoreMap,r12Map,corrThresh,reason:'資料不足'};
   const tsPass=valid.filter(t=>r12Map[t]>threshold);
-  if(!tsPass.length)
-    return {rawHoldings:{[MOM_CASH_TICKER]:1.0},cashRate,threshold,eligible:[],tsPass:[],scoreMap,r12Map,corrThresh,
-            reason:`TS未通過（最高R12: ${(Math.max(...valid.map(t=>r12Map[t]))*100).toFixed(1)}%，門檻: ${(threshold*100).toFixed(1)}%）`};
+  if(!tsPass.length) return {rawHoldings:{[MOM_CASH_TICKER]:1.0},cashRate,threshold,eligible:[],tsPass:[],scoreMap,r12Map,corrThresh,reason:`TS未通過`};
   const tsMean=tsPass.reduce((s,t)=>s+(scoreMap[t]||0),0)/tsPass.length;
-  let csPass=tsPass.filter(t=>(scoreMap[t]||0)>tsMean);
-  if(!csPass.length) csPass=[...tsPass];
+  let csPass=tsPass.filter(t=>(scoreMap[t]||0)>tsMean); if(!csPass.length) csPass=[...tsPass];
   csPass.sort((a,b)=>(scoreMap[b]||0)-(scoreMap[a]||0));
   const selected=[];
   for(const t of csPass){
     if(selected.every(f=>Math.abs(momCalcCorr(t,f,months,idx))<corrThresh)) selected.push(t);
     if(selected.length>=(cfg.maxHold||5)) break;
   }
-  if(!selected.length)
-    return {rawHoldings:{[MOM_CASH_TICKER]:1.0},cashRate,threshold,eligible:csPass,tsPass,scoreMap,r12Map,corrThresh,reason:'相關性過濾後無標的'};
+  if(!selected.length) return {rawHoldings:{[MOM_CASH_TICKER]:1.0},cashRate,threshold,eligible:csPass,tsPass,scoreMap,r12Map,corrThresh,reason:'相關性過濾後無標的'};
   const selScores=selected.map(t=>Math.max(scoreMap[t]||0,0.001));
   const weights=momWeights(selScores);
   const rawHoldings={};
   selected.forEach((t,i)=>{rawHoldings[t]=weights[i];});
-  return {rawHoldings,cashRate,threshold,corrThresh,eligible:csPass,tsPass,selected,scoreMap,r12Map,
-          reason:selected.map((t,i)=>`${t}(${(weights[i]*100).toFixed(0)}%)`).join('+')};
+  return {rawHoldings,cashRate,threshold,corrThresh,eligible:csPass,tsPass,selected,scoreMap,r12Map,reason:selected.map((t,i)=>`${t}(${(weights[i]*100).toFixed(0)}%)`).join('+')};
 }
 
-function momApplyShield(rawHoldings, shieldScore, useShield){
+function momApplyShield(rawHoldings,shieldScore,useShield){
   if(!useShield) return {...rawHoldings};
   const exp=momShieldExposure(shieldScore);
   if(exp<=0) return {[MOM_CASH_TICKER]:1.0};
@@ -1501,8 +1235,7 @@ function calcMomCurrentSignal(){
   const months=spyPrices.map(p=>p.date).sort();
   const lastIdx=months.length-1;
   const shieldScore=getShieldScore(months[lastIdx]+'-28');
-  const cfg={buffer:gv('momBuffer')/100,maxHold:parseInt($('momMaxHold').value)||5,
-             corrMode:$('momCorrMode')?.value||'dynamic',shieldScore};
+  const cfg={buffer:gv('momBuffer')/100,maxHold:parseInt($('momMaxHold').value)||5,corrMode:$('momCorrMode')?.value||'dynamic',shieldScore};
   const signal=calcMomSignalAt(months,lastIdx,cfg);
   const useShield=gc('momShieldGate');
   const finalH=momApplyShield(signal.rawHoldings||{[MOM_CASH_TICKER]:1.0},shieldScore,useShield);
@@ -1511,414 +1244,201 @@ function calcMomCurrentSignal(){
   $('momMuDisplay').textContent=`門檻 ${(signal.threshold*100).toFixed(2)}%  |  相關閾值 ${(signal.corrThresh||0.75).toFixed(2)}`;
   const allScored=Object.entries(signal.scoreMap||{}).sort((a,b)=>b[1]-a[1]);
   const maxAbsS=Math.max(...allScored.map(([t,s])=>Math.abs(s)),0.01);
-  const tsSet=new Set(signal.tsPass||[]);
-  const csSet=new Set(signal.eligible||[]);
+  const tsSet=new Set(signal.tsPass||[]);const csSet=new Set(signal.eligible||[]);
   $('momSignalRows').innerHTML=allScored.map(([t,s])=>{
-    const ts=tsSet.has(t),cs=csSet.has(t);
-    const w=finalH[t];
+    const ts=tsSet.has(t),cs=csSet.has(t),w=finalH[t];
     const r12=signal.r12Map?.[t];
     const bw=Math.round(Math.min(100,Math.abs(s)/maxAbsS*100));
     const bc=s>=0?'var(--teal)':'var(--red)';
     const nc=w&&w>0.005?'var(--teal)':cs?'var(--accent)':ts?'var(--muted)':'var(--dim)';
     return `<div class="mom-signal-row">
       <span style="width:42px;font-weight:700;color:${nc}">${t}</span>
-      <span style="width:54px;font-family:monospace;color:${s>=0?'var(--teal)':'var(--red)'}">${s>=0?'+':''}${s.toFixed(2)}</span>
-      <span style="width:50px;font-family:monospace;font-size:10px;color:${r12!=null?(r12>signal.threshold?'var(--green)':'var(--red)'):'var(--dim)'}">${r12!=null?(r12*100).toFixed(1)+'%':'--'}</span>
+      <span style="width:54px;color:${s>=0?'var(--teal)':'var(--red)'}">${s>=0?'+':''}${s.toFixed(2)}</span>
+      <span style="width:50px;font-size:10px;color:${r12!=null?(r12>signal.threshold?'var(--green)':'var(--red)'):'var(--dim)'}">${r12!=null?(r12*100).toFixed(1)+'%':'--'}</span>
       <div class="mom-bar-wrap"><div class="mom-bar-fill" style="width:${bw}%;background:${bc};opacity:${cs?1:0.2}"></div></div>
-      <span style="width:26px;text-align:center;font-size:12px;font-weight:700;color:${ts?'var(--green)':'var(--red)'}">${ts?'✓':'✗'}</span>
-      <span style="width:26px;text-align:center;font-size:12px;font-weight:700;color:${cs?'var(--teal)':'var(--dim)'}">${ts?(cs?'✓':'✗'):'—'}</span>
-      <span style="width:60px;text-align:right;font-size:12px;font-weight:700;color:${w&&w>0.005?'var(--teal)':'var(--dim)'}">
-        ${w&&w>0.005?'● '+(w*100).toFixed(1)+'%':''}
-      </span></div>`;
+      <span style="width:26px;text-align:center;font-weight:700;color:${ts?'var(--green)':'var(--red)'}">${ts?'✓':'✗'}</span>
+      <span style="width:26px;text-align:center;font-weight:700;color:${cs?'var(--teal)':'var(--dim)'}">${ts?(cs?'✓':'✗'):'—'}</span>
+      <span style="width:60px;text-align:right;font-weight:700;color:${w&&w>0.005?'var(--teal)':'var(--dim)'}">
+        ${w&&w>0.005?'● '+(w*100).toFixed(1)+'%':''}</span></div>`;
   }).join('');
   $('momRecommendHoldings').innerHTML=Object.entries(finalH)
     .filter(([t,w])=>w>0.005).sort((a,b)=>b[1]-a[1])
-    .map(([t,w])=>`<span class="holding-chip ${t===MOM_CASH_TICKER?'cash':'chip-teal'}">${t} ${(w*100).toFixed(1)}%</span>`).join(' ');
+    .map(([t,w])=>`<span class="holding-chip ${t===MOM_CASH_TICKER?'cash':''}">${t} ${(w*100).toFixed(1)}%</span>`).join(' ');
   if(useShield){
     const exp=momShieldExposure(shieldScore);
     $('momRecommendHoldings').innerHTML+=` <span style="font-size:11px;color:var(--muted)">（盾牌${shieldScore.toFixed(0)}分→曝露${(exp*100).toFixed(0)}%）</span>`;
   }
-  const badge=$('momCurrentBadge');
-  badge.classList.remove('hidden');
+  const badge=$('momCurrentBadge'); badge.classList.remove('hidden');
   badge.textContent=`MOM: ${Object.entries(finalH).filter(([t,w])=>w>0.005&&t!==MOM_CASH_TICKER).map(([t])=>t).slice(0,2).join('+')||'BIL'}`;
 }
 
-// ── 動能輪動回測 ──
 function runMomBacktest(){
   const spyPrices=MOM_PRICES['SPY'];
   if(!spyPrices||spyPrices.length<15){alert('請先抓取 ETF 資料！');return;}
-
-  const cfg={
-    buffer:    gv('momBuffer')/100,
-    maxHold:   parseInt($('momMaxHold').value)||5,
-    shieldGate: gc('momShieldGate'),
-    corrMode:  $('momCorrMode')?.value||'dynamic',
-    tradeCost: gv('momTradeCost')/100 || 0.001,
-  };
-  const MIN_WARM=14; // 多週期需要 14 個月預熱（z3=4, z6=7, z12=13，取最大+1）
-
+  const cfg={buffer:gv('momBuffer')/100,maxHold:parseInt($('momMaxHold').value)||5,shieldGate:gc('momShieldGate'),corrMode:$('momCorrMode')?.value||'dynamic',tradeCost:gv('momTradeCost')/100||0.001};
+  const MIN_WARM=14;
   const rawStart=($('momStart').value||'').trim().slice(0,7);
-  const rawEnd  =($('momEnd').value||'').trim().slice(0,7);
-
-  $('momBacktestLog').textContent='V9.5 回測中...';
-  $('loadingOverlay').classList.remove('hidden');
-  $('loadingText').textContent='V9.5 動能回測...';
-
+  const rawEnd=($('momEnd').value||'').trim().slice(0,7);
+  $('momBacktestLog').textContent='V9.5 回測中...'; $('loadingOverlay').classList.remove('hidden'); $('loadingText').textContent='V9.5 動能回測...';
   setTimeout(()=>{
     try{
       const months=spyPrices.map(p=>p.date).sort();
-
       let calcStart=MIN_WARM;
-      if(rawStart){
-        for(let i=MIN_WARM;i<months.length;i++){
-          if(months[i]>=rawStart){calcStart=i;break;}
-        }
-      }
+      if(rawStart){for(let i=MIN_WARM;i<months.length;i++){if(months[i]>=rawStart){calcStart=i;break;}}}
       let calcEnd=months.length-2;
-      if(rawEnd){
-        for(let i=months.length-2;i>=MIN_WARM;i--){
-          if(months[i]<=rawEnd){calcEnd=i;break;}
-        }
-      }
-      if(calcStart>calcEnd){alert('區間無有效資料，請調整起始/結束月份。');return;}
-
-      const INIT=100000;
-      let nav=INIT, spyNav=INIT;
-      const records=[], trades=[];
+      if(rawEnd){for(let i=months.length-2;i>=MIN_WARM;i--){if(months[i]<=rawEnd){calcEnd=i;break;}}}
+      if(calcStart>calcEnd){alert('區間無有效資料');return;}
+      const INIT=100000; let nav=INIT,spyNav=INIT;
+      const records=[],trades=[];
       let holdings={[MOM_CASH_TICKER]:1.0};
-
       for(let i=calcStart;i<=calcEnd;i++){
-        const signalMonth=months[i];
-        const nextMonth  =months[i+1];
-        // V9.6: 回測中強制 shieldScore=100（避免 look-ahead bias）
-        // 盾牌縮放僅用於即時信號，不用於歷史回測
-        const shieldScore = 100;
-        const sigCfg={...cfg, shieldScore};
+        const signalMonth=months[i],nextMonth=months[i+1];
+        const shieldScore=100;
+        const sigCfg={...cfg,shieldScore};
         const signal=calcMomSignalAt(months,i,sigCfg);
-        // 回測不套盾牌縮放，rawHoldings 直接使用
-        const scaledH = {...(signal.rawHoldings||{[MOM_CASH_TICKER]:1.0})};
-        const exp = 1.0;
-
-        // V9.6: 計算換手率並扣除交易成本
-        const TRADE_COST = cfg.tradeCost ?? 0.001; // 預設 0.1%（單向）
-        let turnover = 0;
+        const scaledH={...(signal.rawHoldings||{[MOM_CASH_TICKER]:1.0})};
+        const TRADE_COST=cfg.tradeCost??0.001;
+        let turnover=0;
         for(const t of new Set([...Object.keys(holdings),...Object.keys(scaledH)])){
-          const wOld=holdings[t]||0;
-          const wNew=scaledH[t]||0;
+          const wOld=holdings[t]||0,wNew=scaledH[t]||0;
           turnover+=Math.abs(wNew-wOld);
         }
-        const costDrag = (turnover/2) * TRADE_COST; // 單向成本（換手率/2）
-
+        const costDrag=(turnover/2)*TRADE_COST;
         let portRet=0;
         for(const [ticker,w] of Object.entries(holdings)){
-          const p0=getMomPrice(ticker,signalMonth);
-          const p1=getMomPrice(ticker,nextMonth);
+          const p0=getMomPrice(ticker,signalMonth),p1=getMomPrice(ticker,nextMonth);
           if(p0&&p1&&p0>0){
-            const tickerRet=p1/p0-1;
-            portRet+=w*tickerRet;
-            trades.push({
-              entryMonth:signalMonth, exitMonth:nextMonth,
-              ticker, weight:w, entryPrice:p0, exitPrice:p1,
-              tickerRet, contribution:w*tickerRet,
-              isCash:ticker===MOM_CASH_TICKER, shieldExp:exp,
-            });
+            const tickerRet=p1/p0-1; portRet+=w*tickerRet;
+            trades.push({entryMonth:signalMonth,exitMonth:nextMonth,ticker,weight:w,entryPrice:p0,exitPrice:p1,tickerRet,contribution:w*tickerRet,isCash:ticker===MOM_CASH_TICKER,shieldExp:1});
           }
         }
-        portRet -= costDrag; // 扣除成本
-        nav*=(1+portRet);
-        const sp0=getMomPrice('SPY',signalMonth);
-        const sp1=getMomPrice('SPY',nextMonth);
+        portRet-=costDrag; nav*=(1+portRet);
+        const sp0=getMomPrice('SPY',signalMonth),sp1=getMomPrice('SPY',nextMonth);
         if(sp0&&sp1&&sp0>0) spyNav*=(1+sp1/sp0-1);
-
-        records.push({
-          month:nextMonth, nav, spyNav,
-          holdings:{...scaledH}, portRet,
-          shieldScore, shieldExp:exp, cashRate:signal.cashRate, signal,
-        });
+        records.push({month:nextMonth,nav,spyNav,holdings:{...scaledH},portRet,shieldScore,shieldExp:1,cashRate:signal.cashRate,signal});
         holdings=scaledH;
       }
-
-      if(records.length<6){alert('回測結果資料太少，請確認日期區間和 ETF 資料。');return;}
-
-      // 擷取同期 ABCD 月頻淨值
-      const shieldMonthly=buildShieldMonthly(records[0].month, records[records.length-1].month);
-
-      MOM_RESULT={records, initial:INIT, cfg, shieldMonthly, trades};
-      renderMomUI();
-      overlaymomOnShieldChart();
-
+      if(records.length<6){alert('回測結果資料太少');return;}
+      const shieldMonthly=buildShieldMonthly(records[0].month,records[records.length-1].month);
+      MOM_RESULT={records,initial:INIT,cfg,shieldMonthly,trades};
+      renderMomUI(); overlaymomOnShieldChart();
       const range=`${records[0].month} ~ ${records[records.length-1].month}`;
       $('momBacktestLog').textContent=`✅ 完成，共 ${records.length} 個月（${range}）`;
       $('momBacktestLog').style.color='var(--teal)';
-
-    }catch(err){
-      $('momBacktestLog').textContent='❌ '+err.message;
-      $('momBacktestLog').style.color='var(--red)';
-      console.error(err);
-    }finally{
-      $('loadingOverlay').classList.add('hidden');
-    }
+    }catch(err){$('momBacktestLog').textContent='❌ '+err.message;$('momBacktestLog').style.color='var(--red)';console.error(err);}
+    finally{$('loadingOverlay').classList.add('hidden');}
   },60);
 }
 
-// ── 從盾牌日頻結果擷取月頻淨值（與 MOM 區間對齊，起始歸一化至 100000） ──
-function buildShieldMonthly(startMonth, endMonth){
+function buildShieldMonthly(startMonth,endMonth){
   if(!BT_RESULT) return null;
-  const cv=BT_RESULT.cv;
-  const keys=['A','B','C','D','BH'];
-
-  // 找最靠近 startMonth 的日頻索引作為基準
+  const cv=BT_RESULT.cv,keys=['A','B','C','D','BH'];
   const startDateStr=startMonth+'-01';
   let startIdx=0;
-  for(let i=0;i<cv.length;i++){
-    if(cv[i].d>=startDateStr){startIdx=i;break;}
-  }
-  const baseNav={};
-  keys.forEach(k=>{baseNav[k]=cv[startIdx]?cv[startIdx][k]:null;});
-
-  // 每個月取最後一個交易日
+  for(let i=0;i<cv.length;i++){if(cv[i].d>=startDateStr){startIdx=i;break;}}
+  const baseNav={};keys.forEach(k=>{baseNav[k]=cv[startIdx]?cv[startIdx][k]:null;});
   const byMonth={};
-  cv.forEach(r=>{
-    if(r.d>=startDateStr){
-      const m=r.d.slice(0,7);
-      if(m<=endMonth) byMonth[m]=r;
-    }
-  });
-
-  const result={months:[], A:[], B:[], C:[], D:[], BH:[]};
+  cv.forEach(r=>{if(r.d>=startDateStr){const m=r.d.slice(0,7);if(m<=endMonth) byMonth[m]=r;}});
+  const result={months:[],A:[],B:[],C:[],D:[],BH:[]};
   Object.keys(byMonth).sort().forEach(m=>{
-    const r=byMonth[m];
-    result.months.push(m);
-    keys.forEach(k=>{
-      const base=baseNav[k];
-      result[k].push(base&&base>0?(r[k]/base)*100000:null);
-    });
+    const r=byMonth[m];result.months.push(m);
+    keys.forEach(k=>{const base=baseNav[k];result[k].push(base&&base>0?(r[k]/base)*100000:null);});
   });
   return result;
 }
-// ── 動能回測結果渲染 ──
-function renderMomUI(){
-  const {records, initial, cfg}=MOM_RESULT;
-  $('momResultSection').classList.remove('hidden');
 
-  // KPI
-  const last=records[records.length-1];
-  const first=records[0];
+function renderMomUI(){
+  const {records,initial,cfg}=MOM_RESULT;
+  $('momResultSection').classList.remove('hidden');
+  const last=records[records.length-1],first=records[0];
   const years=(new Date(last.month+'-01')-new Date(first.month+'-01'))/(365.25*86400000);
   const totalRet=last.nav/initial-1;
   const cagr=years>0?Math.pow(1+Math.max(totalRet,-0.999),1/years)-1:0;
   const spyRet=last.spyNav/initial-1;
   const spyCagr=years>0?Math.pow(1+Math.max(spyRet,-0.999),1/years)-1:0;
-
-  // MDD
-  let peak=records[0].nav, mdd=0;
+  let peak=records[0].nav,mdd=0;
   records.forEach(r=>{if(r.nav>peak)peak=r.nav;const dd=(r.nav-peak)/peak;if(dd<mdd)mdd=dd;});
-  let spyPeak=records[0].spyNav, spyMdd=0;
-  records.forEach(r=>{if(r.spyNav>spyPeak)spyPeak=r.spyNav;const dd=(r.spyNav-spyPeak)/r.spyNav;if(dd<spyMdd)spyMdd=dd;});
-
-  // Sharpe
   const monthRets=records.map(r=>r.portRet);
   const avgRet=monthRets.reduce((a,b)=>a+b,0)/monthRets.length;
   const std=Math.sqrt(monthRets.reduce((a,b)=>a+(b-avgRet)**2,0)/monthRets.length)*Math.sqrt(12);
   const sharpe=std>0?(cagr-0.025)/std:0;
   const cashMonths=records.filter(r=>r.holdings[MOM_CASH_TICKER]>=0.99).length;
-  const gatedMonths=records.filter(r=>r.gated).length;
-
-  // ── ABCD 同期績效計算 ──
   const sm=MOM_RESULT.shieldMonthly;
   const ABCD_COLORS={A:'#ffb830',B:'#00e5a0',C:'#7eb8ff',D:'#b388ff'};
   const ABCD_LABELS={A:'方法 A',B:'方法 B',C:'方法 C',D:'方法 D'};
-
   function shieldMetrics(key){
     if(!sm||!sm[key]||!sm[key].length) return null;
-    const vals=sm[key].filter(v=>v!==null);
-    if(vals.length<2) return null;
+    const vals=sm[key].filter(v=>v!==null); if(vals.length<2) return null;
     const tr=vals[vals.length-1]/vals[0]-1;
     const yrs=sm.months.length/12;
     const cagr2=yrs>0?Math.pow(1+Math.max(tr,-0.999),1/yrs)-1:0;
-    let pk=vals[0],mdd2=0;
-    vals.forEach(v=>{if(v>pk)pk=v;const dd=(v-pk)/pk;if(dd<mdd2)mdd2=dd;});
-    const mRets=[];
-    for(let i=1;i<vals.length;i++) mRets.push((vals[i]-vals[i-1])/vals[i-1]);
+    let pk=vals[0],mdd2=0; vals.forEach(v=>{if(v>pk)pk=v;const dd=(v-pk)/pk;if(dd<mdd2)mdd2=dd;});
+    const mRets=[]; for(let i=1;i<vals.length;i++) mRets.push((vals[i]-vals[i-1])/vals[i-1]);
     const ar=mRets.reduce((a,b)=>a+b,0)/(mRets.length||1);
     const sd=Math.sqrt(mRets.reduce((a,b)=>a+(b-ar)**2,0)/(mRets.length||1))*Math.sqrt(12);
     const sh=sd>0?(cagr2-0.025)/sd:0;
     return {tr,cagr:cagr2,mdd:mdd2,sharpe:sh,final:vals[vals.length-1]};
   }
-
-  // 主要 KPI 卡
   const abcdCards=sm?['A','B','C','D'].map(k=>{
-    const m=shieldMetrics(k);
-    if(!m) return '';
-    return {
-      label:ABCD_LABELS[k], sub:'盾牌策略', color:k==='A'?'yellow':k==='B'?'green':k==='C'?'accent':'purple',
-      rows:[
-        ['最終淨值',`$${Math.round(m.final).toLocaleString()}`,'white'],
-        ['區間報酬',`${m.tr>=0?'+':''}${(m.tr*100).toFixed(1)}%`,m.tr>=0?'tg':'tr'],
-        ['CAGR',`${(m.cagr*100).toFixed(2)}%`,''],
-        ['MDD',`${(m.mdd*100).toFixed(2)}%`,'tr'],
-        ['Sharpe',m.sharpe.toFixed(2),'tg'],
-      ]
-    };
+    const m=shieldMetrics(k); if(!m) return '';
+    return {label:ABCD_LABELS[k],sub:'盾牌策略',color:k==='A'?'yellow':k==='B'?'green':k==='C'?'accent':'purple',
+      rows:[['最終淨值',`$${Math.round(m.final).toLocaleString()}`,'white'],['區間報酬',`${m.tr>=0?'+':''}${(m.tr*100).toFixed(1)}%`,m.tr>=0?'tg':'tr'],['CAGR',`${(m.cagr*100).toFixed(2)}%`,''],['MDD',`${(m.mdd*100).toFixed(2)}%`,'tr'],['Sharpe',m.sharpe.toFixed(2),'tg']]};
   }).filter(Boolean):[];
-
   $('momMetricsGrid').innerHTML=[
-    {label:'動能輪動',sub:'MOM策略',color:'teal',
-     rows:[
-       ['最終淨值',`$${Math.round(last.nav).toLocaleString()}`,'white'],
-       ['區間報酬',`${totalRet>=0?'+':''}${(totalRet*100).toFixed(1)}%`,totalRet>=0?'tg':'tr'],
-       ['CAGR',`${(cagr*100).toFixed(2)}%`,'tt'],
-       ['MDD',`${(mdd*100).toFixed(2)}%`,'tr'],
-       ['Sharpe',sharpe.toFixed(2),'tg'],
-       ['持現金月',`${cashMonths}月 (${(cashMonths/records.length*100).toFixed(0)}%)`,''],
-       ['盾牌觸發',`${gatedMonths}月`,'ty'],
-     ]},
-    {label:'SPY 買持',sub:'B&H基準',color:'muted',
-     rows:[
-       ['最終淨值',`$${Math.round(last.spyNav).toLocaleString()}`,'white'],
-       ['區間報酬',`${spyRet>=0?'+':''}${(spyRet*100).toFixed(1)}%`,spyRet>=0?'tg':'tr'],
-       ['CAGR',`${(spyCagr*100).toFixed(2)}%`,''],
-       ['MDD','--',''],
-       ['超額CAGR',`${((cagr-spyCagr)*100)>=0?'+':''}${((cagr-spyCagr)*100).toFixed(2)}pp`,
-         (cagr-spyCagr)>=0?'tg':'tr'],
-     ]},
+    {label:'動能輪動',sub:'MOM策略',color:'teal',rows:[['最終淨值',`$${Math.round(last.nav).toLocaleString()}`,'white'],['區間報酬',`${totalRet>=0?'+':''}${(totalRet*100).toFixed(1)}%`,totalRet>=0?'tg':'tr'],['CAGR',`${(cagr*100).toFixed(2)}%`,'tt'],['MDD',`${(mdd*100).toFixed(2)}%`,'tr'],['Sharpe',sharpe.toFixed(2),'tg'],['持現金月',`${cashMonths}月`,''],]},
+    {label:'SPY 買持',sub:'B&H基準',color:'muted',rows:[['最終淨值',`$${Math.round(last.spyNav).toLocaleString()}`,'white'],['區間報酬',`${spyRet>=0?'+':''}${(spyRet*100).toFixed(1)}%`,spyRet>=0?'tg':'tr'],['CAGR',`${(spyCagr*100).toFixed(2)}%`,''],['超額CAGR',`${((cagr-spyCagr)*100)>=0?'+':''}${((cagr-spyCagr)*100).toFixed(2)}pp`,(cagr-spyCagr)>=0?'tg':'tr']]},
     ...abcdCards
-  ].map(({label,sub,color,rows})=>`
-    <div class="metric-card" style="border-top:3px solid var(--${color})">
-      <div class="m-title">${label}<span style="font-size:10px;font-weight:400;color:var(--dim);margin-left:5px">${sub}</span></div>
-      ${rows.map(([k,v,cls])=>`<div class="m-row"><span>${k}</span><span class="m-val ${cls||''}">${v}</span></div>`).join('')}
-    </div>`).join('');
-
-  // ── 圖表（MOM + SPY + ABCD） ──
+  ].map(({label,sub,color,rows})=>`<div class="metric-card" style="border-top:3px solid var(--${color})"><div class="m-title">${label}<span style="font-size:10px;font-weight:400;color:var(--dim);margin-left:5px">${sub}</span></div>${rows.map(([k,v,cls])=>`<div class="m-row"><span>${k}</span><span class="m-val ${cls||''}">${v}</span></div>`).join('')}</div>`).join('');
   if(MOM_CHART.nav){MOM_CHART.nav.destroy();MOM_CHART.dd.destroy();}
   const labels=records.map(r=>r.month);
   const sc={x:{ticks:{color:'#6b7a99',maxTicksLimit:12},grid:{color:'#1a2030'}},y:{ticks:{color:'#6b7a99'},grid:{color:'#1a2030'}}};
   const opt={responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},animation:{duration:200}};
-
-  // 對齊 ABCD 資料到 MOM 的月份軸
   const abcdDatasets=sm?['A','B','C','D'].map(k=>{
     if(!sm[k]) return null;
-    const monthMap={};
-    sm.months.forEach((m,i)=>{monthMap[m]=sm[k][i];});
-    const data=labels.map(m=>monthMap[m]??null);
-    return {label:ABCD_LABELS[k],data,borderColor:ABCD_COLORS[k],
-            borderWidth:1.5,pointRadius:0,borderDash:[3,3]};
+    const monthMap={};sm.months.forEach((m,i)=>{monthMap[m]=sm[k][i];});
+    return {label:ABCD_LABELS[k],data:labels.map(m=>monthMap[m]??null),borderColor:ABCD_COLORS[k],borderWidth:1.5,pointRadius:0,borderDash:[3,3]};
   }).filter(Boolean):[];
-
-  MOM_CHART.nav=new Chart($('momNavChart').getContext('2d'),{type:'line',data:{labels,datasets:[
-    {label:'動能輪動 MOM',data:records.map(r=>r.nav),borderColor:'#00d4aa',borderWidth:2.5,pointRadius:0},
-    {label:'SPY B&H',    data:records.map(r=>r.spyNav),borderColor:'#3d4a66',borderWidth:1,pointRadius:0},
-    ...abcdDatasets,
-  ]},options:{...opt,plugins:{legend:{labels:{color:'#6b7a99',boxWidth:10,font:{size:11}}}},
-    scales:{...sc,y:{...sc.y,type:'logarithmic'}}}});
-
-  // MDD
+  MOM_CHART.nav=new Chart($('momNavChart').getContext('2d'),{type:'line',data:{labels,datasets:[{label:'動能輪動 MOM',data:records.map(r=>r.nav),borderColor:'#00d4aa',borderWidth:2.5,pointRadius:0},{label:'SPY B&H',data:records.map(r=>r.spyNav),borderColor:'#3d4a66',borderWidth:1,pointRadius:0},...abcdDatasets]},options:{...opt,plugins:{legend:{labels:{color:'#6b7a99',boxWidth:10,font:{size:11}}}},scales:{...sc,y:{...sc.y,type:'logarithmic'}}}});
   const mddData=[]; let pk2=records[0].nav;
   records.forEach(r=>{if(r.nav>pk2)pk2=r.nav;mddData.push((r.nav-pk2)/pk2*100);});
   const mddSpy=[]; let pk3=records[0].spyNav;
   records.forEach(r=>{if(r.spyNav>pk3)pk3=r.spyNav;mddSpy.push((r.spyNav-pk3)/r.spyNav*100);});
-
-  MOM_CHART.dd=new Chart($('momDdChart').getContext('2d'),{type:'line',data:{labels,datasets:[
-    {label:'MOM',data:mddData,borderColor:'#00d4aa',borderWidth:1,pointRadius:0,fill:true,backgroundColor:'rgba(0,212,170,0.08)'},
-    {label:'SPY',data:mddSpy,borderColor:'#3d4a66',borderWidth:1,pointRadius:0},
-  ]},options:{...opt,plugins:{legend:{display:false}},scales:sc}});
-
-  // ── 換倉歷程表 ──
-  const logTable=document.querySelector('#momLogBody').closest('table');
-  logTable.querySelector('thead tr').innerHTML=`
-    <th>換倉月</th>
-    <th style="color:var(--teal)">持倉（比例加權）</th>
-    <th>TS候選</th><th>門檻</th>
-    <th style="color:var(--accent)">月報酬</th>
-    <th style="color:var(--teal)">MOM 淨值</th>
-    <th>SPY 淨值</th><th style="color:var(--yellow)">超額</th>
-  `;
+  MOM_CHART.dd=new Chart($('momDdChart').getContext('2d'),{type:'line',data:{labels,datasets:[{label:'MOM',data:mddData,borderColor:'#00d4aa',borderWidth:1,pointRadius:0,fill:true,backgroundColor:'rgba(0,212,170,0.08)'},{label:'SPY',data:mddSpy,borderColor:'#3d4a66',borderWidth:1,pointRadius:0}]},options:{...opt,plugins:{legend:{display:false}},scales:sc}});
   $('momLogBody').innerHTML=[...records].reverse().map((r,revIdx)=>{
     const idx=records.length-1-revIdx;
     const prevSpy=idx>0?records[idx-1].spyNav:initial;
-    const hChips=r.gated
-      ?`<span class="holding-chip gated">BIL 盾牌 100%</span>`
-      :Object.entries(r.holdings).map(([t,w])=>
-          `<span class="holding-chip ${t===MOM_CASH_TICKER?'cash':''}">${t} <span style="opacity:.7">${(w*100).toFixed(0)}%</span></span>`
-        ).join('');
+    const hChips=Object.entries(r.holdings).map(([t,w])=>`<span class="holding-chip ${t===MOM_CASH_TICKER?'cash':''}">${t} <span style="opacity:.7">${(w*100).toFixed(0)}%</span></span>`).join('');
     const retColor=r.portRet>=0?'var(--green)':'var(--red)';
     const excess=r.portRet-(r.spyNav/prevSpy-1);
     const excColor=excess>=0?'var(--green)':'var(--red)';
     const tsCount=r.signal?.eligible?.length??'--';
     const thresh=r.cashRate!=null?((r.cashRate+cfg.buffer)*100).toFixed(2)+'%':'--';
-    return `<tr class="log-row">
-      <td class="mono" style="font-weight:700">${r.month}</td>
-      <td style="white-space:nowrap">${hChips}</td>
-      <td class="mono" style="text-align:center;color:${tsCount>0?'var(--teal)':'var(--red)'}">${tsCount}</td>
-      <td class="mono" style="color:var(--muted)">${thresh}</td>
-      <td class="mono" style="color:${retColor};font-weight:700">${r.portRet>=0?'+':''}${(r.portRet*100).toFixed(2)}%</td>
-      <td class="mono tt" style="font-weight:700">$${Math.round(r.nav).toLocaleString()}</td>
-      <td class="mono" style="color:var(--muted)">$${Math.round(r.spyNav).toLocaleString()}</td>
-      <td class="mono" style="color:${excColor};font-weight:700">${excess>=0?'+':''}${(excess*100).toFixed(2)}pp</td>
-    </tr>`;
+    return `<tr class="log-row"><td class="mono" style="font-weight:700">${r.month}</td><td style="white-space:nowrap">${hChips}</td><td class="mono" style="text-align:center;color:${tsCount>0?'var(--teal)':'var(--red)'}">${tsCount}</td><td class="mono" style="color:var(--muted)">${thresh}</td><td class="mono" style="color:${retColor};font-weight:700">${r.portRet>=0?'+':''}${(r.portRet*100).toFixed(2)}%</td><td class="mono tt" style="font-weight:700">$${Math.round(r.nav).toLocaleString()}</td><td class="mono" style="color:var(--muted)">$${Math.round(r.spyNav).toLocaleString()}</td><td class="mono" style="color:${excColor};font-weight:700">${excess>=0?'+':''}${(excess*100).toFixed(2)}pp</td></tr>`;
   }).join('');
-
-  // ── 交易明細表 ──
-  const trades=MOM_RESULT.trades||[];
   if($('momTradeBody')){
-    $('momTradeBody').innerHTML=[...trades].reverse().map(t=>{
+    $('momTradeBody').innerHTML=[...MOM_RESULT.trades||[]].reverse().map(t=>{
       const rc=t.tickerRet>=0?'var(--green)':'var(--red)';
       const cc=t.contribution>=0?'var(--green)':'var(--red)';
-      const note=t.gated?'盾牌強制':t.isCash?'現金停泊':'';
-      const noteStyle=t.gated?'color:var(--red)':t.isCash?'color:var(--muted)':'color:var(--dim)';
-      return `<tr class="log-row">
-        <td class="mono">${t.entryMonth}</td>
-        <td class="mono">${t.exitMonth}</td>
-        <td style="font-weight:700;color:${t.isCash?'var(--green)':t.gated?'var(--red)':'var(--teal)'}">${t.ticker}</td>
-        <td class="mono" style="color:var(--muted)">${(t.weight*100).toFixed(1)}%</td>
-        <td class="mono" style="color:var(--dim)">${t.entryPrice.toFixed(2)}</td>
-        <td class="mono" style="color:var(--dim)">${t.exitPrice.toFixed(2)}</td>
-        <td class="mono" style="color:${rc};font-weight:700">${t.tickerRet>=0?'+':''}${(t.tickerRet*100).toFixed(2)}%</td>
-        <td class="mono" style="color:${cc};font-weight:700">${t.contribution>=0?'+':''}${(t.contribution*100).toFixed(2)}pp</td>
-        <td style="font-size:11px;${noteStyle}">${note}</td>
-      </tr>`;
+      const note=t.isCash?'現金停泊':'';
+      return `<tr class="log-row"><td class="mono">${t.entryMonth}</td><td class="mono">${t.exitMonth}</td><td style="font-weight:700;color:${t.isCash?'var(--green)':'var(--teal)'}">${t.ticker}</td><td class="mono">${(t.weight*100).toFixed(1)}%</td><td class="mono">${t.entryPrice.toFixed(2)}</td><td class="mono">${t.exitPrice.toFixed(2)}</td><td class="mono" style="color:${rc};font-weight:700">${t.tickerRet>=0?'+':''}${(t.tickerRet*100).toFixed(2)}%</td><td class="mono" style="color:${cc};font-weight:700">${t.contribution>=0?'+':''}${(t.contribution*100).toFixed(2)}pp</td><td style="font-size:11px;color:var(--muted)">${note}</td></tr>`;
     }).join('');
   }
 }
 
-// ── 將動能結果疊加到盾牌績效頁 ──
 function overlaymomOnShieldChart(){
   if(!BT_RESULT||!MOM_RESULT||!charts.n) return;
-  const {records}=MOM_RESULT;
-  const {initial}=MOM_RESULT;
-
-  // 把 MOM 月頻資料映射到盾牌日頻的 date 標籤
+  const {records,initial}=MOM_RESULT;
   const shieldDates=BT_RESULT.cv.map(c=>c.d);
-  const momMap={};
-  records.forEach(r=>{momMap[r.month]=r.nav;});
-
-  // 對每個盾牌日期，找對應月份的 MOM NAV
+  const momMap={};records.forEach(r=>{momMap[r.month]=r.nav;});
   const momLine=shieldDates.map(d=>{
-    const m=d.slice(0,7);
-    // 找 ≤ 當月的最後一個 MOM 紀錄
-    let best=null;
-    for(const [month, nav] of Object.entries(momMap)){
-      if(month<=m) best=nav;
-    }
-    // 比例換算為盾牌的初始資金基準
+    const m=d.slice(0,7); let best=null;
+    for(const [month,nav] of Object.entries(momMap)){if(month<=m) best=nav;}
     return best?(best/initial)*BT_RESULT.cfgLast.cap:null;
   });
-
-  // 檢查是否已有 MOM dataset
   const existing=charts.n.data.datasets.findIndex(ds=>ds.label==='動能輪動');
   if(existing>=0) charts.n.data.datasets.splice(existing,1);
-
-  charts.n.data.datasets.push({
-    label:'動能輪動',
-    data:momLine,
-    borderColor:'#00d4aa',
-    borderWidth:2,
-    pointRadius:0,
-    borderDash:[4,3],
-  });
+  charts.n.data.datasets.push({label:'動能輪動',data:momLine,borderColor:'#00d4aa',borderWidth:2,pointRadius:0,borderDash:[4,3]});
   charts.n.update();
-
-  // 同步加一個 KPI 卡到績效頁
   const last=records[records.length-1];
   const years=(new Date(last.month+'-01')-new Date(records[0].month+'-01'))/(365.25*86400000);
   const totalRet=last.nav/initial-1;
@@ -1929,31 +1449,22 @@ function overlaymomOnShieldChart(){
   const avgR=monthRets.reduce((a,b)=>a+b,0)/monthRets.length;
   const std=Math.sqrt(monthRets.reduce((a,b)=>a+(b-avgR)**2,0)/monthRets.length)*Math.sqrt(12);
   const sharpe=std>0?(cagr-0.025)/std:0;
-
-  // 移除舊的 MOM 卡
-  const oldCard=document.getElementById('momKpiCard');
-  if(oldCard) oldCard.remove();
-
-  const card=document.createElement('div');
-  card.id='momKpiCard';
-  card.className='metric-card';
+  const oldCard=document.getElementById('momKpiCard'); if(oldCard) oldCard.remove();
+  const card=document.createElement('div'); card.id='momKpiCard'; card.className='metric-card';
   card.style.borderTop='3px solid var(--teal)';
-  card.innerHTML=`
-    <div class="m-title" style="color:var(--teal)">動能輪動 MOM <span style="font-size:9px;font-weight:400;color:var(--dim)">月頻回測</span></div>
+  card.innerHTML=`<div class="m-title" style="color:var(--teal)">動能輪動 MOM <span style="font-size:9px;font-weight:400;color:var(--dim)">月頻回測</span></div>
     <div class="m-row"><span>區間報酬</span><span class="m-val ${totalRet>=0?'tg':'tr'}">${totalRet>=0?'+':''}${(totalRet*100).toFixed(1)}%</span></div>
     <div class="m-row"><span>CAGR</span><span class="m-val tt">${(cagr*100).toFixed(2)}%</span></div>
     <div class="m-row"><span>MDD</span><span class="m-val tr">${(mdd*100).toFixed(2)}%</span></div>
-    <div class="m-row"><span>Sharpe</span><span class="m-val tg">${sharpe.toFixed(2)}</span></div>
-  `;
+    <div class="m-row"><span>Sharpe</span><span class="m-val tg">${sharpe.toFixed(2)}</span></div>`;
   $('metricsGrid').appendChild(card);
 }
 
 // ════════════════════════════════════════
-// 盾牌回測引擎（原版，完整保留）
+// 盾牌回測引擎
 // ════════════════════════════════════════
 function bdg(m){
-  const map={PLUS:['var(--blue-dim)','var(--blue)','加碼'],NORMAL:['var(--surface2)','var(--white)','常態'],
-    CLEAR:['var(--red-dim)','var(--red)','清倉'],STRIKE:['var(--yellow-dim)','var(--yellow)','短打']};
+  const map={PLUS:['var(--blue-dim)','var(--blue)','加碼'],NORMAL:['var(--surface2)','var(--white)','常態'],CLEAR:['var(--red-dim)','var(--red)','清倉'],STRIKE:['var(--yellow-dim)','var(--yellow)','短打']};
   const[bg,c,label]=map[m]||['var(--surface2)','var(--muted)','--'];
   return `<span style="background:${bg};color:${c};border:1px solid ${c};padding:2px 8px;border-radius:3px;font-size:12px;font-family:monospace;">${label}</span>`;
 }
@@ -2012,16 +1523,10 @@ function stepEngine(s,prevM,newM,newMult,ret,spNow,costRate){
   const newBase=(newM==='CLEAR')?0:(newM==='STRIKE')?costRate.strike:1.0;
   s.eq*=(1+prevBase*ret);
   if(prevBase!==newBase) s.eq*=(1-costRate.cost);
-  if(newM==='PLUS'&&prevM!=='PLUS'){
-    s.plusN=newMult*s.eq; s.plusSP=spNow;
-    s.eq-=s.plusN*costRate.cost;
-  }
+  if(newM==='PLUS'&&prevM!=='PLUS'){s.plusN=newMult*s.eq;s.plusSP=spNow;s.eq-=s.plusN*costRate.cost;}
   let pnl=null;
   if(newM!=='PLUS'&&prevM==='PLUS'&&s.plusN>0){
-    const plusVal=s.plusN*(spNow/s.plusSP);
-    pnl=plusVal-s.plusN;
-    s.eq+=pnl; s.eq-=plusVal*costRate.cost;
-    s.plusLastPnL=pnl; s.plusN=0; s.plusSP=0;
+    const plusVal=s.plusN*(spNow/s.plusSP);pnl=plusVal-s.plusN;s.eq+=pnl;s.eq-=plusVal*costRate.cost;s.plusLastPnL=pnl;s.plusN=0;s.plusSP=0;
   }
   return pnl;
 }
@@ -2031,28 +1536,17 @@ function runBacktest(){
   const start=$('cpStart').value,end=$('cpEnd').value;
   const slice=DB.filter(r=>r.d>=start&&r.d<=end);
   if(slice.length<20){alert('區間資料不足，請調整日期。');return;}
-
   const cfg={
-    cap:100000, cost:0.0005,
+    cap:100000,cost:0.0005,
     A:{s150:gv('cpA150'),s100:gv('cpA100'),clearDays:gv('cpADays'),dlt:gv('cpADelta'),w:120},
     B:{s150:gv('cpB150'),s100:gv('cpB100'),clearDays:gv('cpBDays'),z:gv('cpBZ'),w:500},
-    strk:{n:Math.max(1,Math.round(gv('cpStrkN'))||2),
-      useRsi:gc('useStrkRsi'),rsi:gv('cpRsi'),
-      useVix:gc('useStrkVix'),vix:gv('cpVix'),
-      vixPullback:gc('vixPullback'),vixPbAmt:gv('cpVixPB'),
-      useBias:gc('useStrkBias'),bias:gv('cpBias'),
-      useEWR:gc('useStrkEWR'),ewRatio:gv('cpEWRatio')},
+    strk:{n:Math.max(1,Math.round(gv('cpStrkN'))||2),useRsi:gc('useStrkRsi'),rsi:gv('cpRsi'),useVix:gc('useStrkVix'),vix:gv('cpVix'),vixPullback:gc('vixPullback'),vixPbAmt:gv('cpVixPB'),useBias:gc('useStrkBias'),bias:gv('cpBias'),useEWR:gc('useStrkEWR'),ewRatio:gv('cpEWRatio')},
     pos:{plusMult:gv('cpPosPlus'),base:gv('cpPosBase'),strike:gv('cpPosStrk')},
     useRegime:gc('useRegime'),useYC:gc('useYC'),useV8:gc('useV8'),
-    regRsiOn:gv('regRsiOn'),regVixOn:gv('regVixOn'),
-    regRsiOff:gv('regRsiOff'),regVixOff:gv('regVixOff'),
-    regAllowPlus:gc('regAllowPlus'),regAllowPlusMid:gc('regAllowPlusMid'),
-    ycLo:gv('ycLo'),ycHi:gv('ycHi')
+    regRsiOn:gv('regRsiOn'),regVixOn:gv('regVixOn'),regRsiOff:gv('regRsiOff'),regVixOff:gv('regVixOff'),
+    regAllowPlus:gc('regAllowPlus'),regAllowPlusMid:gc('regAllowPlusMid'),ycLo:gv('ycLo'),ycHi:gv('ycHi')
   };
-
-  $('loadingOverlay').classList.remove('hidden');
-  $('loadingText').textContent='回測運算中...';
-
+  $('loadingOverlay').classList.remove('hidden'); $('loadingText').textContent='回測運算中...';
   setTimeout(()=>{
     try{
       const DATES=slice.map(r=>r.d),SP=slice.map(r=>r.sp),EW=slice.map(r=>r.ew);
@@ -2061,20 +1555,13 @@ function runBacktest(){
       const Y10=slice.map(r=>r.y10),Y2=slice.map(r=>r.y2);
       const N=DATES.length;
       const costRate={cost:cfg.cost,strike:cfg.pos.strike};
-
-      const mkSt=(eq)=>({eq,m:'NORMAL',p:0,db:0,ps:100,s:100,f1:50,f5:50,yc:50,
-        plusN:0,plusSP:0,plusLastPnL:null});
-
-      const st={A:mkSt(cfg.cap),B:mkSt(cfg.cap),
-        C:{eq:cfg.cap,m:'NORMAL',p:cfg.pos.base},
-        D:{eq:cfg.cap,m:'NORMAL',p:cfg.pos.base,plusN:0,plusSP:0,plusLastPnL:null},
-        BH:{eq:cfg.cap},regime:'N'};
+      const mkSt=(eq)=>({eq,m:'NORMAL',p:0,db:0,ps:100,s:100,f1:50,f5:50,yc:50,plusN:0,plusSP:0,plusLastPnL:null});
+      const st={A:mkSt(cfg.cap),B:mkSt(cfg.cap),C:{eq:cfg.cap,m:'NORMAL',p:cfg.pos.base},D:{eq:cfg.cap,m:'NORMAL',p:cfg.pos.base,plusN:0,plusSP:0,plusLastPnL:null},BH:{eq:cfg.cap},regime:'N'};
       const cv=[],yrD={},logs=[];
       const mddArr={A:[],B:[],C:[],D:[],BH:[]};
       const pk={A:cfg.cap,B:cfg.cap,C:cfg.cap,D:cfg.cap,BH:cfg.cap};
       const sp0=SP[0];
       const totalEq=(s,spNow)=>s.eq+(s.plusN>0&&s.plusSP>0?s.plusN*(spNow/s.plusSP):0);
-
       for(let i=1;i<N;i++){
         const ret=(SP[i]-SP[i-1])/SP[i-1];
         const hN=HY[i]*100;
@@ -2084,20 +1571,12 @@ function runBacktest(){
         let shieldBase,ycScore=50;
         if(cfg.useYC){ycScore=lerp(ycSlope,cfg.ycLo,cfg.ycHi,20,100);shieldBase=f1*0.5+f5b*0.3+ycScore*0.2;}
         else shieldBase=f1*0.5+f5b*0.5;
-
         let rsi=50;
         if(i>=70){
           const w=[SP[i]];
-          for(let j=i-1;j>=0;j--){
-            if(new Date(DATES[j]).getDay()>=new Date(DATES[j+1]).getDay()){w.push(SP[j]);if(w.length===15)break;}
-          }
-          if(w.length===15){
-            w.reverse();let g=0,l=0;
-            for(let k=1;k<15;k++){const d=w[k]-w[k-1];d>=0?g+=d:l-=d;}
-            rsi=100-(100/(1+(g/(l||1))));
-          }
+          for(let j=i-1;j>=0;j--){if(new Date(DATES[j]).getDay()>=new Date(DATES[j+1]).getDay()){w.push(SP[j]);if(w.length===15)break;}}
+          if(w.length===15){w.reverse();let g=0,l=0;for(let k=1;k<15;k++){const d=w[k]-w[k-1];d>=0?g+=d:l-=d;}rsi=100-(100/(1+(g/(l||1))));}
         }
-
         let zb=0;
         if(i>=20){
           const sl=[];for(let j=i-19;j<=i;j++)sl.push(EW[j]/SP[j]);
@@ -2109,12 +1588,10 @@ function runBacktest(){
         let spewRelPerf=0;
         const lb63=Math.max(0,i-63);
         if(i>=63&&EW[lb63]>0&&SP[lb63]>0)spewRelPerf=(SP[i]/SP[lb63])/(EW[i]/EW[lb63])-1;
-
         const reg=getRegime(rsi,ycSlope,VIX[i],cfg);
         st.regime=reg;
         const strkHit=evalStrike(cfg,VIX[i],vixPeak,rsi,zb,spewRelPerf);
         const pA=st.A.m,pB=st.B.m;
-
         // A
         let mA=hN;for(let j=Math.max(0,i-cfg.A.w);j<i;j++)if(HY[j]*100<mA)mA=HY[j]*100;
         let sA=Math.round(shieldBase-(((hN-mA)>=cfg.A.dlt&&f5b<80)?10:0));
@@ -2123,9 +1600,7 @@ function runBacktest(){
         let nA=getMode(sA,st.A.db,cfg.A,strkHit,cfg.pos);nA=applyRegime(nA,reg,cfg);
         const pnlA=stepEngine(st.A,pA,nA.m,cfg.pos.plusMult,ret,SP[i],costRate);
         if(nA.m!==pA)logs.push({d:DATES[i],mtd:'A',fm:pA,to:nA.m,sp:SP[i].toFixed(1),s:sA,ps:st.A.ps,db:st.A.db,pnl:pnlA});
-        st.A.p=nA.p;st.A.m=nA.m;st.A.ps=sA;st.A.s=sA;
-        st.A.f1=Math.round(f1);st.A.f5=Math.round(f5b);st.A.yc=Math.round(ycScore);
-
+        st.A.p=nA.p;st.A.m=nA.m;st.A.ps=sA;st.A.s=sA;st.A.f1=Math.round(f1);st.A.f5=Math.round(f5b);st.A.yc=Math.round(ycScore);
         // B
         const slB=HY.slice(Math.max(0,i-cfg.B.w),i);
         const mB=slB.reduce((a,b)=>a+b,0)/slB.length;
@@ -2137,9 +1612,7 @@ function runBacktest(){
         let nB=getMode(sB,st.B.db,cfg.B,strkHit,cfg.pos);nB=applyRegime(nB,reg,cfg);
         const pnlB=stepEngine(st.B,pB,nB.m,cfg.pos.plusMult,ret,SP[i],costRate);
         if(nB.m!==pB)logs.push({d:DATES[i],mtd:'B',fm:pB,to:nB.m,sp:SP[i].toFixed(1),s:sB,ps:st.B.ps,db:st.B.db,pnl:pnlB});
-        st.B.p=nB.p;st.B.m=nB.m;st.B.ps=sB;st.B.s=sB;
-        st.B.f1=Math.round(f1);st.B.f5=Math.round(f5b);st.B.yc=Math.round(ycScore);
-
+        st.B.p=nB.p;st.B.m=nB.m;st.B.ps=sB;st.B.s=sB;st.B.f1=Math.round(f1);st.B.f5=Math.round(f5b);st.B.yc=Math.round(ycScore);
         // C
         const bA=(st.A.m==='NORMAL'||st.A.m==='PLUS'),bpA=(pA==='NORMAL'||pA==='PLUS');
         const bB=(st.B.m==='NORMAL'||st.B.m==='PLUS'),bpB=(pB==='NORMAL'||pB==='PLUS');
@@ -2149,9 +1622,7 @@ function runBacktest(){
         if(nMC!==st.C.m)logs.push({d:DATES[i],mtd:'C',fm:st.C.m,to:nMC,sp:SP[i].toFixed(1),s:'--',ps:'--',db:'--',pnl:null});
         const nPC=nMC==='NORMAL'?cfg.pos.base:0;
         const prevPC=st.C.m==='CLEAR'?0:cfg.pos.base;
-        st.C.eq*=(1+prevPC*ret);if(prevPC!==nPC)st.C.eq*=(1-cfg.cost);
-        st.C.p=nPC;st.C.m=nMC;
-
+        st.C.eq*=(1+prevPC*ret);if(prevPC!==nPC)st.C.eq*=(1-cfg.cost);st.C.p=nPC;st.C.m=nMC;
         // D
         const cA=st.A.m!==pA,cB=st.B.m!==pB;
         let nMD=st.D.m;
@@ -2161,30 +1632,21 @@ function runBacktest(){
         const pnlD=stepEngine(st.D,prevMD,nMD,cfg.pos.plusMult,ret,SP[i],costRate);
         if(nMD!==prevMD)logs.push({d:DATES[i],mtd:'D',fm:prevMD,to:nMD,sp:SP[i].toFixed(1),s:'--',ps:'--',db:'--',pnl:pnlD});
         st.D.m=nMD;
-
         st.BH.eq=cfg.cap*(SP[i]/sp0);
         const eqA=totalEq(st.A,SP[i]),eqB=totalEq(st.B,SP[i]),eqD=totalEq(st.D,SP[i]);
         cv.push({d:DATES[i],A:eqA,B:eqB,C:st.C.eq,D:eqD,BH:st.BH.eq});
         const eqs={A:eqA,B:eqB,C:st.C.eq,D:eqD,BH:st.BH.eq};
         ['A','B','C','D','BH'].forEach(k=>{
-          if(eqs[k]>pk[k])pk[k]=eqs[k];
-          mddArr[k].push((eqs[k]-pk[k])/pk[k]*100);
+          if(eqs[k]>pk[k])pk[k]=eqs[k];mddArr[k].push((eqs[k]-pk[k])/pk[k]*100);
         });
         const yr=DATES[i].slice(0,4);
         if(!yrD[yr])yrD[yr]={};
-        ['A','B','C','D','BH'].forEach(k=>{
-          if(yrD[yr][k]===undefined)yrD[yr][k]={s:eqs[k],e:eqs[k]};
-          yrD[yr][k].e=eqs[k];
-        });
+        ['A','B','C','D','BH'].forEach(k=>{if(yrD[yr][k]===undefined)yrD[yr][k]={s:eqs[k],e:eqs[k]};yrD[yr][k].e=eqs[k];});
       }
-
       BT_RESULT={cv,yrD,logs,mdd:mddArr,st,cfgA:cfg.A,cfgB:cfg.B,cfgPos:cfg.pos,cfgLast:cfg};
       renderUI();
     }catch(err){alert('回測失敗：'+err.message);console.error(err);}
-    finally{
-      $('loadingOverlay').classList.add('hidden');
-      switchTab({target:document.querySelectorAll('.tab')[2]},'result');
-    }
+    finally{$('loadingOverlay').classList.add('hidden');switchTab({target:document.querySelectorAll('.tab')[2]},'result');}
   },80);
 }
 
@@ -2196,105 +1658,50 @@ function renderUI(){
   rb.textContent='Regime: '+(regLabel[st.regime]||'--');
   rb.style.background=st.regime==='ON'?'var(--green-dim)':st.regime==='OFF'?'var(--red-dim)':st.regime==='MID'?'var(--yellow-dim)':'var(--surface2)';
   rb.style.color=regColor[st.regime]||'var(--muted)';rb.style.borderColor=regColor[st.regime]||'var(--border)';
-
   const liveCard=(k,title,color,showScore)=>{
     const s=showScore?st[k].s:'--',ps=showScore?st[k].ps:'--';
     const delta=showScore?(st[k].s-st[k].ps):null;
-    const deltaHtml=delta!==null?`<div class="live-delta">
-      <span style="color:${delta>0?'var(--green)':delta<0?'var(--red)':'var(--muted)'};font-size:12px;font-weight:700;">${delta>0?'▲ +':delta<0?'▼ ':''}${delta}</span>
-      <br><span style="font-size:10px;color:var(--muted)">昨:${ps}</span></div>`:'';
+    const deltaHtml=delta!==null?`<div class="live-delta"><span style="color:${delta>0?'var(--green)':delta<0?'var(--red)':'var(--muted)'};font-size:12px;font-weight:700;">${delta>0?'▲ +':delta<0?'▼ ':''}${delta}</span><br><span style="font-size:10px;color:var(--muted)">昨:${ps}</span></div>`:'';
     let dbHtml='';
     if(showScore){
       const db=st[k].db||0,clearDays=k==='A'?r.cfgA.clearDays:r.cfgB.clearDays;
       const clearScore=k==='A'?r.cfgA.s100:r.cfgB.s100;
       if(st[k].m==='NORMAL'||st[k].m==='PLUS'){
-        if(db>0){const pct=Math.round((db/clearDays)*100);
-          dbHtml=`<div class="db-warn">⚠ 警示：連跌 ${db} / ${clearDays} 日，分數 ${s} &lt; ${clearScore}</div>
-            <div class="db-bar"><div class="db-bar-fill" style="width:${pct}%;background:var(--yellow)"></div></div>`;}
+        if(db>0){const pct=Math.round((db/clearDays)*100);dbHtml=`<div class="db-warn">⚠ 警示：連跌 ${db} / ${clearDays} 日，分數 ${s} &lt; ${clearScore}</div><div class="db-bar"><div class="db-bar-fill" style="width:${pct}%;background:var(--yellow)"></div></div>`;}
         else dbHtml=`<div style="display:inline-flex;align-items:center;gap:5px;margin-top:6px;font-size:10px;padding:3px 7px;border-radius:3px;background:var(--green-dim);border:1px solid var(--green);color:var(--green);font-family:monospace;">✓ 分數正常 (${s}分 ≥ ${clearScore})</div>`;
       }else if(st[k].m==='CLEAR')dbHtml=`<div class="db-warn db-clear">✖ 清倉中：連跌 ${db} 日已達門檻</div>`;
       else if(st[k].m==='STRIKE')dbHtml=`<div class="db-warn">⚡ 短打模式 (分數 ${s})</div>`;
     }
     let plusHtml='';
-    if(st[k].plusN>0&&st[k].plusSP>0){
-      plusHtml=`<div class="plus-live"><div class="pl-title">⚡ 加碼倉位持有中</div>
-        <div class="pl-row"><span>建倉本金</span><span>${st[k].plusN.toFixed(0)}</span></div>
-        <div class="pl-row"><span>建倉指數</span><span>${st[k].plusSP.toFixed(1)}</span></div></div>`;
-    }else if(st[k].plusLastPnL!==null&&st[k].plusLastPnL!==undefined){
+    if(st[k].plusN>0&&st[k].plusSP>0){plusHtml=`<div class="plus-live"><div class="pl-title">⚡ 加碼倉位持有中</div><div class="pl-row"><span>建倉本金</span><span>${st[k].plusN.toFixed(0)}</span></div><div class="pl-row"><span>建倉指數</span><span>${st[k].plusSP.toFixed(1)}</span></div></div>`;}
+    else if(st[k].plusLastPnL!==null&&st[k].plusLastPnL!==undefined){
       const pnl=st[k].plusLastPnL;
-      plusHtml=`<div class="plus-live" style="background:${pnl>=0?'var(--green-dim)':'var(--red-dim)'};border-color:${pnl>=0?'var(--green)':'var(--red)'}">
-        <div class="pl-title" style="color:${pnl>=0?'var(--green)':'var(--red)'}">上一筆加碼損益</div>
-        <div class="pl-pnl" style="color:${pnl>=0?'var(--green)':'var(--red)'}">${pnl>=0?'+':''}${pnl.toFixed(0)}</div></div>`;
+      plusHtml=`<div class="plus-live" style="background:${pnl>=0?'var(--green-dim)':'var(--red-dim)'};border-color:${pnl>=0?'var(--green)':'var(--red)'}"><div class="pl-title" style="color:${pnl>=0?'var(--green)':'var(--red)'}">上一筆加碼損益</div><div class="pl-pnl" style="color:${pnl>=0?'var(--green)':'var(--red)'}">${pnl>=0?'+':''}${pnl.toFixed(0)}</div></div>`;
     }
     const hasYC=st[k].yc!==undefined&&showScore;
-    const scoreBarHtml=showScore?`
-      <div class="score-bar-row">
-        <div class="score-bar"><div class="fill" style="width:${Math.max(0,Math.min(100,st[k].f1||50))}%;background:var(--accent)"></div></div>
-        <div class="score-bar"><div class="fill" style="width:${Math.max(0,Math.min(100,st[k].f5||50))}%;background:var(--green)"></div></div>
-        ${hasYC?`<div class="score-bar"><div class="fill" style="width:${Math.max(0,Math.min(100,st[k].yc||50))}%;background:var(--purple)"></div></div>`:''}
-      </div>
-      <div class="live-sub">
-        <span>F1 ${st[k].f1||'--'}</span><span>F5 ${st[k].f5||'--'}</span>
-        ${hasYC?`<span>YC ${st[k].yc||'--'}</span>`:''}
-      </div>`:'';
+    const scoreBarHtml=showScore?`<div class="score-bar-row"><div class="score-bar"><div class="fill" style="width:${Math.max(0,Math.min(100,st[k].f1||50))}%;background:var(--accent)"></div></div><div class="score-bar"><div class="fill" style="width:${Math.max(0,Math.min(100,st[k].f5||50))}%;background:var(--green)"></div></div>${hasYC?`<div class="score-bar"><div class="fill" style="width:${Math.max(0,Math.min(100,st[k].yc||50))}%;background:var(--purple)"></div></div>`:''}</div><div class="live-sub"><span>F1 ${st[k].f1||'--'}</span><span>F5 ${st[k].f5||'--'}</span>${hasYC?`<span>YC ${st[k].yc||'--'}</span>`:''}</div>`:'';
     const modeLabel=st[k].m==='PLUS'?`${bdg('PLUS')} <span style="font-size:11px;color:var(--blue)">+${(r.cfgLast?.pos?.plusMult||0.5)*100}%</span>`:bdg(st[k].m||'NORMAL');
-    return `<div class="live-card">
-      <div class="live-label" style="color:var(--${color})">${title}</div>
-      <div class="live-main">${modeLabel}<span class="live-score">${s!=='--'?s+'分':'聯集'}</span>
-        <div style="flex:1"></div>${deltaHtml}</div>
-      ${scoreBarHtml}${dbHtml}${plusHtml}
-    </div>`;
+    return `<div class="live-card"><div class="live-label" style="color:var(--${color})">${title}</div><div class="live-main">${modeLabel}<span class="live-score">${s!=='--'?s+'分':'聯集'}</span><div style="flex:1"></div>${deltaHtml}</div>${scoreBarHtml}${dbHtml}${plusHtml}</div>`;
   };
-
-  $('liveDash').innerHTML=
-    liveCard('A','方法 A（Delta）','yellow',true)+
-    liveCard('B','方法 B（Z-Score）','green',true)+
-    liveCard('C','方法 C（雙態跟隨）','accent',false)+
-    liveCard('D','方法 D（全態跟隨）','purple',false);
-
+  $('liveDash').innerHTML=liveCard('A','方法 A（Delta）','yellow',true)+liveCard('B','方法 B（Z-Score）','green',true)+liveCard('C','方法 C（雙態跟隨）','accent',false)+liveCard('D','方法 D（全態跟隨）','purple',false);
   $('metricsGrid').innerHTML=[['A','方法 A','yellow'],['B','方法 B','green'],['C','方法 C','accent'],['D','方法 D','purple'],['BH','B&H 基準','muted']].map(([k,label,col])=>{
     const p=calcP(r.cv,k);
-    return `<div class="metric-card" style="border-top:3px solid var(--${col})">
-      <div class="m-title">${label}</div>
-      <div class="m-row"><span>區間報酬</span><span class="m-val ${parseFloat(p.t)>0?'ty':''}">${parseFloat(p.t)>0?'+':''}${p.t}%</span></div>
-      <div class="m-row"><span>CAGR</span><span class="m-val">${p.c}%</span></div>
-      <div class="m-row"><span>MDD</span><span class="m-val tr">${p.m}%</span></div>
-      <div class="m-row"><span>Sharpe</span><span class="m-val tg">${p.s}</span></div>
-    </div>`;
+    return `<div class="metric-card" style="border-top:3px solid var(--${col})"><div class="m-title">${label}</div><div class="m-row"><span>區間報酬</span><span class="m-val ${parseFloat(p.t)>0?'ty':''}">${parseFloat(p.t)>0?'+':''}${p.t}%</span></div><div class="m-row"><span>CAGR</span><span class="m-val">${p.c}%</span></div><div class="m-row"><span>MDD</span><span class="m-val tr">${p.m}%</span></div><div class="m-row"><span>Sharpe</span><span class="m-val tg">${p.s}</span></div></div>`;
   }).join('');
-
-  // 若 MOM 結果已存在，補上 KPI 卡
   if(MOM_RESULT) overlaymomOnShieldChart();
-
   if(charts.n){charts.n.destroy();charts.d.destroy();}
   const sc={x:{ticks:{color:'#6b7a99',maxTicksLimit:10},grid:{color:'#1a2030'}},y:{ticks:{color:'#6b7a99'},grid:{color:'#1a2030'}}};
   const leg={labels:{color:'#6b7a99',boxWidth:10,font:{size:11}}};
   const opt={responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},animation:{duration:300}};
   const ds=(arr,label,color,w,dash)=>({label,data:arr,borderColor:color,borderWidth:w,pointRadius:0,borderDash:dash||[]});
-  charts.n=new Chart($('navChart').getContext('2d'),{type:'line',data:{labels:r.cv.map(x=>x.d),datasets:[
-    ds(r.cv.map(x=>x.A),'方法 A','#ffb830',2),ds(r.cv.map(x=>x.B),'方法 B','#00e5a0',2),
-    ds(r.cv.map(x=>x.C),'方法 C','#7eb8ff',2),ds(r.cv.map(x=>x.D),'方法 D','#b388ff',2),
-    ds(r.cv.map(x=>x.BH),'B&H','#3d4a66',1),
-  ]},options:{...opt,plugins:{legend:leg},scales:{...sc,y:{...sc.y,type:'logarithmic'}}}});
-  charts.d=new Chart($('ddChart').getContext('2d'),{type:'line',data:{labels:r.cv.map(x=>x.d),datasets:[
-    ds(r.mdd.A,'A','#ffb830',1),ds(r.mdd.B,'B','#00e5a0',1),
-    ds(r.mdd.C,'C','#7eb8ff',1),ds(r.mdd.D,'D','#b388ff',1),ds(r.mdd.BH,'BH','#3d4a66',1),
-  ]},options:{...opt,plugins:{legend:{display:false}},scales:sc}});
-
-  // 再疊加 MOM（若存在）
+  charts.n=new Chart($('navChart').getContext('2d'),{type:'line',data:{labels:r.cv.map(x=>x.d),datasets:[ds(r.cv.map(x=>x.A),'方法 A','#ffb830',2),ds(r.cv.map(x=>x.B),'方法 B','#00e5a0',2),ds(r.cv.map(x=>x.C),'方法 C','#7eb8ff',2),ds(r.cv.map(x=>x.D),'方法 D','#b388ff',2),ds(r.cv.map(x=>x.BH),'B&H','#3d4a66',1)]},options:{...opt,plugins:{legend:leg},scales:{...sc,y:{...sc.y,type:'logarithmic'}}}});
+  charts.d=new Chart($('ddChart').getContext('2d'),{type:'line',data:{labels:r.cv.map(x=>x.d),datasets:[ds(r.mdd.A,'A','#ffb830',1),ds(r.mdd.B,'B','#00e5a0',1),ds(r.mdd.C,'C','#7eb8ff',1),ds(r.mdd.D,'D','#b388ff',1),ds(r.mdd.BH,'BH','#3d4a66',1)]},options:{...opt,plugins:{legend:{display:false}},scales:sc}});
   if(MOM_RESULT) overlaymomOnShieldChart();
-
   $('yHead').innerHTML='<th>年份</th><th class="ty">A</th><th class="tg">B</th><th class="tc">C</th><th class="tp">D</th><th>B&H</th>';
   $('yrBody').innerHTML=Object.keys(r.yrD).sort().reverse().map(yr=>{
     const y=r.yrD[yr],t=k=>((y[k].e/y[k].s-1)*100).toFixed(1);
-    return `<tr><td>${yr}</td>
-      <td class="${parseFloat(t('A'))>=0?'ty':'tr'}">${t('A')}%</td>
-      <td class="${parseFloat(t('B'))>=0?'tg':'tr'}">${t('B')}%</td>
-      <td class="${parseFloat(t('C'))>=0?'tc':'tr'}">${t('C')}%</td>
-      <td class="${parseFloat(t('D'))>=0?'tp':'tr'}">${t('D')}%</td>
-      <td class="${parseFloat(t('BH'))>=0?'':'tr'}">${t('BH')}%</td></tr>`;
+    return `<tr><td>${yr}</td><td class="${parseFloat(t('A'))>=0?'ty':'tr'}">${t('A')}%</td><td class="${parseFloat(t('B'))>=0?'tg':'tr'}">${t('B')}%</td><td class="${parseFloat(t('C'))>=0?'tc':'tr'}">${t('C')}%</td><td class="${parseFloat(t('D'))>=0?'tp':'tr'}">${t('D')}%</td><td class="${parseFloat(t('BH'))>=0?'':'tr'}">${t('BH')}%</td></tr>`;
   }).join('');
-
   logFilter='ALL';
   document.querySelectorAll('.lfb').forEach(b=>b.classList.remove('active'));
   document.querySelector('.lfb')?.classList.add('active');
@@ -2318,15 +1725,7 @@ function renderLogs(){
         const pnlHtml=L.pnl!==null&&L.pnl!==undefined
           ?`<span style="font-family:monospace;font-weight:700;color:${L.pnl>=0?'var(--green)':'var(--red)'};">${L.pnl>=0?'+':''}${L.pnl.toFixed(0)}</span>`
           :'<span style="color:var(--dim)">—</span>';
-        return `<tr class="log-row">
-          <td class="mono">${L.d}</td>
-          <td style="color:var(--${cm[L.mtd]||'muted'});font-weight:700;">方法 ${L.mtd}</td>
-          <td>${bdg(L.fm)} <span style="color:var(--muted);font-size:10px">➔</span> ${bdg(L.to)}</td>
-          <td class="mono">${L.sp}</td>
-          <td class="mono" style="font-weight:700;color:var(--white)">${L.s}</td>
-          <td class="mono" style="color:var(--muted)">${L.ps}</td>
-          <td class="mono">${L.db}</td>
-          <td>${pnlHtml}</td></tr>`;
+        return `<tr class="log-row"><td class="mono">${L.d}</td><td style="color:var(--${cm[L.mtd]||'muted'});font-weight:700;">方法 ${L.mtd}</td><td>${bdg(L.fm)} <span style="color:var(--muted);font-size:10px">➔</span> ${bdg(L.to)}</td><td class="mono">${L.sp}</td><td class="mono" style="font-weight:700;color:var(--white)">${L.s}</td><td class="mono" style="color:var(--muted)">${L.ps}</td><td class="mono">${L.db}</td><td>${pnlHtml}</td></tr>`;
       }).join('')
     :'<tr><td colspan="8" style="text-align:center;color:var(--muted)">無符合條件的紀錄</td></tr>';
 }
@@ -2335,11 +1734,9 @@ function downloadLogCSV(){
   if(!BT_RESULT){alert('請先執行回測推演');return;}
   const src=logFilter==='ALL'?BT_RESULT.logs:BT_RESULT.logs.filter(L=>L.mtd===logFilter);
   const header='日期,引擎,由,至,大盤點位,當日分數,前日分數,連跌天數,加碼損益';
-  const rows=src.map(L=>[L.d,'方法'+L.mtd,L.fm,L.to,L.sp,L.s,L.ps,L.db,
-    L.pnl!==null&&L.pnl!==undefined?L.pnl.toFixed(0):''].join(','));
+  const rows=src.map(L=>[L.d,'方法'+L.mtd,L.fm,L.to,L.sp,L.s,L.ps,L.db,L.pnl!==null&&L.pnl!==undefined?L.pnl.toFixed(0):''].join(','));
   const blob=new Blob([[header,...rows].join('\n')],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='Shield_Logs'+(logFilter!=='ALL'?'_'+logFilter:'')+'.csv';
   document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
