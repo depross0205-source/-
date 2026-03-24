@@ -213,8 +213,13 @@ td{padding:9px;border-bottom:1px solid var(--border)}
       如需重置，請重新整理頁面。
     </div>
     <div id="csvUploadArea">
-      <label class="upload-label" for="csvUpload">📂 點擊選擇 CSV 檔案</label>
-      <input type="file" id="csvUpload" accept=".csv" onchange="loadCSV(event)">
+      <input type="file" id="csvUpload" accept=".csv"
+        style="position:absolute;left:-9999px;opacity:0;width:1px;height:1px"
+        onchange="loadCSV(event)">
+      <button onclick="document.getElementById('csvUpload').click()"
+        class="upload-label" style="width:100%;border:2px dashed var(--border-hi)">
+        📂 點擊選擇 CSV 檔案
+      </button>
     </div>
     <div id="csvStatus" style="font-size:12px;color:var(--green);min-height:16px;margin-bottom:10px"></div>
     <div class="stat-row">
@@ -236,15 +241,19 @@ td{padding:9px;border-bottom:1px solid var(--border)}
       <div style="font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.6">
         CSV 格式：第一欄 DATE（YYYY-MM-DD 或 YYYY-MM），第二欄 CAPE<br>
         月頻資料會自動填充至當月所有交易日<br>
-        <span style="color:var(--dim)">範例：2024-01,34.50 或 2024-01-02,34.50</span>
+        <span style="color:var(--dim)">範例：2024-01,34.50</span>
       </div>
       <input type="file" id="capeUpload" accept=".csv,.txt"
-        style="font-size:12px;color:var(--muted);width:100%;margin-bottom:6px;background:var(--bg);border:1px solid var(--border-hi);padding:5px;border-radius:3px"
+        style="position:absolute;left:-9999px;opacity:0;width:1px;height:1px"
         onchange="loadCapeCSV(event)">
-      <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
-        <span style="font-size:11px;color:var(--muted)">或手動輸入當月值</span>
+      <button onclick="document.getElementById('capeUpload').click()"
+        style="width:100%;padding:10px;background:var(--teal-dim);border:1px solid var(--teal);color:var(--teal);border-radius:4px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px">
+        📂 選擇 CAPE CSV 檔案
+      </button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:11px;color:var(--muted)">手動輸入當月值</span>
         <input type="number" id="apiCape" value="" step="0.1" placeholder="36.5" style="width:90px;font-size:12px">
-        <button onclick="applyManualCape()" style="padding:5px 10px;font-size:11px;background:var(--surface2);border:1px solid var(--border-hi);color:var(--accent);border-radius:3px;cursor:pointer">套用至本月</button>
+        <button onclick="applyManualCape()" style="padding:6px 12px;font-size:12px;background:var(--surface2);border:1px solid var(--border-hi);color:var(--accent);border-radius:3px;cursor:pointer">套用至本月</button>
       </div>
       <div id="capeUploadStatus" style="font-size:11px;color:var(--green);margin-top:6px;min-height:14px;font-family:monospace"></div>
     </div>
