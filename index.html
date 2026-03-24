@@ -231,10 +231,22 @@ td{padding:9px;border-bottom:1px solid var(--border)}
       <button class="btn-blue" onclick="fetchAndMerge(false)" style="font-size:12px">🔄 完整抓取（首次/每月）<br><span style="font-weight:400;font-size:10px">全部歷史 + CAPE 月資料</span></button>
       <button class="btn-outline" onclick="fetchAndMerge(true)" style="font-size:12px">⚡ 每日快速更新<br><span style="font-weight:400;font-size:10px">只補近 15 個交易日</span></button>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-      <span style="font-size:11px;color:var(--muted)">當月 CAPE 備用值</span>
-      <input type="number" id="apiCape" value="" step="0.1" placeholder="自動抓取失敗時使用" style="width:130px;font-size:12px">
-      <button onclick="applyManualCape()" style="padding:5px 10px;font-size:11px;background:var(--surface2);border:1px solid var(--border-hi);color:var(--accent);border-radius:3px;cursor:pointer">套用至本月</button>
+    <div style="margin-top:8px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:3px">
+      <div style="font-size:11px;color:var(--teal);font-weight:700;margin-bottom:6px">📎 CAPE 歷史資料上傳</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:6px;line-height:1.6">
+        CSV 格式：第一欄 DATE（YYYY-MM-DD 或 YYYY-MM），第二欄 CAPE<br>
+        月頻資料會自動填充至當月所有交易日
+      </div>
+      <label style="display:block;background:var(--bg);border:1px dashed var(--border-hi);padding:7px;text-align:center;cursor:pointer;color:var(--accent);font-size:12px;border-radius:3px;margin-bottom:6px" for="capeUpload">
+        📂 選擇 CAPE CSV 檔案
+      </label>
+      <input type="file" id="capeUpload" accept=".csv" style="display:none" onchange="loadCapeCSV(event)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:11px;color:var(--muted)">或手動輸入當月值</span>
+        <input type="number" id="apiCape" value="" step="0.1" placeholder="36.5" style="width:90px;font-size:12px">
+        <button onclick="applyManualCape()" style="padding:5px 10px;font-size:11px;background:var(--surface2);border:1px solid var(--border-hi);color:var(--accent);border-radius:3px;cursor:pointer">套用至本月</button>
+      </div>
+      <div id="capeUploadStatus" style="font-size:11px;color:var(--green);margin-top:5px;min-height:14px;font-family:monospace"></div>
     </div>
     <div id="fetchLog"></div>
   </div>
@@ -846,7 +858,7 @@ function applyCapeMonthly(capeByMonth){
   return changed;
 }
 
-// 手動套用當月 CAPE（自動抓取失敗時的備用）
+// 手動套用當月 CAPE
 function applyManualCape(){
   const val=parseFloat($('apiCape').value);
   if(isNaN(val)||val<=0){alert('請輸入有效的 CAPE 值（例如 36.5）');return;}
@@ -858,6 +870,84 @@ function applyManualCape(){
   }else{
     alert(`目前資料庫中無 ${curMonth} 的資料，或 CAPE 值已是 ${val}。`);
   }
+}
+
+// CAPE CSV 上傳（支援日頻或月頻，自動填充至當月所有日）
+function loadCapeCSV(event){
+  const file=event.target.files[0];
+  if(!file) return;
+  const st=$('capeUploadStatus');
+  st.textContent='讀取中...'; st.style.color='var(--muted)';
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const lines=e.target.result.split('\n').filter(l=>l.trim());
+      if(!lines.length){st.textContent='❌ 檔案是空的';st.style.color='var(--red)';return;}
+
+      // 自動偵測標頭：跳過首行如果不是數字開頭
+      const startIdx=/^\d/.test(lines[0].split(',')[0])?0:1;
+      const capeByDay={};   // {YYYY-MM-DD: value}
+      const capeByMonth={}; // {YYYY-MM: value}
+      let parsed=0, skipped=0;
+
+      for(let i=startIdx;i<lines.length;i++){
+        const cols=lines[i].split(',').map(c=>c.trim().replace(/"/g,''));
+        if(cols.length<2) continue;
+        const rawDate=cols[0];
+        const val=parseFloat(cols[1]);
+        if(isNaN(val)||val<=0){skipped++;continue;}
+
+        // 支援 YYYY-MM-DD 和 YYYY-MM 兩種格式
+        if(/^\d{4}-\d{2}-\d{2}$/.test(rawDate)){
+          capeByDay[rawDate]=val;
+          capeByMonth[rawDate.slice(0,7)]=val; // 同月最後一個會覆蓋前一個
+          parsed++;
+        }else if(/^\d{4}-\d{2}$/.test(rawDate)){
+          capeByMonth[rawDate]=val;
+          parsed++;
+        }else{
+          // 嘗試解析其他日期格式
+          const d=new Date(rawDate);
+          if(!isNaN(d.getTime())){
+            const iso=d.toISOString().slice(0,10);
+            capeByDay[iso]=val;
+            capeByMonth[iso.slice(0,7)]=val;
+            parsed++;
+          }else{
+            skipped++;
+          }
+        }
+      }
+
+      if(parsed===0){
+        st.textContent='❌ 未能解析任何資料，請確認格式（DATE,CAPE）';
+        st.style.color='var(--red)';
+        return;
+      }
+
+      // 優先用日頻精確值，再用月頻填充
+      let changed=0;
+      DB.forEach(r=>{
+        let newCape=null;
+        if(capeByDay[r.d]!==undefined) newCape=capeByDay[r.d];
+        else if(capeByMonth[r.d.slice(0,7)]!==undefined) newCape=capeByMonth[r.d.slice(0,7)];
+        if(newCape!==null){
+          const rounded=+newCape.toFixed(2);
+          if(Math.abs((r.cape||0)-rounded)>0.01){r.cape=rounded;changed++;}
+        }
+      });
+
+      sortAndFill();
+      saveToStorage();
+      st.textContent=`✅ 解析 ${parsed} 筆，更新 DB ${changed} 筆（跳過 ${skipped} 筆）`;
+      st.style.color='var(--green)';
+      event.target.value=''; // 允許重複上傳同一檔案
+    }catch(err){
+      st.textContent='❌ 解析錯誤：'+err.message;
+      st.style.color='var(--red)';
+    }
+  };
+  reader.readAsText(file);
 }
 
 async function fetchAndMerge(quickMode=false){
