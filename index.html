@@ -1365,7 +1365,9 @@ function momCalcVol(ticker, months, idx, n=12){
     const p1=getMomPrice(ticker,months[i]);
     if(p0&&p1&&p0>0) rets.push(p1/p0-1);
   }
-  if(rets.length<6) return null;
+  // 最低要求：視窗長度的一半（最少2筆），z3只有3個月不需要6筆
+  const minRequired=Math.max(2, Math.floor(n/2));
+  if(rets.length<minRequired) return null;
   const avg=rets.reduce((a,b)=>a+b,0)/rets.length;
   return Math.sqrt(rets.reduce((a,b)=>a+(b-avg)**2,0)/rets.length)*Math.sqrt(12);
 }
