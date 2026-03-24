@@ -414,12 +414,24 @@ td{padding:9px;border-bottom:1px solid var(--border)}
     </div>
   </div>
   <div class="cfg-box" style="border-color:var(--teal)">
-    <div class="cfg-label" style="color:var(--teal)">盾牌整合（分段連續縮放）</div>
-    <div class="toggle-row"><span>啟用盾牌縮放</span><label class="tog"><input type="checkbox" id="momShieldGate" checked><span class="tog-sl"></span></label></div>
-    <div style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.7;background:var(--surface2);padding:5px 7px;border-radius:3px">
-      &lt;30 → 0% ｜ 30–50 → 0–40%<br>50–70 → 40–80% ｜ &gt;70 → 80–100%<br>
-      <span style="color:var(--teal)">需先載入 Shield Database</span>
+    <div class="cfg-label" style="color:var(--teal)">盾牌整合 &amp; 強化模式</div>
+    <div class="toggle-row"><span>① 盾牌縮放（基礎）</span><label class="tog"><input type="checkbox" id="momShieldGate" checked><span class="tog-sl"></span></label></div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.7;background:var(--surface2);padding:4px 7px;border-radius:3px">
+      &lt;30→0% ｜ 30–50→0–40% ｜ 50–70→40–80% ｜ &gt;70→80–100%
     </div>
+    <div class="toggle-row"><span>② SPY 最低倉位下限</span><label class="tog"><input type="checkbox" id="momSpyFloor" onchange="toggleSpyFloor()"><span class="tog-sl"></span></label></div>
+    <div id="spyFloorRow" class="cfg-row" style="opacity:.4;pointer-events:none"><span>SPY 下限 (%)</span><input type="number" id="momSpyFloorPct" value="30" min="0" max="80" style="width:60px"></div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.6;background:var(--surface2);padding:4px 7px;border-radius:3px">
+      MOM 組合中永遠保留 N% SPY，剩餘比例由動能分配
+    </div>
+    <div class="toggle-row"><span>③ 避險替代模式</span><label class="tog"><input type="checkbox" id="momDefenseMode" onchange="toggleDefenseMode()"><span class="tog-sl"></span></label></div>
+    <div id="defenseModeRows" style="opacity:.4;pointer-events:none">
+      <div class="cfg-row"><span>切換門檻（盾牌 ≥ 時持 SPY）</span><input type="number" id="momDefenseThresh" value="50" min="20" max="80" style="width:60px"></div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:6px;line-height:1.6;background:var(--surface2);padding:4px 7px;border-radius:3px">
+        盾牌強（≥門檻）→ 持 SPY 100%<br>盾牌弱（&lt;門檻）→ 切換 MOM 輪動
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--teal);padding:3px 0">需先載入 Shield Database</div>
   </div>
   <div class="cfg-box" style="border-color:var(--teal)">
     <div class="cfg-label" style="color:var(--teal)">候選資產池</div>
@@ -514,6 +526,7 @@ td{padding:9px;border-bottom:1px solid var(--border)}
     <table>
       <thead><tr>
         <th>換倉月</th><th style="color:var(--teal)">持倉（比例加權）</th>
+        <th style="color:var(--yellow)">盾牌</th><th>模式</th>
         <th>TS候選</th><th>門檻</th>
         <th style="color:var(--accent)">月報酬</th>
         <th style="color:var(--teal)">MOM 淨值</th>
@@ -772,6 +785,16 @@ function checkWeekend(){
 }
 
 function toggleVixPB(){ const pb=gc('vixPullback'); $('cpVixPB').disabled=!pb; $('cpVixPB').style.opacity=pb?'1':'0.4'; }
+function toggleSpyFloor(){
+  const on=gc('momSpyFloor');
+  const row=$('spyFloorRow'); if(!row) return;
+  row.style.opacity=on?'1':'0.4'; row.style.pointerEvents=on?'auto':'none';
+}
+function toggleDefenseMode(){
+  const on=gc('momDefenseMode');
+  const rows=$('defenseModeRows'); if(!rows) return;
+  rows.style.opacity=on?'1':'0.4'; rows.style.pointerEvents=on?'auto':'none';
+}
 
 function updateStrkInfo(){
   const active=[];
@@ -1280,7 +1303,7 @@ function calcMomCurrentSignal(){
 function runMomBacktest(){
   const spyPrices=MOM_PRICES['SPY'];
   if(!spyPrices||spyPrices.length<15){alert('請先抓取 ETF 資料！');return;}
-  const cfg={buffer:gv('momBuffer')/100,maxHold:parseInt($('momMaxHold').value)||5,shieldGate:gc('momShieldGate'),corrMode:$('momCorrMode')?.value||'dynamic',tradeCost:gv('momTradeCost')/100||0.001};
+  const cfg={buffer:gv('momBuffer')/100,maxHold:parseInt($('momMaxHold').value)||5,shieldGate:gc('momShieldGate'),corrMode:$('momCorrMode')?.value||'dynamic',tradeCost:gv('momTradeCost')/100||0.001,spyFloor:gc('momSpyFloor')?(gv('momSpyFloorPct')/100):0,defenseMode:gc('momDefenseMode'),defenseThresh:gv('momDefenseThresh')||50};
   const MIN_WARM=14;
   const rawStart=($('momStart').value||'').trim().slice(0,7);
   const rawEnd=($('momEnd').value||'').trim().slice(0,7);
@@ -1301,7 +1324,40 @@ function runMomBacktest(){
         const shieldScore=100;
         const sigCfg={...cfg,shieldScore};
         const signal=calcMomSignalAt(months,i,sigCfg);
-        const scaledH={...(signal.rawHoldings||{[MOM_CASH_TICKER]:1.0})};
+        let scaledH={...(signal.rawHoldings||{[MOM_CASH_TICKER]:1.0})};
+
+        // ── 方案③：避險替代模式 ──
+        // 盾牌強時全部持 SPY，盾牌弱時才啟動 MOM
+        if(cfg.defenseMode){
+          const ss=getShieldScore(signalMonth+'-28');
+          if(ss>=cfg.defenseThresh){
+            scaledH={'SPY':1.0}; // 盾牌強 → 直接持 SPY
+          }
+          // 盾牌弱 → 維持 MOM 輪動組合
+        }
+
+        // ── 方案②：SPY 最低倉位下限 ──
+        if(cfg.spyFloor>0 && MOM_PRICES['SPY']){
+          const curSpy=scaledH['SPY']||0;
+          if(curSpy<cfg.spyFloor){
+            const boost=cfg.spyFloor-curSpy;
+            // 從非 SPY、非 BIL 部位等比縮減
+            const others=Object.keys(scaledH).filter(t=>t!=='SPY'&&t!==MOM_CASH_TICKER);
+            const othersTotal=others.reduce((s,t)=>s+(scaledH[t]||0),0);
+            if(othersTotal>0){
+              const scale=Math.max(0,(othersTotal-boost)/othersTotal);
+              others.forEach(t=>{ scaledH[t]=(scaledH[t]||0)*scale; });
+              // 若還不足（其他部位已為0），從現金補
+              const newTotal=Object.values(scaledH).reduce((a,b)=>a+b,0);
+              if(newTotal<0.999) scaledH[MOM_CASH_TICKER]=(scaledH[MOM_CASH_TICKER]||0)+(1-newTotal);
+            } else {
+              // 其他部位全是現金 → 從現金移至 SPY
+              scaledH[MOM_CASH_TICKER]=Math.max(0,(scaledH[MOM_CASH_TICKER]||0)-boost);
+            }
+            scaledH['SPY']=cfg.spyFloor;
+          }
+        }
+
         const TRADE_COST=cfg.tradeCost??0.001;
         let turnover=0;
         for(const t of new Set([...Object.keys(holdings),...Object.keys(scaledH)])){
@@ -1320,7 +1376,8 @@ function runMomBacktest(){
         portRet-=costDrag; nav*=(1+portRet);
         const sp0=getMomPrice('SPY',signalMonth),sp1=getMomPrice('SPY',nextMonth);
         if(sp0&&sp1&&sp0>0) spyNav*=(1+sp1/sp0-1);
-        records.push({month:nextMonth,nav,spyNav,holdings:{...scaledH},portRet,shieldScore,shieldExp:1,cashRate:signal.cashRate,signal});
+        const curShield=getShieldScore(signalMonth+'-28');
+        records.push({month:nextMonth,nav,spyNav,holdings:{...scaledH},portRet,shieldScore:curShield,shieldExp:1,cashRate:signal.cashRate,signal});
         holdings=scaledH;
       }
       if(records.length<6){alert('回測結果資料太少');return;}
@@ -1418,7 +1475,12 @@ function renderMomUI(){
     const excColor=excess>=0?'var(--green)':'var(--red)';
     const tsCount=r.signal?.eligible?.length??'--';
     const thresh=r.cashRate!=null?((r.cashRate+cfg.buffer)*100).toFixed(2)+'%':'--';
-    return `<tr class="log-row"><td class="mono" style="font-weight:700">${r.month}</td><td style="white-space:nowrap">${hChips}</td><td class="mono" style="text-align:center;color:${tsCount>0?'var(--teal)':'var(--red)'}">${tsCount}</td><td class="mono" style="color:var(--muted)">${thresh}</td><td class="mono" style="color:${retColor};font-weight:700">${r.portRet>=0?'+':''}${(r.portRet*100).toFixed(2)}%</td><td class="mono tt" style="font-weight:700">$${Math.round(r.nav).toLocaleString()}</td><td class="mono" style="color:var(--muted)">$${Math.round(r.spyNav).toLocaleString()}</td><td class="mono" style="color:${excColor};font-weight:700">${excess>=0?'+':''}${(excess*100).toFixed(2)}pp</td></tr>`;
+    const ss=r.shieldScore!=null?r.shieldScore.toFixed(0):'--';
+    const ssColor=r.shieldScore>=60?'var(--green)':r.shieldScore>=40?'var(--yellow)':'var(--red)';
+    const isSPYOnly=Object.keys(r.holdings).length===1&&r.holdings['SPY']>=0.99;
+    const isBILOnly=r.holdings[MOM_CASH_TICKER]>=0.99;
+    const modeLabel=isSPYOnly?'<span style="color:var(--accent);font-size:10px">SPY</span>':isBILOnly?'<span style="color:var(--muted);font-size:10px">現金</span>':'<span style="color:var(--teal);font-size:10px">MOM</span>';
+    return `<tr class="log-row"><td class="mono" style="font-weight:700">${r.month}</td><td style="white-space:nowrap">${hChips}</td><td class="mono" style="color:${ssColor};font-weight:700">${ss}</td><td>${modeLabel}</td><td class="mono" style="text-align:center;color:${tsCount>0?'var(--teal)':'var(--red)'}">${tsCount}</td><td class="mono" style="color:var(--muted)">${thresh}</td><td class="mono" style="color:${retColor};font-weight:700">${r.portRet>=0?'+':''}${(r.portRet*100).toFixed(2)}%</td><td class="mono tt" style="font-weight:700">$${Math.round(r.nav).toLocaleString()}</td><td class="mono" style="color:var(--muted)">$${Math.round(r.spyNav).toLocaleString()}</td><td class="mono" style="color:${excColor};font-weight:700">${excess>=0?'+':''}${(excess*100).toFixed(2)}pp</td></tr>`;
   }).join('');
   if($('momTradeBody')){
     $('momTradeBody').innerHTML=[...MOM_RESULT.trades||[]].reverse().map(t=>{
