@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>矛與盾 V8.5 + 動能輪動</title>
+<title>矛與盾 × 動能策劃 0324完成版</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700;900&display=swap');
@@ -170,8 +170,8 @@ td{padding:9px;border-bottom:1px solid var(--border)}
 <div class="wrap">
 <div class="hdr">
   <div>
-    <div class="hdr-title">🛡️ 矛與盾 <span class="v">V8.5</span></div>
-    <div class="hdr-sub">A/B/C/D 四軌 ｜ Regime ｜ YC ｜ 動能輪動模組（時間序列+橫截面）</div>
+    <div class="hdr-title">🛡️ 矛與盾 × 動能策劃 <span class="v">0324</span></div>
+    <div class="hdr-sub">A/B/C/D 四軌 ｜ Regime ｜ YC ｜ V9.6 動能輪動（多週期z · TS+CS · 相關性過濾 · 分段盾牌）</div>
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <span id="momCurrentBadge" class="hidden" style="font-size:11px;padding:3px 10px;border-radius:3px;font-family:monospace;background:var(--teal-dim);color:var(--teal);border:1px solid var(--teal)">MOM: --</span>
@@ -724,7 +724,7 @@ async function fetchAndMerge(){
   };
   // getYf：對股票 ETF 使用 adjclose（含股息），對指數（^開頭）用普通 close
   const getYf=async ticker=>{ setLog('抓取 Yahoo: '+ticker+'...');$('loadingText').textContent='抓取 Yahoo: '+ticker;
-    const url='https://query1.finance.yahoo.com/v8/finance/chart/'+ticker+'?range=2y&interval=1d';
+    const url='https://query1.finance.yahoo.com/v8/finance/chart/'+ticker+'?range=max&interval=1d';
     const res=await fetchFB(url);const j=await res.json();
     const d={},chart=j.chart.result[0];
     chart.timestamp.forEach((t,i)=>{
