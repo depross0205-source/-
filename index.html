@@ -233,20 +233,20 @@ td{padding:9px;border-bottom:1px solid var(--border)}
     </div>
     <div style="margin-top:8px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:3px">
       <div style="font-size:11px;color:var(--teal);font-weight:700;margin-bottom:6px">📎 CAPE 歷史資料上傳</div>
-      <div style="font-size:10px;color:var(--muted);margin-bottom:6px;line-height:1.6">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.6">
         CSV 格式：第一欄 DATE（YYYY-MM-DD 或 YYYY-MM），第二欄 CAPE<br>
-        月頻資料會自動填充至當月所有交易日
+        月頻資料會自動填充至當月所有交易日<br>
+        <span style="color:var(--dim)">範例：2024-01,34.50 或 2024-01-02,34.50</span>
       </div>
-      <label style="display:block;background:var(--bg);border:1px dashed var(--border-hi);padding:7px;text-align:center;cursor:pointer;color:var(--accent);font-size:12px;border-radius:3px;margin-bottom:6px" for="capeUpload">
-        📂 選擇 CAPE CSV 檔案
-      </label>
-      <input type="file" id="capeUpload" accept=".csv" style="display:none" onchange="loadCapeCSV(event)">
-      <div style="display:flex;align-items:center;gap:8px">
+      <input type="file" id="capeUpload" accept=".csv,.txt"
+        style="font-size:12px;color:var(--muted);width:100%;margin-bottom:6px;background:var(--bg);border:1px solid var(--border-hi);padding:5px;border-radius:3px"
+        onchange="loadCapeCSV(event)">
+      <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
         <span style="font-size:11px;color:var(--muted)">或手動輸入當月值</span>
         <input type="number" id="apiCape" value="" step="0.1" placeholder="36.5" style="width:90px;font-size:12px">
         <button onclick="applyManualCape()" style="padding:5px 10px;font-size:11px;background:var(--surface2);border:1px solid var(--border-hi);color:var(--accent);border-radius:3px;cursor:pointer">套用至本月</button>
       </div>
-      <div id="capeUploadStatus" style="font-size:11px;color:var(--green);margin-top:5px;min-height:14px;font-family:monospace"></div>
+      <div id="capeUploadStatus" style="font-size:11px;color:var(--green);margin-top:6px;min-height:14px;font-family:monospace"></div>
     </div>
     <div id="fetchLog"></div>
   </div>
@@ -877,60 +877,75 @@ function loadCapeCSV(event){
   const file=event.target.files[0];
   if(!file) return;
   const st=$('capeUploadStatus');
-  st.textContent='讀取中...'; st.style.color='var(--muted)';
+  st.textContent='📂 讀取 '+file.name+'...';
+  st.style.color='var(--muted)';
+
   const reader=new FileReader();
   reader.onload=e=>{
     try{
-      const lines=e.target.result.split('\n').filter(l=>l.trim());
-      if(!lines.length){st.textContent='❌ 檔案是空的';st.style.color='var(--red)';return;}
+      const text=e.target.result.trim();
+      if(!text){st.textContent='❌ 檔案是空的';st.style.color='var(--red)';return;}
 
-      // 自動偵測標頭：跳過首行如果不是數字開頭
-      const startIdx=/^\d/.test(lines[0].split(',')[0])?0:1;
-      const capeByDay={};   // {YYYY-MM-DD: value}
-      const capeByMonth={}; // {YYYY-MM: value}
+      const lines=text.split(/\r?\n/).filter(l=>l.trim());
+      // 偵測並跳過標頭行（首行如果第一欄不是數字開頭）
+      const startIdx=/^\d/.test(lines[0].split(/[,\t]/)[0].trim())?0:1;
+
+      const capeByDay={};
+      const capeByMonth={};
       let parsed=0, skipped=0;
 
       for(let i=startIdx;i<lines.length;i++){
-        const cols=lines[i].split(',').map(c=>c.trim().replace(/"/g,''));
+        const cols=lines[i].split(/[,\t]/).map(c=>c.trim().replace(/"/g,''));
         if(cols.length<2) continue;
         const rawDate=cols[0];
-        const val=parseFloat(cols[1]);
+        // 找第一個有效的數值欄（跳過空欄）
+        let val=NaN;
+        for(let j=1;j<cols.length;j++){
+          const v=parseFloat(cols[j]);
+          if(!isNaN(v)&&v>0){val=v;break;}
+        }
         if(isNaN(val)||val<=0){skipped++;continue;}
 
-        // 支援 YYYY-MM-DD 和 YYYY-MM 兩種格式
         if(/^\d{4}-\d{2}-\d{2}$/.test(rawDate)){
           capeByDay[rawDate]=val;
-          capeByMonth[rawDate.slice(0,7)]=val; // 同月最後一個會覆蓋前一個
+          // 同月最後一筆作為月代表值
+          const m=rawDate.slice(0,7);
+          capeByMonth[m]=val;
           parsed++;
         }else if(/^\d{4}-\d{2}$/.test(rawDate)){
           capeByMonth[rawDate]=val;
           parsed++;
-        }else{
-          // 嘗試解析其他日期格式
+        }else if(/^\d{4}\/\d{1,2}\/\d{1,2}$/.test(rawDate)||/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(rawDate)){
+          // 支援 2024/1/2 或 1/2/2024 格式
           const d=new Date(rawDate);
           if(!isNaN(d.getTime())){
             const iso=d.toISOString().slice(0,10);
             capeByDay[iso]=val;
             capeByMonth[iso.slice(0,7)]=val;
             parsed++;
-          }else{
-            skipped++;
-          }
-        }
+          }else skipped++;
+        }else skipped++;
       }
 
       if(parsed===0){
-        st.textContent='❌ 未能解析任何資料，請確認格式（DATE,CAPE）';
+        st.textContent='❌ 無法解析任何資料。請確認格式：DATE,CAPE（例如 2024-01,34.5）';
         st.style.color='var(--red)';
         return;
       }
 
-      // 優先用日頻精確值，再用月頻填充
+      // 如果 DB 為空，先把 CAPE 存到暫存，等 DB 載入後會自動套用
+      if(DB.length===0){
+        // 把 capeByMonth 暫存到 localStorage，完整抓取後自動套用
+        localStorage.setItem('shield_pendingCape', JSON.stringify(capeByMonth));
+        st.textContent=`⚠ DB 尚無資料，已暫存 ${parsed} 筆 CAPE。執行完整抓取後會自動套用。`;
+        st.style.color='var(--yellow)';
+        return;
+      }
+
+      // DB 有資料：直接更新
       let changed=0;
       DB.forEach(r=>{
-        let newCape=null;
-        if(capeByDay[r.d]!==undefined) newCape=capeByDay[r.d];
-        else if(capeByMonth[r.d.slice(0,7)]!==undefined) newCape=capeByMonth[r.d.slice(0,7)];
+        let newCape=capeByDay[r.d]??capeByMonth[r.d.slice(0,7)]??null;
         if(newCape!==null){
           const rounded=+newCape.toFixed(2);
           if(Math.abs((r.cape||0)-rounded)>0.01){r.cape=rounded;changed++;}
@@ -939,15 +954,19 @@ function loadCapeCSV(event){
 
       sortAndFill();
       saveToStorage();
-      st.textContent=`✅ 解析 ${parsed} 筆，更新 DB ${changed} 筆（跳過 ${skipped} 筆）`;
+      event.target.value=''; // 允許重複上傳
+      st.textContent=`✅ 解析 ${parsed} 筆（月份${Object.keys(capeByMonth).length}個），更新 DB ${changed} 筆` +
+                     (skipped>0?`，跳過 ${skipped} 筆`:'');
       st.style.color='var(--green)';
-      event.target.value=''; // 允許重複上傳同一檔案
+
     }catch(err){
       st.textContent='❌ 解析錯誤：'+err.message;
       st.style.color='var(--red)';
+      console.error(err);
     }
   };
-  reader.readAsText(file);
+  reader.onerror=()=>{ st.textContent='❌ 讀取檔案失敗'; st.style.color='var(--red)'; };
+  reader.readAsText(file, 'UTF-8');
 }
 
 async function fetchAndMerge(quickMode=false){
@@ -1150,6 +1169,21 @@ async function fetchAndMerge(quickMode=false){
     b.textContent=`● ${quickMode?'⚡快速':'完整'}更新 (${DB.length}筆)`;
     b.style.color=quickMode?'var(--accent)':'var(--teal)';
     lockCsvUpload();  // 自動抓取完成，鎖定 CSV 上傳
+
+    // 套用暫存的 CAPE CSV（如果有的話）
+    const pendingCape=localStorage.getItem('shield_pendingCape');
+    if(pendingCape){
+      try{
+        const pendingMap=JSON.parse(pendingCape);
+        const pendingChanged=applyCapeMonthly(pendingMap);
+        if(pendingChanged>0){
+          setLog(`✅ 套用暫存 CAPE：更新 ${pendingChanged} 筆`);
+          sortAndFill();
+        }
+        localStorage.removeItem('shield_pendingCape');
+      }catch(e){}
+    }
+
     saveToStorage();  // 存入 localStorage
     if(!quickMode) alert(msg);
 
