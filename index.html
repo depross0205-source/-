@@ -754,7 +754,12 @@ function updateStatus(){
     $('dbSP').value=l.sp.toFixed(2); $('dbEW').value=l.ew.toFixed(2);
     $('dbVIX').value=l.vix.toFixed(2); $('dbHY').value=l.hy.toFixed(4);
     $('dbTIPS').value=l.tips.toFixed(2); $('dbY10').value=l.y10.toFixed(2); $('dbY2').value=l.y2.toFixed(2);
-    $('dbCAPE').value=''; $('cpStart').value=DB[0].d; $('cpEnd').value=l.d;
+    $('dbCAPE').value='';
+    // ★ 只有當 cpStart 比 DB 最早日還晚、或 cpEnd 比 DB 最新日還早時才自動修正
+    // 避免「DB 有 23 年資料但 cpStart 被覆寫成近 1 年」造成 CAGR 爆炸
+    const curStart=$('cpStart').value, curEnd=$('cpEnd').value;
+    if(!curStart||curStart<DB[0].d) $('cpStart').value=DB[0].d;
+    if(!curEnd||curEnd>l.d) $('cpEnd').value=l.d;
   }
 }
 
@@ -1477,12 +1482,15 @@ function calcP(cv,k){
     const dd=(v-pk)/pk;if(dd<mdd)mdd=dd;
     rets.push((v-cv[i-1][k])/cv[i-1][k]);
   }
-  const yr=Math.max(0.1,cv.length/252);
+  // ★ 用實際日期差計算年數，避免 cv.length/252 在資料有缺口時算錯
+  const d0=new Date(cv[0].d+'T00:00:00');
+  const d1=new Date(cv[cv.length-1].d+'T00:00:00');
+  const yr=Math.max(0.1,(d1-d0)/(365.25*86400000));
   const tr=cv[cv.length-1][k]/cv[0][k]-1;
   const cagr=Math.pow(1+Math.max(tr,-0.999),1/yr)-1;
   const ar=rets.reduce((a,b)=>a+b,0)/(rets.length||1);
   const sd=Math.sqrt(rets.reduce((a,b)=>a+(b-ar)**2,0)/(rets.length||1))*Math.sqrt(252);
-  return{m:(mdd*100).toFixed(2),c:(cagr*100).toFixed(2),s:sd===0?'0':(ar*252/sd).toFixed(2),t:(tr*100).toFixed(1)};
+  return{m:(mdd*100).toFixed(2),c:(cagr*100).toFixed(2),s:sd===0?'0':(ar*252/sd).toFixed(2),t:(tr*100).toFixed(1),yr:yr.toFixed(1)};
 }
 
 function evalStrike(cfg,vix,vixPeakRecent,rsi,zb,spewRelPerf){
@@ -1686,7 +1694,7 @@ function renderUI(){
   $('liveDash').innerHTML=liveCard('A','方法 A（Delta）','yellow',true)+liveCard('B','方法 B（Z-Score）','green',true)+liveCard('C','方法 C（雙態跟隨）','accent',false)+liveCard('D','方法 D（全態跟隨）','purple',false);
   $('metricsGrid').innerHTML=[['A','方法 A','yellow'],['B','方法 B','green'],['C','方法 C','accent'],['D','方法 D','purple'],['BH','B&H 基準','muted']].map(([k,label,col])=>{
     const p=calcP(r.cv,k);
-    return `<div class="metric-card" style="border-top:3px solid var(--${col})"><div class="m-title">${label}</div><div class="m-row"><span>區間報酬</span><span class="m-val ${parseFloat(p.t)>0?'ty':''}">${parseFloat(p.t)>0?'+':''}${p.t}%</span></div><div class="m-row"><span>CAGR</span><span class="m-val">${p.c}%</span></div><div class="m-row"><span>MDD</span><span class="m-val tr">${p.m}%</span></div><div class="m-row"><span>Sharpe</span><span class="m-val tg">${p.s}</span></div></div>`;
+    return `<div class="metric-card" style="border-top:3px solid var(--${col})"><div class="m-title">${label}</div><div class="m-row"><span>區間報酬</span><span class="m-val ${parseFloat(p.t)>0?'ty':''}">${parseFloat(p.t)>0?'+':''}${p.t}%</span></div><div class="m-row"><span>CAGR</span><span class="m-val">${p.c}%</span></div><div class="m-row"><span>MDD</span><span class="m-val tr">${p.m}%</span></div><div class="m-row"><span>Sharpe</span><span class="m-val tg">${p.s}</span></div><div class="m-row" style="opacity:.5"><span>年數</span><span class="m-val mono" style="font-size:11px">${p.yr}yr</span></div></div>`;
   }).join('');
   if(MOM_RESULT) overlaymomOnShieldChart();
   if(charts.n){charts.n.destroy();charts.d.destroy();}
