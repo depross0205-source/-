@@ -231,6 +231,11 @@ td{padding:9px;border-bottom:1px solid var(--border)}
       <button class="btn-blue" onclick="fetchAndMerge(false)" style="font-size:12px">🔄 完整抓取（首次/每月）<br><span style="font-weight:400;font-size:10px">全部歷史 + CAPE 月資料</span></button>
       <button class="btn-outline" onclick="fetchAndMerge(true)" style="font-size:12px">⚡ 每日快速更新<br><span style="font-weight:400;font-size:10px">只補近 15 個交易日</span></button>
     </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-size:11px;color:var(--muted)">當月 CAPE 備用值</span>
+      <input type="number" id="apiCape" value="" step="0.1" placeholder="自動抓取失敗時使用" style="width:130px;font-size:12px">
+      <button onclick="applyManualCape()" style="padding:5px 10px;font-size:11px;background:var(--surface2);border:1px solid var(--border-hi);color:var(--accent);border-radius:3px;cursor:pointer">套用至本月</button>
+    </div>
     <div id="fetchLog"></div>
   </div>
 </div>
@@ -841,6 +846,20 @@ function applyCapeMonthly(capeByMonth){
   return changed;
 }
 
+// 手動套用當月 CAPE（自動抓取失敗時的備用）
+function applyManualCape(){
+  const val=parseFloat($('apiCape').value);
+  if(isNaN(val)||val<=0){alert('請輸入有效的 CAPE 值（例如 36.5）');return;}
+  const curMonth=new Date().toISOString().slice(0,7);
+  const changed=applyCapeMonthly({[curMonth]:val});
+  if(changed>0){
+    sortAndFill(); saveToStorage();
+    alert(`✅ 已將 ${curMonth} 的 ${changed} 筆資料更新為 CAPE=${val}`);
+  }else{
+    alert(`目前資料庫中無 ${curMonth} 的資料，或 CAPE 值已是 ${val}。`);
+  }
+}
+
 async function fetchAndMerge(quickMode=false){
   const key=$('apiFredKey').value.trim(); let proxy=$('apiProxy').value.trim();
   if(!key){alert('請填寫 FRED API Key');return;}
@@ -897,37 +916,87 @@ async function fetchAndMerge(quickMode=false){
     const d={};j.observations.forEach(o=>{if(o.value!=='.') d[o.date]=parseFloat(o.value);});return d;
   };
 
-  // CAPE 月資料抓取（multpl.com，完整模式才抓）
+  // CAPE 月資料抓取（完整模式才抓）
+  // 來源一：multpl.com JSON API（最可靠）
+  // 來源二：multpl.com HTML 表格（fallback）
   const fetchCape=async ()=>{
-    setLog('🔄 CAPE：抓取 multpl.com...');
+    setLog('🔄 CAPE：抓取中...');
     $('loadingText').textContent='抓取 CAPE 歷史...';
-    const url='https://www.multpl.com/shiller-pe/table/by-month';
+    const capeByMonth={};
+
+    // ── 來源一：multpl.com JSON ──
     try{
+      const url='https://www.multpl.com/shiller-pe/table/by-month.json';
+      const res=await fetchFB(url);
+      const text=await res.text();
+      // JSON 格式：{"data":[[timestamp_ms, value],...]}
+      // 或 {"rows":[{"date":"Jan 2024","value":"34.5"},...]}}
+      let parsed;
+      try{ parsed=JSON.parse(text); }catch(e){ parsed=null; }
+      if(parsed){
+        // 嘗試各種可能的 JSON 結構
+        const rows=parsed.data||parsed.rows||parsed;
+        if(Array.isArray(rows)){
+          rows.forEach(row=>{
+            let dateVal, numVal;
+            if(Array.isArray(row)){
+              // [[timestamp_ms, value], ...]
+              dateVal=new Date(row[0]);
+              numVal=parseFloat(row[1]);
+            }else if(row.date&&row.value!==undefined){
+              dateVal=new Date(row.date);
+              numVal=parseFloat(row.value);
+            }
+            if(dateVal&&!isNaN(dateVal)&&!isNaN(numVal)&&numVal>0){
+              const m=dateVal.toISOString().slice(0,7);
+              capeByMonth[m]=numVal;
+            }
+          });
+        }
+      }
+      if(Object.keys(capeByMonth).length>10){
+        setLog(`🔄 CAPE：取得 ${Object.keys(capeByMonth).length} 個月資料`);
+        return capeByMonth;
+      }
+    }catch(e){ /* fallback */ }
+
+    // ── 來源二：multpl.com HTML 解析（更強健的版本）──
+    try{
+      const url='https://www.multpl.com/shiller-pe/table/by-month';
       const res=await fetchFB(url);
       const html=await res.text();
-      // 解析 HTML 表格：格式為 <tr><td>Jan 1, 2024</td><td>34.56</td></tr>
-      const rows=html.match(/<tr[^>]*>[\s\S]*?<\/tr>/gi)||[];
-      const capeByMonth={};
-      rows.forEach(row=>{
-        const cells=row.match(/<td[^>]*>([\s\S]*?)<\/td>/gi)||[];
-        if(cells.length>=2){
-          const dateStr=cells[0].replace(/<[^>]+>/g,'').trim();
-          const valStr =cells[1].replace(/<[^>]+>/g,'').trim();
-          const val=parseFloat(valStr);
-          if(isNaN(val)||val<=0) return;
-          // 解析日期：'Jan 1, 2024' 或 'Jan 2024'
-          const d=new Date(dateStr);
+      // 匹配 <tr> 中的日期和數值
+      // 格式：<td>Jan 1, 2024</td><td>34.56</td>
+      // 或：  <td>Jan 1, 2024</td><td><span>34.56</span></td>
+      const trPattern=/<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+      let trMatch;
+      while((trMatch=trPattern.exec(html))!==null){
+        const inner=trMatch[1];
+        // 提取所有 <td> 內文字（去除所有 HTML 標籤）
+        const tdTexts=(inner.match(/<td[^>]*>([\s\S]*?)<\/td>/gi)||[])
+          .map(td=>td.replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ').trim());
+        if(tdTexts.length>=2){
+          const dateStr=tdTexts[0];
+          const numVal=parseFloat(tdTexts[1].replace(/,/g,''));
+          if(isNaN(numVal)||numVal<=0) continue;
+          // 解析各種日期格式
+          // 'Jan 1, 2024' / 'Jan 2024' / 'January 1, 2024'
+          const cleaned=dateStr.replace(/\s+/g,' ').trim();
+          const d=new Date(cleaned);
           if(!isNaN(d.getTime())){
             const m=d.toISOString().slice(0,7);
-            capeByMonth[m]=val;
+            capeByMonth[m]=numVal;
           }
         }
-      });
-      return capeByMonth;
-    }catch(e){
-      setLog('⚠ CAPE 抓取失敗（'+e.message+'），使用現有值');
-      return {};
-    }
+      }
+      if(Object.keys(capeByMonth).length>10){
+        setLog(`🔄 CAPE：HTML解析取得 ${Object.keys(capeByMonth).length} 個月資料`);
+        return capeByMonth;
+      }
+    }catch(e){ /* fallback */ }
+
+    setLog('⚠ CAPE 自動抓取失敗，請手動確認。現有資料維持不變。');
+    return capeByMonth; // 空物件，不更新
   };
 
   try{
