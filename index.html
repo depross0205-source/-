@@ -217,7 +217,7 @@ td{padding:9px;border-bottom:1px solid var(--border)}
 </div>
 <div class="step-block">
   <div class="step-header"><span class="step-num sn2">2</span>
-    <div><div class="step-title">自動抓取最新數據</div><div class="step-sub">FRED & Yahoo Finance → 自動合併</div></div></div>
+    <div><div class="step-title">自動抓取最新數據</div><div class="step-sub">SPY/RSP adjclose（含股息，Total Return）& FRED → 自動合併</div></div></div>
   <div class="step-body">
     <div class="field" style="margin-bottom:10px"><label>本月 CAPE</label>
       <input type="number" id="apiCape" value="36.50" step="0.1" style="width:140px"></div>
@@ -722,15 +722,24 @@ async function fetchAndMerge(){
     if(j.error_message) throw new Error('FRED: '+j.error_message);
     const d={};j.observations.forEach(o=>{if(o.value!=='.') d[o.date]=parseFloat(o.value);});return d;
   };
+  // getYf：對股票 ETF 使用 adjclose（含股息），對指數（^開頭）用普通 close
   const getYf=async ticker=>{ setLog('抓取 Yahoo: '+ticker+'...');$('loadingText').textContent='抓取 Yahoo: '+ticker;
     const url='https://query1.finance.yahoo.com/v8/finance/chart/'+ticker+'?range=2y&interval=1d';
     const res=await fetchFB(url);const j=await res.json();
     const d={},chart=j.chart.result[0];
-    chart.timestamp.forEach((t,i)=>{ if(chart.indicators.quote[0].close[i]) d[new Date(t*1000).toISOString().slice(0,10)]=chart.indicators.quote[0].close[i]; });
+    chart.timestamp.forEach((t,i)=>{
+      // adjclose 優先（含股息再投入），^開頭指數無 adjclose 則 fallback 到 close
+      const adj=chart.indicators?.adjclose?.[0]?.adjclose?.[i];
+      const cl =chart.indicators?.quote?.[0]?.close?.[i];
+      const val=adj??cl;
+      if(val&&val>0) d[new Date(t*1000).toISOString().slice(0,10)]=val;
+    });
     return d;
   };
   try{
-    const spD=await getYf('^GSPC'),ewD=await getYf('RSP'),vixD=await getYf('^VIX');
+    // SPY adjclose = S&P 500 Total Return（含股息再投入）
+    // ^GSPC = 純價格指數（不含股息），改用 SPY 讓 ABCD 與動能輪動站同一基礎
+    const spD=await getYf('SPY'),ewD=await getYf('RSP'),vixD=await getYf('^VIX');
     const hyD=await getFred('BAMLH0A0HYM2'),tipD=await getFred('DFII10');
     const y10D=await getFred('DGS10'),y2D=await getFred('DGS2');
     setLog('整併資料中...');
@@ -745,8 +754,10 @@ async function fetchAndMerge(){
       if(ei>-1){DB[ei]=row;updated++;}else{DB.push(row);added++;}
     });
     sortAndFill();
-    const msg='✅ 完成！新增 '+added+' 筆，更新 '+updated+' 筆。共 '+DB.length+' 筆';
-    setLog(msg,true);alert(msg);
+    const msg='✅ 完成！新增 '+added+' 筆，更新 '+updated+' 筆。共 '+DB.length+' 筆\n（SP500 欄位已改為 SPY adjclose，含股息再投入）';
+    setLog(msg,true);
+    const b=$('dataSourceBadge'); b.textContent='● SPY TR ('+DB.length+' 筆)'; b.style.color='var(--teal)';
+    alert(msg);
   }catch(err){setLog('❌ '+err.message,false);console.error(err);alert('❌ 抓取失敗：'+err.message);}
   finally{$('loadingOverlay').classList.add('hidden');}
 }
@@ -1251,7 +1262,7 @@ function buildShieldMonthly(startMonth, endMonth){
 }
 // ── 動能回測結果渲染 ──
 function renderMomUI(){
-  const {records, initial}=MOM_RESULT;
+  const {records, initial, cfg}=MOM_RESULT;
   $('momResultSection').classList.remove('hidden');
 
   // KPI
