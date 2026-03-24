@@ -176,6 +176,8 @@ td{padding:9px;border-bottom:1px solid var(--border)}
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <span id="momCurrentBadge" class="hidden" style="font-size:11px;padding:3px 10px;border-radius:3px;font-family:monospace;background:var(--teal-dim);color:var(--teal);border:1px solid var(--teal)">MOM: --</span>
     <span id="regimeBadge" style="font-size:12px;padding:3px 10px;border-radius:3px;font-family:monospace;background:var(--surface2);color:var(--muted);border:1px solid var(--border)">Regime: --</span>
+    <span id="storageBadge" style="font-size:11px;padding:3px 10px;border-radius:3px;font-family:monospace;background:var(--surface2);color:var(--muted);border:1px solid var(--border)" title="localStorage 快取狀態">💾 --</span>
+    <button onclick="clearStorage()" style="font-size:11px;padding:3px 10px;border-radius:3px;background:transparent;border:1px solid var(--border);color:var(--dim);cursor:pointer;font-family:monospace" title="清除 localStorage 快取">🗑 清除快取</button>
     <div id="dataSourceBadge" style="font-size:12px;padding:4px 12px;border:1px solid var(--border-hi);color:var(--muted);font-family:monospace;">● 初始模式</div>
   </div>
 </div>
@@ -559,14 +561,93 @@ window.onerror=(m,u,l)=>{ alert('⚠️ 錯誤: '+m+'\n行: '+l); return false; 
 // ════ 全域狀態 ════
 let DB=[], BT_RESULT=null, charts={}, logFilter='ALL';
 let MOM_PRICES={}, MOM_RESULT=null, MOM_CHART={};
-let AUTO_FETCHED=false;  // 自動抓取完成後鎖定 CSV 上傳
+let AUTO_FETCHED=false;
 
-function lockCsvUpload(){
-  AUTO_FETCHED=true;
-  const area=$('csvUploadArea');
-  const lock=$('csvLockMsg');
-  if(area) area.classList.add('hidden');
-  if(lock) lock.classList.remove('hidden');
+// ════ localStorage 快取機制 ════
+const LS_KEY_DB       ='shield_DB';
+const LS_KEY_PRICES   ='shield_MOM_PRICES';
+const LS_KEY_UPDATED  ='shield_lastUpdated';
+const LS_KEY_ASSET    ='shield_assetDefs';
+
+function saveToStorage(){
+  try{
+    localStorage.setItem(LS_KEY_DB, JSON.stringify(DB));
+    localStorage.setItem(LS_KEY_PRICES, JSON.stringify(MOM_PRICES));
+    localStorage.setItem(LS_KEY_UPDATED, new Date().toISOString());
+    // 儲存資產池啟用狀態
+    const assetState=MOM_ASSET_DEFS.map(a=>({ticker:a.ticker,enabled:a.enabled}));
+    localStorage.setItem(LS_KEY_ASSET, JSON.stringify(assetState));
+    updateStorageBadge();
+  }catch(e){
+    // localStorage 可能滿了（超過 5MB）
+    console.warn('localStorage 儲存失敗：',e.message);
+    $('storageBadge').textContent='💾 儲存失敗（容量不足）';
+    $('storageBadge').style.color='var(--red)';
+  }
+}
+
+function loadFromStorage(){
+  try{
+    const rawDB   =localStorage.getItem(LS_KEY_DB);
+    const rawPrices=localStorage.getItem(LS_KEY_PRICES);
+    const rawAsset =localStorage.getItem(LS_KEY_ASSET);
+    const updated  =localStorage.getItem(LS_KEY_UPDATED);
+    if(!rawDB) return false;
+
+    DB=JSON.parse(rawDB);
+    if(rawPrices){
+      MOM_PRICES=JSON.parse(rawPrices);
+    }
+    // 還原資產池啟用狀態
+    if(rawAsset){
+      const states=JSON.parse(rawAsset);
+      states.forEach(s=>{
+        const def=MOM_ASSET_DEFS.find(a=>a.ticker===s.ticker);
+        if(def) def.enabled=s.enabled;
+      });
+    }
+    sortAndFill();
+    updateMomStatusBar();
+    if(updated){
+      const dt=new Date(updated);
+      const b=$('dataSourceBadge');
+      b.textContent=`● 快取 (${DB.length}筆)`;
+      b.style.color='var(--green)';
+      updateStorageBadge(dt);
+    }
+    return true;
+  }catch(e){
+    console.warn('localStorage 載入失敗：',e.message);
+    return false;
+  }
+}
+
+function updateStorageBadge(dt){
+  const badge=$('storageBadge');
+  if(!badge) return;
+  const d=dt||new Date(localStorage.getItem(LS_KEY_UPDATED)||Date.now());
+  const dateStr=d.toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
+  const timeStr=d.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  const dbLen=DB.length;
+  badge.textContent=`💾 ${dateStr} ${timeStr}（${dbLen}筆）`;
+  badge.style.color='var(--green)';
+  badge.title=`localStorage 快取：${dbLen} 筆 DB，上次儲存 ${d.toLocaleString('zh-TW')}`;
+}
+
+function clearStorage(){
+  if(!confirm('確定要清除所有 localStorage 快取？\n下次開啟需要重新執行完整抓取。')) return;
+  [LS_KEY_DB,LS_KEY_PRICES,LS_KEY_UPDATED,LS_KEY_ASSET].forEach(k=>localStorage.removeItem(k));
+  DB=[]; MOM_PRICES={}; AUTO_FETCHED=false;
+  sortAndFill(); updateMomStatusBar(); initAssetChips();
+  $('storageBadge').textContent='💾 已清除';
+  $('storageBadge').style.color='var(--muted)';
+  $('dataSourceBadge').textContent='● 初始模式';
+  $('dataSourceBadge').style.color='var(--muted)';
+  // 解鎖 CSV 上傳
+  const area=$('csvUploadArea'), lock=$('csvLockMsg');
+  if(area) area.classList.remove('hidden');
+  if(lock) lock.classList.add('hidden');
+  alert('快取已清除。請執行「完整抓取」或上傳 CSV。');
 }
 
 // 動能資產池設定（完整版）
@@ -592,9 +673,36 @@ const gc=id=>$(id).checked;
 const setLog=(msg,ok)=>{ const e=$('fetchLog'); if(!e) return; e.textContent=msg; e.style.color=ok===true?'#00e5a0':ok===false?'#ff4d6d':'#6b7a99'; };
 
 // ════ 初始化 ════
+function lockCsvUpload(){
+  AUTO_FETCHED=true;
+  const area=$('csvUploadArea');
+  const lock=$('csvLockMsg');
+  if(area) area.classList.add('hidden');
+  if(lock) lock.classList.remove('hidden');
+}
+
 window.addEventListener('DOMContentLoaded',()=>{
   $('dbDate').value=new Date().toISOString().slice(0,10);
   checkWeekend(); updateStrkInfo(); initAssetChips();
+
+  // ── 自動從 localStorage 載入快取 ──
+  const loaded=loadFromStorage();
+  if(loaded){
+    const updated=localStorage.getItem(LS_KEY_UPDATED);
+    const dt=updated?new Date(updated):null;
+    const daysSince=dt?Math.floor((Date.now()-dt.getTime())/86400000):99;
+    if(daysSince>=1){
+      // 提示需要每日快速更新
+      setLog(`💾 已載入快取（${DB.length}筆），上次更新 ${daysSince} 天前。建議執行「⚡ 每日快速更新」。`,null);
+    } else {
+      setLog(`💾 已載入今日快取（${DB.length}筆）。`,true);
+    }
+    // 標記為已有資料，但未執行自動抓取（允許上傳 CSV）
+  } else {
+    $('storageBadge').textContent='💾 無快取';
+    $('storageBadge').style.color='var(--muted)';
+    setLog('尚無快取資料，請執行「🔄 完整抓取」或上傳 CSV。',null);
+  }
 });
 
 function initAssetChips(){
@@ -712,7 +820,8 @@ function loadCSV(event){
       });
       sortAndFill();
       $('csvStatus').textContent='✅ 載入 '+rows.length+' 筆，共 '+DB.length+' 筆';
-      const b=$('dataSourceBadge'); b.textContent='● 真實 CSV ('+DB.length+' 筆)'; b.style.color='var(--green)';
+      const b=$('dataSourceBadge'); b.textContent='● CSV ('+DB.length+' 筆)'; b.style.color='var(--green)';
+      saveToStorage();  // CSV 載入後存入 localStorage
     }catch(err){alert('CSV 解析錯誤：'+err.message);}
   };
   reader.readAsText(file);
@@ -882,6 +991,7 @@ async function fetchAndMerge(quickMode=false){
     b.textContent=`● ${quickMode?'⚡快速':'完整'}更新 (${DB.length}筆)`;
     b.style.color=quickMode?'var(--accent)':'var(--teal)';
     lockCsvUpload();  // 自動抓取完成，鎖定 CSV 上傳
+    saveToStorage();  // 存入 localStorage
     if(!quickMode) alert(msg);
 
   }catch(err){setLog('❌ '+err.message,false);console.error(err);alert('❌ 抓取失敗：'+err.message);}
@@ -995,6 +1105,7 @@ async function fetchMomData(){
 
   // 自動計算即時信號
   calcMomCurrentSignal();
+  saveToStorage();  // ETF 月頻資料存入 localStorage
 }
 
 // ── 從 DB 取得某日期的盾牌分數（簡化版：F1×50+F5×50） ──
@@ -1134,28 +1245,23 @@ function calcMomSignalAt(months, idx, cfg){
   const threshold=cashRate+(cfg.buffer||0);
   const shieldScore=cfg.shieldScore||70;
   const corrThresh=momCorrThreshold(shieldScore, cfg.corrMode||'dynamic');
-  // V9.6: TS 改用 z12 門檻（與 CS 同一體系，更一致）
-  // threshold 重新定義為 z-score 形式：z12 > z_cash
-  // z_cash = R_cash / σ_market（用 SPY 波動率標準化現金報酬率）
-  const scoreMap={}, z12Map={};
+  const scoreMap={}, r12Map={};
   for(const t of enabledAssets){
     const s=momCalcScore(t,months,idx);
     if(s!==null) scoreMap[t]=s;
-    const z12=momCalcZ(t,months,idx,13);
-    if(z12!==null) z12Map[t]=z12;
+    // R12：絕對報酬（TS過濾用，保持與學術原始定義一致）
+    const p1=getMomPrice(t,months[idx-1]);
+    const p0=idx>=13?getMomPrice(t,months[idx-13]):null;
+    if(p1&&p0&&p0>0) r12Map[t]=p1/p0-1;
   }
-  // 計算現金的 z12：現金報酬率 / SPY 波動率（作為統一標準化基準）
-  const spyVol=momCalcVol('SPY',months,idx,12)||0.15;
-  const cashZ=(cashRate+(cfg.buffer||0))/spyVol; // z_threshold
-  const r12Map=z12Map; // 向後兼容顯示用
-  const valid=enabledAssets.filter(t=>z12Map[t]!==undefined&&scoreMap[t]!==undefined);
+  const valid=enabledAssets.filter(t=>r12Map[t]!==undefined&&scoreMap[t]!==undefined);
   if(!valid.length)
-    return {rawHoldings:{[MOM_CASH_TICKER]:1.0},cashRate,threshold:cashZ,eligible:[],tsPass:[],scoreMap,r12Map,corrThresh,reason:'資料不足'};
-  // TS 過濾：z12 > cashZ（z-score 體系）
-  const tsPass=valid.filter(t=>z12Map[t]>cashZ);
+    return {rawHoldings:{[MOM_CASH_TICKER]:1.0},cashRate,threshold,eligible:[],tsPass:[],scoreMap,r12Map,corrThresh,reason:'資料不足'};
+  // TS 過濾：R12 > 現金利率 + 緩衝（Moskowitz 2012 原始定義，絕對報酬門檻）
+  const tsPass=valid.filter(t=>r12Map[t]>threshold);
   if(!tsPass.length)
-    return {rawHoldings:{[MOM_CASH_TICKER]:1.0},cashRate,threshold:cashZ,eligible:[],tsPass:[],scoreMap,r12Map,corrThresh,
-            reason:`TS未通過（最高z12: ${(Math.max(...valid.map(t=>z12Map[t]))).toFixed(2)}，門檻: ${cashZ.toFixed(2)}）`};
+    return {rawHoldings:{[MOM_CASH_TICKER]:1.0},cashRate,threshold,eligible:[],tsPass:[],scoreMap,r12Map,corrThresh,
+            reason:`TS未通過（最高R12: ${(Math.max(...valid.map(t=>r12Map[t]))*100).toFixed(1)}%，門檻: ${(threshold*100).toFixed(1)}%）`};
   const tsMean=tsPass.reduce((s,t)=>s+(scoreMap[t]||0),0)/tsPass.length;
   let csPass=tsPass.filter(t=>(scoreMap[t]||0)>tsMean);
   if(!csPass.length) csPass=[...tsPass];
