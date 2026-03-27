@@ -179,25 +179,34 @@ td{padding:8px;border-bottom:1px solid var(--border)}
 
 <div class="panel active" id="panel-db">
 <div class="step-block">
-  <div class="step-header"><div><div class="step-title">🔑 API 設定（全系統共用）</div></div></div>
+  <div class="step-header"><div><div class="step-title">🔑 API 設定</div></div></div>
   <div class="step-body">
     <div class="grid2">
-      <div class="field span2"><label>FRED API Key</label><input type="text" id="apiFredKey" value="258bf0113f3cc4ec207f3160731c459e" autocorrect="off" spellcheck="false"></div>
-      <div class="field span2"><label>Proxy URL</label><input type="text" id="apiProxy" value="https://shield-proxy.depross0205.workers.dev?url=" autocorrect="off" spellcheck="false"></div>
+      <div class="field span2"><label>FRED API Key</label>
+        <input type="text" id="apiFredKey" value="258bf0113f3cc4ec207f3160731c459e" autocorrect="off" spellcheck="false"></div>
+      <div class="field span2"><label>Proxy URL</label>
+        <input type="text" id="apiProxy" value="https://shield-proxy.depross0205.workers.dev?url=" autocorrect="off" spellcheck="false"></div>
     </div>
   </div>
 </div>
-<div class="step-block">
-  <div class="step-header"><span class="step-num sn1">1</span><div><div class="step-title">上傳歷史資料庫 CSV</div><div class="step-sub">DATE/SP500/SP500EW/VIX/HY_SPREAD/TIPS_10Y/DGS10/DGS2/CAPE</div></div></div>
+<div class="step-block" id="csvUploadBlock">
+  <div class="step-header"><span class="step-num sn1">1</span>
+    <div><div class="step-title">上傳現有歷史資料庫</div><div class="step-sub">僅在未執行自動抓取時可用</div></div></div>
   <div class="step-body">
-    <input type="file" id="csvUpload" accept=".csv" style="position:absolute;left:-9999px;opacity:0;width:1px;height:1px" onchange="loadCSV(event)">
-    <button onclick="document.getElementById('csvUpload').click()" class="upload-label" style="width:100%;border:2px dashed var(--border-hi)">📂 點擊選擇 CSV 檔案</button>
-    <div id="csvStatus" style="font-size:12px;color:var(--green);min-height:16px;margin-bottom:8px"></div>
-    <div style="margin-top:4px">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">📋 備用：直接貼上 CSV 文字內容（iOS 若無法選擇檔案請用此方式）</div>
-      <textarea id="csvPasteArea" rows="4" placeholder="貼上 CSV 內容到這裡，第一行須為標題列（DATE,SP500,...）" style="width:100%;background:var(--bg);border:1px solid var(--border-hi);color:var(--white);padding:8px;border-radius:3px;font-size:11px;font-family:monospace;resize:vertical"></textarea>
-      <button onclick="loadCSVFromPaste()" style="margin-top:4px;width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border-hi);color:var(--accent);border-radius:3px;font-size:12px;font-weight:700;cursor:pointer">📋 從貼上內容載入</button>
+    <div id="csvLockMsg" class="hidden" style="padding:8px 10px;background:var(--surface2);border:1px solid var(--border-hi);border-radius:3px;font-size:12px;color:var(--muted);margin-bottom:8px">
+      🔒 已使用自動抓取（SPY adjclose），CSV 上傳已停用以避免資料不一致。<br>
+      如需重置，請重新整理頁面。
     </div>
+    <div id="csvUploadArea">
+      <input type="file" id="csvUpload" accept=".csv"
+        style="position:absolute;left:-9999px;opacity:0;width:1px;height:1px"
+        onchange="loadCSV(event)">
+      <button onclick="document.getElementById('csvUpload').click()"
+        class="upload-label" style="width:100%;border:2px dashed var(--border-hi)">
+        📂 點擊選擇 CSV 檔案
+      </button>
+    </div>
+    <div id="csvStatus" style="font-size:12px;color:var(--green);min-height:16px;margin-bottom:10px"></div>
     <div class="stat-row">
       <div class="stat-box"><div class="n" id="dbCount">0 筆</div><div class="s">記憶體資料庫</div></div>
       <div class="stat-box"><div class="n" id="dbRange" style="font-size:13px">--</div><div class="s">資料區間</div></div>
@@ -205,29 +214,46 @@ td{padding:8px;border-bottom:1px solid var(--border)}
   </div>
 </div>
 <div class="step-block">
-  <div class="step-header"><span class="step-num sn2">2</span><div><div class="step-title">自動抓取 Shield 數據</div></div></div>
+  <div class="step-header"><span class="step-num sn2">2</span>
+    <div><div class="step-title">自動抓取數據</div><div class="step-sub">純日頻策略：首次下載完整歷史 CSV → 每日更新覆蓋近30天 → 下載覆蓋後存檔</div></div></div>
   <div class="step-body">
+    <div style="padding:8px 10px;background:var(--blue-dim);border:1px solid var(--blue);border-radius:3px;font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.7">
+      <b style="color:var(--blue)">建議工作流程：</b><br>
+      ① 首次：點「🌐 完整日頻下載」→ 自動下載 CSV 存到手機<br>
+      ② 每日：上傳昨天的 CSV → 點「⚡ 每日更新」→ 再下載新 CSV 存回去<br>
+      ③ 歷史資料存在 CSV 檔案，不存瀏覽器快取，不怕容量限制
+    </div>
     <div class="grid2" style="margin-bottom:10px">
-      <button class="btn-blue" onclick="fetchFullHistory()" style="font-size:12px">🌐 完整日頻下載（首次）</button>
-      <button class="btn-outline" onclick="fetchDailyUpdate()" style="font-size:12px">⚡ 每日更新（補缺口）</button>
+      <button class="btn-blue" onclick="fetchFullHistory()" style="font-size:12px">🌐 完整日頻下載（首次）<br><span style="font-weight:400;font-size:10px">2003-04 至今全部日頻 + 自動下載 CSV</span></button>
+      <button class="btn-outline" onclick="fetchDailyUpdate()" style="font-size:12px">⚡ 每日更新（補缺口）<br><span style="font-weight:400;font-size:10px">自動偵測缺口，覆蓋近30天+缺口期</span></button>
     </div>
     <div style="margin-top:8px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:3px">
-      <div style="font-size:11px;color:var(--teal);font-weight:700;margin-bottom:6px">📎 CAPE 上傳 / 手動輸入</div>
-      <input type="file" id="capeUpload" accept=".csv,.txt" style="position:absolute;left:-9999px;opacity:0;width:1px;height:1px" onchange="loadCapeCSV(event)">
-      <button onclick="document.getElementById('capeUpload').click()" style="width:100%;padding:10px;background:var(--teal-dim);border:1px solid var(--teal);color:var(--teal);border-radius:4px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px">📂 選擇 CAPE CSV 檔案</button>
+      <div style="font-size:11px;color:var(--teal);font-weight:700;margin-bottom:6px">📎 CAPE 歷史資料上傳</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.6">
+        CSV 格式：第一欄 DATE（YYYY-MM-DD 或 YYYY-MM），第二欄 CAPE<br>
+        月頻資料會自動填充至當月所有交易日<br>
+        <span style="color:var(--dim)">範例：2024-01,34.50</span>
+      </div>
+      <input type="file" id="capeUpload" accept=".csv,.txt"
+        style="position:absolute;left:-9999px;opacity:0;width:1px;height:1px"
+        onchange="loadCapeCSV(event)">
+      <button onclick="document.getElementById('capeUpload').click()"
+        style="width:100%;padding:10px;background:var(--teal-dim);border:1px solid var(--teal);color:var(--teal);border-radius:4px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px">
+        📂 選擇 CAPE CSV 檔案
+      </button>
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:11px;color:var(--muted);white-space:nowrap">手動輸入當月</span>
+        <span style="font-size:11px;color:var(--muted)">手動輸入當月值</span>
         <input type="number" id="apiCape" value="" step="0.1" placeholder="36.5" style="width:90px;font-size:12px">
-        <button onclick="applyManualCape()" style="padding:6px 12px;font-size:12px;background:var(--surface2);border:1px solid var(--border-hi);color:var(--accent);border-radius:3px;cursor:pointer;width:auto">套用</button>
+        <button onclick="applyManualCape()" style="padding:6px 12px;font-size:12px;background:var(--surface2);border:1px solid var(--border-hi);color:var(--accent);border-radius:3px;cursor:pointer">套用至本月</button>
       </div>
       <div id="capeUploadStatus" style="font-size:11px;color:var(--green);margin-top:6px;min-height:14px;font-family:monospace"></div>
     </div>
     <div id="fetchLog"></div>
-
   </div>
 </div>
 <div class="step-block">
-  <div class="step-header"><span class="step-num sn3">3</span><div><div class="step-title">手動輸入今日數據</div></div></div>
+  <div class="step-header"><span class="step-num sn3">3</span>
+    <div><div class="step-title">手動輸入今日數據</div></div></div>
   <div class="step-body">
     <div class="grid2">
       <div class="field"><label>日期</label><input type="date" id="dbDate" oninput="checkWeekend()"></div>
@@ -238,7 +264,8 @@ td{padding:8px;border-bottom:1px solid var(--border)}
       <div class="field"><label>TIPS 10Y (%)</label><input type="number" id="dbTIPS" step="0.01"></div>
       <div class="field"><label>DGS10</label><input type="number" id="dbY10" step="0.01"></div>
       <div class="field"><label>DGS2</label><input type="number" id="dbY2" step="0.01"></div>
-      <div class="field span2"><label>CAPE（留空沿用上日）</label><input type="number" id="dbCAPE" step="0.01" placeholder="留空=沿用上日"></div>
+      <div class="field span2"><label>CAPE（留空沿用上日）</label>
+        <input type="number" id="dbCAPE" step="0.01" placeholder="留空 = 沿用上日"></div>
     </div>
     <div class="weekend-warn" id="weekendWarn"></div>
     <button class="btn-yellow" onclick="manualAdd()" style="margin-top:6px">💾 寫入記憶體資料庫</button>
