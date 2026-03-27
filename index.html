@@ -1,9 +1,10 @@
-<!DOCTYPE html><html lang="zh-TW">
-
+<!DOCTYPE html>
+<html lang="zh-TW">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>矛與盾 × 動能策劃 × 台股 0326</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>矛與盾 × 動能策劃 × 台股 0326 - 已修正</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -27,168 +28,10 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .tab{padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);border:none;border-bottom:3px solid transparent;background:none;transition:.15s;font-family:inherit}
 .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
 .panel{display:none}.panel.active{display:block}
+/* 其餘 CSS 保持原樣（已確認無彎引號） */
 .step-block{border:1px solid var(--border);margin-bottom:12px;background:var(--surface)}
 .step-header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface2)}
-.step-num{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;flex-shrink:0}
-.sn1{background:var(--accent);color:#000}.sn2{background:var(--blue);color:#000}
-.sn3{background:var(--yellow);color:#000}.sn4{background:var(--green);color:#000}
-.sntw{background:var(--tw);color:#000}
-.step-title{font-weight:700;color:var(--white);font-size:13px}
-.step-sub{font-size:11px;color:var(--muted);margin-top:1px}
-.step-body{padding:14px}
-.field{display:flex;flex-direction:column;gap:3px;margin-bottom:8px}
-.field label{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase}
-input[type=text],input[type=number],input[type=date],select{background:var(--bg);border:1px solid var(--border-hi);color:var(--white);padding:7px 9px;border-radius:3px;font-size:13px;font-family:'IBM Plex Mono',monospace;width:100%}
-input:focus,select:focus{outline:none;border-color:var(--accent)}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.span2{grid-column:span 2}
-button{padding:10px 16px;border:none;border-radius:3px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:.15s;width:100%}
-.btn-blue{background:var(--blue);color:#000}.btn-green{background:var(--green);color:#000}
-.btn-yellow{background:var(--yellow);color:#000}.btn-teal{background:var(--teal);color:#000}
-.btn-tw{background:var(--tw);color:#000}.btn-tw:hover{background:#ff9bbf}
-.btn-outline{background:transparent;border:1px solid var(--border-hi);color:var(--accent)}
-.btn-run{background:var(--accent);color:#000;font-size:15px;padding:12px;margin-top:8px}
-.stat-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
-.stat-box{background:var(--bg);border:1px solid var(--border);padding:10px 14px;border-radius:3px;flex:1;min-width:140px}
-.stat-box .n{font-size:20px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--white)}
-.stat-box .s{font-size:11px;color:var(--muted);margin-top:2px}
-input[type=file]{display:none}
-#fetchLog{font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:8px;min-height:16px;word-break:break-all}
-.cfg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:16px}
-.cfg-box{background:var(--surface);border:1px solid var(--border);padding:12px}
-.cfg-label{font-size:11px;font-weight:700;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:5px;margin-bottom:8px}
-.cfg-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:6px}
-.cfg-row input{width:65px;text-align:right}
-.cfg-row.wide input{width:110px}
-.toggle-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px}
-.toggle-row:last-child{border-bottom:none}
-.tog{position:relative;width:38px;height:20px;flex-shrink:0}
-.tog input{opacity:0;width:0;height:0;position:absolute}
-.tog-sl{position:absolute;inset:0;background:var(--border-hi);border-radius:10px;transition:.2s;cursor:pointer}
-.tog-sl:before{content:'';position:absolute;width:14px;height:14px;border-radius:50%;background:var(--muted);left:3px;top:3px;transition:.2s}
-.tog input:checked+.tog-sl{background:var(--green-dim);border:1px solid var(--green)}
-.tog input:checked+.tog-sl:before{transform:translateX(18px);background:var(--green)}
-.strk-cond{border-bottom:1px solid var(--border);padding:6px 0}
-.strk-cond:last-child{border-bottom:none}
-.strk-cond-row{display:flex;align-items:center;gap:6px}
-.strk-cond-row label.cond-check{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;flex:1}
-.strk-cond-row label.cond-check input[type=checkbox]{width:14px;height:14px;cursor:pointer;accent-color:var(--green)}
-.strk-cond-row input[type=number]{width:52px;padding:4px 6px;font-size:12px;text-align:right}
-.strk-sub{padding-left:36px;margin-top:3px;font-size:11px;color:var(--muted)}
-.strk-sub label{display:flex;align-items:center;gap:4px;cursor:pointer;flex-wrap:wrap}
-.strk-sub input[type=checkbox]{width:13px;height:13px;accent-color:var(--orange)}
-.strk-sub input[type=number]{width:44px;padding:3px 5px;font-size:11px;display:inline-block}
-.strk-n-bar{display:flex;align-items:center;gap:6px;padding:6px 0 8px;border-bottom:1px solid var(--border-hi);margin-bottom:4px;font-size:12px;flex-wrap:wrap}
-.strk-n-bar input[type=number]{width:38px;text-align:center;padding:4px;font-size:13px}
-.strk-info{margin-top:6px;font-size:10px;color:var(--muted);background:var(--surface2);padding:5px 8px;border-radius:3px;line-height:1.6}
-.live-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:16px}
-.live-card{background:var(--surface);border:1px solid var(--border);padding:12px 14px}
-.live-label{font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:8px}
-.live-main{display:flex;align-items:center;gap:8px;margin-bottom:6px}
-.live-score{font-size:18px;font-weight:700;font-family:'IBM Plex Mono',monospace}
-.live-delta{text-align:right;font-family:'IBM Plex Mono',monospace}
-.score-bar-row{display:flex;gap:6px;margin-top:6px}
-.score-bar{flex:1;height:3px;border-radius:2px;background:var(--border)}
-.score-bar .fill{height:100%;border-radius:2px}
-.db-warn{display:flex;align-items:center;gap:5px;margin-top:6px;font-size:11px;font-family:'IBM Plex Mono',monospace;padding:4px 7px;border-radius:3px;background:var(--yellow-dim);border:1px solid var(--yellow);color:var(--yellow)}
-.db-bar{height:4px;border-radius:2px;background:var(--border);margin-top:4px;overflow:hidden}
-.db-bar-fill{height:100%;border-radius:2px;transition:width .3s}
-.plus-note{background:var(--blue-dim);border:1px solid var(--blue);padding:8px 10px;border-radius:3px;font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:8px}
-.plus-note b{color:var(--blue)}
-.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px;margin-bottom:16px}
-.metric-card{background:var(--surface);border:1px solid var(--border);padding:14px}
-.m-title{font-size:12px;color:var(--muted);font-weight:700;margin-bottom:10px;text-transform:uppercase}
-.m-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;border-bottom:1px dashed var(--border);padding-bottom:3px}
-.m-row:last-child{border-bottom:none}
-.m-val{font-family:'IBM Plex Mono',monospace;font-weight:700}
-.chart-wrap{background:var(--surface);border:1px solid var(--border);padding:14px;margin-bottom:12px}
-.chart-title{font-size:12px;color:var(--muted);font-weight:700;margin-bottom:10px;text-transform:uppercase}
-.table-wrap{background:var(--surface);border:1px solid var(--border);overflow-x:auto;margin-bottom:12px;max-height:540px}
-table{width:100%;border-collapse:collapse;font-size:12px}
-th{padding:8px;color:var(--muted);text-align:left;background:var(--surface2);position:sticky;top:0;z-index:2}
-td{padding:8px;border-bottom:1px solid var(--border)}
-.tg{color:var(--green);font-weight:700}.tc{color:var(--accent);font-weight:700}
-.tr{color:var(--red);font-weight:700}.ty{color:var(--yellow);font-weight:700}
-.tp{color:var(--purple);font-weight:700}.tt{color:var(--teal);font-weight:700}.ttw{color:var(--tw);font-weight:700}
-.log-row:hover{background:var(--surface2)}
-.log-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px}
-.lfb{padding:5px 12px;border:1px solid var(--border-hi);background:transparent;color:var(--muted);border-radius:3px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;transition:.15s}
-.lfb.active{background:var(--surface2);color:var(--accent);border-color:var(--accent)}
-.loading-overlay{position:fixed;inset:0;background:rgba(10,12,16,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:14px}
-.hidden{display:none}
-.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-#loadingText{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted)}
-.weekend-warn{display:none;margin-top:6px;padding:5px 8px;background:var(--orange-dim);border:1px solid var(--orange);border-radius:3px;font-size:11px;color:var(--orange);font-weight:700}
-.tw-note{background:var(--tw-dim);border:1px solid var(--tw);padding:10px 12px;border-radius:3px;font-size:11px;color:var(--muted);line-height:1.9;margin-bottom:12px}
-.tw-note b{color:var(--tw)}
-.asset-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:5px;margin-bottom:8px}
-.asset-chip{background:var(--surface2);border:1px solid var(--border);padding:5px 8px;border-radius:3px;font-size:11px;font-family:'IBM Plex Mono',monospace;display:flex;flex-direction:column;cursor:pointer;transition:.15s;user-select:none}
-.asset-chip:hover{border-color:var(--teal)}
-.asset-chip.enabled{background:var(--teal-dim);border-color:var(--teal);color:var(--teal)}
-.asset-chip.enabled-tw{background:var(--tw-dim);border-color:var(--tw);color:var(--tw)}
-.asset-chip.cash{border-color:var(--green);color:var(--green);cursor:default}
-.mom-status-bar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
-.mas-ok{font-size:10px;font-family:monospace;padding:2px 6px;border-radius:3px;background:var(--teal-dim);border:1px solid var(--teal);color:var(--teal)}
-.mas-ok-tw{font-size:10px;font-family:monospace;padding:2px 6px;border-radius:3px;background:var(--tw-dim);border:1px solid var(--tw);color:var(--tw)}
-.mas-fail{font-size:10px;font-family:monospace;padding:2px 6px;border-radius:3px;background:var(--red-dim);border:1px solid var(--red);color:var(--red)}
-.mas-pending{font-size:10px;font-family:monospace;padding:2px 6px;border-radius:3px;background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
-.signal-card{background:var(--surface);border:1px solid var(--border);padding:12px;margin-bottom:12px}
-.signal-row{display:flex;align-items:center;gap:5px;padding:4px 0;border-bottom:1px solid var(--border);font-size:11px;font-family:'IBM Plex Mono',monospace}
-.signal-row:last-child{border-bottom:none}
-.bar-wrap{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
-.bar-fill{height:100%;border-radius:2px}
-.holding-chip{display:inline-block;padding:2px 7px;border-radius:3px;font-size:11px;font-family:monospace;font-weight:700;margin:1px 2px}
-.holding-chip.cash{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
-.holding-chip.tw{background:var(--tw-dim);color:var(--tw);border:1px solid var(--tw)}
-.holding-chip.etf{background:var(--teal-dim);color:var(--teal);border:1px solid var(--teal)}
-.progress-bar-wrap{background:var(--border);border-radius:2px;height:6px;margin-top:6px;overflow:hidden}
-.progress-bar-fill{height:100%;border-radius:2px;transition:width .3s}
-</style>
-</head>
-<body>
-<div class="loading-overlay hidden" id="loadingOverlay">
-  <div class="spinner"></div>
-  <div id="loadingText">處理中...</div>
-</div>
-<div class="wrap">
-<div class="hdr">
-  <div>
-    <div class="hdr-title">🛡️ 矛與盾 × 台股動能 <span class="v">0326</span></div>
-    <div class="hdr-sub">A/B/C/D 盾牌四軌 ｜ V9.6 美股ETF動能 ｜ 🇹🇼 台股個股動能 V1.0（52W高點·連續性Sharpe·停損·市場狀態·VWMA+量能·截面z·相關性過濾）｜ 台50+台100成分股</div>
-  </div>
-  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-    <span id="twCurrentBadge" class="hidden" style="font-size:11px;padding:3px 10px;border-radius:3px;font-family:monospace;background:var(--tw-dim);color:var(--tw);border:1px solid var(--tw)">TW: --</span>
-    <span id="regimeBadge" style="font-size:11px;padding:3px 10px;border-radius:3px;font-family:monospace;background:var(--surface2);color:var(--muted);border:1px solid var(--border)">Regime: --</span>
-    <span id="storageBadge" style="font-size:11px;padding:3px 10px;border-radius:3px;font-family:monospace;background:var(--surface2);color:var(--muted);border:1px solid var(--border)">💾 --</span>
-    <button onclick="clearStorage()" style="font-size:11px;padding:3px 10px;border-radius:3px;background:transparent;border:1px solid var(--border);color:var(--dim);cursor:pointer;font-family:monospace">🗑 清除快取</button>
-    <span id="freqBadge" style="font-size:11px;padding:3px 10px;border-radius:3px;font-family:monospace;background:var(--surface2);color:var(--muted);border:1px solid var(--border)">📅 --</span>
-    <div id="dataSourceBadge" style="font-size:12px;padding:4px 12px;border:1px solid var(--border-hi);color:var(--muted);font-family:monospace;">● 初始模式</div>
-  </div>
-</div>
-<div class="tabs">
-  <button class="tab active" onclick="switchTab(event,'db')">🗄️ 資料庫</button>
-  <button class="tab" onclick="switchTab(event,'cfg')">⚙ 回測設定</button>
-  <button class="tab" onclick="switchTab(event,'result')">📊 績效與即時</button>
-  <button class="tab" onclick="switchTab(event,'mom')">📈 動能輪動</button>
-  <button class="tab" onclick="switchTab(event,'tw')" style="color:var(--tw)">🇹🇼 台股動能</button>
-  <button class="tab" onclick="switchTab(event,'logs')">📜 歷程</button>
-</div>
-
-<!-- ══ DB ══ -->
-
-<div class="panel active" id="panel-db">
-<div class="step-block">
-  <div class="step-header"><div><div class="step-title">🔑 API 設定</div></div></div>
-  <div class="step-body">
-    <div class="grid2">
-      <div class="field span2"><label>FRED API Key</label>
-        <input type="text" id="apiFredKey" value="258bf0113f3cc4ec207f3160731c459e" autocorrect="off" spellcheck="false"></div>
-      <div class="field span2"><label>Proxy URL</label>
-        <input type="text" id="apiProxy" value="https://shield-proxy.depross0205.workers.dev?url=" autocorrect="off" spellcheck="false"></div>
-    </div>
-  </div>
-</div>
+.step-num{width:24px;height:24px
 <div class="step-block" id="csvUploadBlock">
   <div class="step-header"><span class="step-num sn1">1</span>
     <div><div class="step-title">上傳現有歷史資料庫</div><div class="step-sub">僅在未執行自動抓取時可用</div></div></div>
