@@ -5,7 +5,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>&#x53F0;&#x80A1;&#x52D5;&#x80FD;&#x9078;&#x80A1; V1.7</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+function toggleCharts(btn){
+  var area=$(('chartArea'));if(!area)return;
+  var hidden=area.style.display==='none';
+  area.style.display=hidden?'block':'none';
+  btn.textContent=hidden?'\u25BC Hide Charts (NAV / MDD)':'\u25B6 Show Charts (NAV / MDD)';
+  // Resize charts after reveal so they render correctly
+  if(hidden&&CHART.n){CHART.n.resize();CHART.d.resize();}
+}
+</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Noto+Sans+TC:wght@400;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -361,8 +370,13 @@ tr:hover{background:var(--sf2)}
   </div>
   <div id="btRes" class="hidden">
     <div id="btMetrics" class="g3" style="gap:8px;margin-bottom:10px"></div>
-    <div class="cw"><div class="ct2">NAV vs TAIEX</div><canvas id="navC" height="260"></canvas></div>
-    <div class="cw"><div class="ct2">MDD</div><canvas id="ddC" height="140"></canvas></div>
+    <div style="margin-bottom:8px">
+      <button class="bo sm" onclick="toggleCharts(this)" id="btnChart" style="width:100%;text-align:left">&#x25B6; Show Charts (NAV / MDD)</button>
+      <div id="chartArea" style="display:none;margin-top:6px">
+        <div class="cw"><div class="ct2">NAV vs TAIEX</div><canvas id="navC" height="220"></canvas></div>
+        <div class="cw"><div class="ct2">MDD</div><canvas id="ddC" height="120"></canvas></div>
+      </div>
+    </div>
     <div style="display:flex;justify-content:flex-end;margin-bottom:6px">
       <button class="bo sm" onclick="dlBtCsv()">&#x2B07; CSV</button>
     </div>
