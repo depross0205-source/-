@@ -462,7 +462,7 @@ if(document.querySelector(’[data-code=”’+code+’”]’))return;
 var name=$(‘cusN’).value.trim()||code;
 var chip=document.createElement(‘span’);
 chip.className=‘sc act’+(isUS?’ usc’:’’);
-chip.setAttribute(‘onclick’,‘toggleStock(”’+code+’”)’);
+chip.setAttribute(‘onclick’,“toggleStock(’”+code+”’)”);
 chip.dataset.code=code;chip.dataset.type=‘mid’;
 chip.dataset.tw=isUS?‘0’:‘1’;chip.dataset.on=‘1’;
 chip.innerHTML=’<span class="cc">’+code+’</span><span class="cn">’+name+’</span>’
