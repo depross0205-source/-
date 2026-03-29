@@ -1,308 +1,17 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>台股動能選股 V1.8 - 擴充版</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Noto+Sans+TC:wght@400;600;700&display=swap');
-*{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#0a0c10;--sf:#12161f;--sf2:#1a2030;--bd:#252d3d;--bhi:#3a4560;
-  --tx:#e2eaf8;--mu:#6b7a99;--gr:#00e5a0;--re:#ff4d6d;--red:#3d0012;
-  --ye:#ffb830;--bl:#4d9fff;--bld:#001a3d;--ac:#7eb8ff;
-  --tw:#ff6b9d;--twd:#3d0020;--te:#00d4aa;--ted:#003328;--wh:#f8faff;
-  --us:#a78bfa;--usd:#1a0040;
-}
-body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;padding:16px;font-size:14px;line-height:1.6}
-.mono{font-family:'IBM Plex Mono',monospace}
-.wrap{max-width:1200px;margin:0 auto}
-h1{font-size:18px;font-weight:700;color:var(--wh);display:flex;align-items:center;gap:8px;margin-bottom:4px}
-.tag{font-size:11px;padding:2px 8px;border-radius:3px;background:var(--tw);color:#000;font-weight:700}
-.sub{font-size:11px;color:var(--mu);margin-bottom:14px;line-height:1.8}
-.tabs{display:flex;border-bottom:2px solid var(--bd);margin-bottom:14px;overflow-x:auto;white-space:nowrap}
-.tab{padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;color:var(--mu);border:none;border-bottom:3px solid transparent;margin-bottom:-2px;background:none;font-family:inherit;transition:.15s}
-.tab.active{color:var(--tw);border-bottom-color:var(--tw)}
-.panel{display:none}.panel.active{display:block}
-.card{background:var(--sf);border:1px solid var(--bd);padding:13px;margin-bottom:10px}
-.ct{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--mu);margin-bottom:9px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-.fi{display:flex;flex-direction:column;gap:3px}
-.fi label{font-size:10px;color:var(--mu);font-weight:700;text-transform:uppercase}
-input[type=text],input[type=number],select{background:var(--bg);border:1px solid var(--bhi);color:var(--wh);padding:7px 9px;border-radius:3px;font-size:13px;font-family:'IBM Plex Mono',monospace;width:100%}
-input:focus,select:focus{outline:none;border-color:var(--tw)}
-button{padding:9px 14px;border:none;border-radius:3px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:.15s}
-.btw{background:var(--tw);color:#000;width:100%}.btw:hover{opacity:.85}
-.bo{background:transparent;border:1px solid var(--bhi);color:var(--mu)}.bo:hover{color:var(--tx);border-color:var(--tx)}
-.bte{background:transparent;border:1px solid var(--te);color:var(--te);width:100%}.bte:hover{opacity:.85}
-.sm{padding:5px 11px;font-size:11px;width:auto}
-.log{font-size:11px;color:var(--mu);font-family:'IBM Plex Mono',monospace;margin-top:7px;min-height:14px;word-break:break-all;white-space:pre-wrap}
-.pw{background:var(--bd);border-radius:2px;height:4px;margin-top:6px;overflow:hidden}
-.pf{height:100%;background:var(--tw);border-radius:2px;transition:width .3s}
-.ig{border:1px solid var(--bd);margin-bottom:5px;border-radius:3px;overflow:hidden}
-.ih{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;cursor:pointer;background:var(--sf2);user-select:none;gap:8px}
-.ih:hover{background:var(--bhi)}
-.in{font-size:12px;font-weight:700;color:var(--ac);flex:1}
-.ic{font-size:10px;color:var(--mu);white-space:nowrap}
-.ib{padding:7px;display:flex;flex-wrap:wrap;gap:4px}
-.ib.col{display:none}
-.sc{display:inline-flex;align-items:center;padding:4px 8px;border-radius:3px;font-size:11px;font-family:'IBM Plex Mono',monospace;border:1px solid var(--bd);background:var(--bg);cursor:pointer;gap:4px;user-select:none;transition:.12s}
-.sc:hover{border-color:var(--tw);background:var(--twd)}
-.sc.act{background:var(--twd);border-color:var(--tw);color:var(--tw)}
-.sc.usc:hover{border-color:var(--us);background:var(--usd)}
-.sc.usc.act{background:var(--usd);border-color:var(--us);color:var(--us)}
-.cc{font-weight:700}.cn{font-size:9px;color:var(--mu)}
-.sc.act .cn{color:var(--tw);opacity:.7}.sc.usc.act .cn{color:var(--us);opacity:.7}
-.cd{font-size:12px;color:var(--re);opacity:0;padding:0 2px;line-height:1}
-.sc:hover .cd{opacity:1}
-.cust{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;align-items:center}
-.cust input,.cust select{flex:1;min-width:75px}
-.sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:8px;margin-bottom:10px}
-.scard{background:var(--sf);border:1px solid var(--bd);padding:11px;border-radius:3px}
-.shdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px}
-.scode{font-size:15px;font-weight:700;font-family:'IBM Plex Mono',monospace}
-.sname{font-size:10px;color:var(--mu)}
-.sscore{font-size:21px;font-weight:700;font-family:'IBM Plex Mono',monospace}
-.srank{font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px}
-.sbars{margin-top:7px}
-.sbrow{display:flex;align-items:center;gap:5px;margin-bottom:3px;font-size:10px;color:var(--mu)}
-.sbwrap{flex:1;height:3px;background:var(--bd);border-radius:2px;overflow:hidden}
-.sbfill{height:100%;border-radius:2px}
-.mr{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px dashed var(--bd)}
-.mr:last-child{border:none}.mv{font-family:'IBM Plex Mono',monospace;font-weight:700}
-.tg{color:var(--gr)}.tr{color:var(--re)}.wh{color:var(--wh)}
-.tw-wrap{overflow-x:auto;background:var(--sf);border:1px solid var(--bd);margin-bottom:10px;max-height:480px}
-table{width:100%;border-collapse:collapse;font-size:12px}
-th{padding:7px 8px;color:var(--mu);text-align:left;background:var(--sf2);position:sticky;top:0;z-index:2;font-size:10px;white-space:nowrap}
-td{padding:6px 8px;border-bottom:1px solid var(--bd);white-space:nowrap}
-tr:hover{background:var(--sf2)}
-.cw{background:var(--sf);border:1px solid var(--bd);padding:13px;margin-bottom:10px}
-.ct2{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--mu);margin-bottom:9px}
-.load{position:fixed;inset:0;background:rgba(10,12,16,.93);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:12px}
-.spin{width:32px;height:32px;border:3px solid var(--bd);border-top-color:var(--tw);border-radius:50%;animation:sp .7s linear infinite}
-@keyframes sp{to{transform:rotate(360deg)}}
-.hidden{display:none}
-.bdg{display:inline-flex;align-items:center;padding:2px 7px;border-radius:3px;font-size:10px;font-family:'IBM Plex Mono',monospace;font-weight:700;margin:2px}
-.shbar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--twd);border:1px solid var(--tw);border-radius:3px;margin-bottom:10px;flex-wrap:wrap}
-.shbar label{font-size:11px;color:var(--tw);font-weight:700;white-space:nowrap}
-.shbar input{width:70px}.shbar span{font-size:10px;color:var(--mu)}
-.ib2{background:var(--sf2);border:1px solid var(--bd);padding:9px 11px;border-radius:3px;font-size:11px;color:var(--mu);line-height:1.9;margin-top:8px}
-.ib2 b{color:var(--tw)}
-.tnx-bar{display:flex;align-items:center;gap:10px;padding:6px 10px;background:var(--bld);border:1px solid var(--bl);border-radius:3px;margin-bottom:8px;font-size:11px;flex-wrap:wrap}
-.cs-bar{display:flex;align-items:center;padding:6px 10px;background:var(--sf2);border:1px solid var(--bd);border-radius:3px;margin-bottom:8px}
-</style>
-</head>
-<body>
-<div class="load hidden" id="loadEl">
-  <div class="spin"></div>
-  <div id="loadTxt" style="font-family:monospace;font-size:13px;color:var(--mu)">...</div>
-</div>
-<div class="wrap">
-<h1>🇹🇼 台股動能選股 <span class="tag">V1.8+</span></h1>
-<div class="sub">V1.8 Base + Top 47 Giants | TS=^TNX+0.5% | JSON 下載與上傳</div>
-<div class="tabs">
-  <button class="tab active" onclick="switchTab('pool',this)">📋 股池</button>
-  <button class="tab" onclick="switchTab('fetch',this)">🌐 抓取</button>
-  <button class="tab" onclick="switchTab('signal',this)">📡 信號</button>
-  <button class="tab" onclick="switchTab('backtest',this)">📈 回測</button>
-</div>
-<div class="panel active" id="panel-pool">
-  <div class="shbar">
-    <label>🛡️ 盾牌過濾</label>
-    <input type="number" id="shieldScore" placeholder="0-100" min="0" max="100">
-    <span>留空=不過濾</span>
-  </div>
-  <div class="card">
-    <div class="ct">股池管理
-      <div style="display:flex;gap:6px">
-        <button class="bo sm" onclick="selectAll()">全選</button>
-        <button class="bo sm" onclick="selectNone()">全停</button>
-      </div>
-    </div>
-
-    <div class="ig"><div class="ih" onclick="toggleInd(this)"><span class="in">[US] Core Giants (Index Top 30)</span><span class="ic" id="ic_topus">47/47</span></div><div class="ib" id="ib_topus">
-      <span class="sc act usc" onclick="toggleStock('AAPL')" data-code="AAPL" data-type="mid" data-tw="0" data-on="1"><span class="cc">AAPL</span><span class="cn">Apple</span></span>
-      <span class="sc act usc" onclick="toggleStock('MSFT')" data-code="MSFT" data-type="mid" data-tw="0" data-on="1"><span class="cc">MSFT</span><span class="cn">Microsoft</span></span>
-      <span class="sc act usc" onclick="toggleStock('NVDA')" data-code="NVDA" data-type="mid" data-tw="0" data-on="1"><span class="cc">NVDA</span><span class="cn">Nvidia</span></span>
-      <span class="sc act usc" onclick="toggleStock('AMZN')" data-code="AMZN" data-type="mid" data-tw="0" data-on="1"><span class="cc">AMZN</span><span class="cn">Amazon</span></span>
-      <span class="sc act usc" onclick="toggleStock('META')" data-code="META" data-type="mid" data-tw="0" data-on="1"><span class="cc">META</span><span class="cn">Meta</span></span>
-      <span class="sc act usc" onclick="toggleStock('GOOGL')" data-code="GOOGL" data-type="mid" data-tw="0" data-on="1"><span class="cc">GOOGL</span><span class="cn">Alphabet A</span></span>
-      <span class="sc act usc" onclick="toggleStock('GOOG')" data-code="GOOG" data-type="mid" data-tw="0" data-on="1"><span class="cc">GOOG</span><span class="cn">Alphabet C</span></span>
-      <span class="sc act usc" onclick="toggleStock('BRK-B')" data-code="BRK-B" data-type="mid" data-tw="0" data-on="1"><span class="cc">BRK-B</span><span class="cn">Berkshire</span></span>
-      <span class="sc act usc" onclick="toggleStock('AVGO')" data-code="AVGO" data-type="mid" data-tw="0" data-on="1"><span class="cc">AVGO</span><span class="cn">Broadcom</span></span>
-      <span class="sc act usc" onclick="toggleStock('LLY')" data-code="LLY" data-type="mid" data-tw="0" data-on="1"><span class="cc">LLY</span><span class="cn">Eli Lilly</span></span>
-      <span class="sc act usc" onclick="toggleStock('TSLA')" data-code="TSLA" data-type="mid" data-tw="0" data-on="1"><span class="cc">TSLA</span><span class="cn">Tesla</span></span>
-      <span class="sc act usc" onclick="toggleStock('V')" data-code="V" data-type="mid" data-tw="0" data-on="1"><span class="cc">V</span><span class="cn">Visa</span></span>
-      <span class="sc act usc" onclick="toggleStock('UNH')" data-code="UNH" data-type="mid" data-tw="0" data-on="1"><span class="cc">UNH</span><span class="cn">UnitedHealth</span></span>
-      <span class="sc act usc" onclick="toggleStock('JPM')" data-code="JPM" data-type="mid" data-tw="0" data-on="1"><span class="cc">JPM</span><span class="cn">JPMorgan</span></span>
-      <span class="sc act usc" onclick="toggleStock('MA')" data-code="MA" data-type="mid" data-tw="0" data-on="1"><span class="cc">MA</span><span class="cn">Mastercard</span></span>
-      <span class="sc act usc" onclick="toggleStock('XOM')" data-code="XOM" data-type="mid" data-tw="0" data-on="1"><span class="cc">XOM</span><span class="cn">ExxonMobil</span></span>
-      <span class="sc act usc" onclick="toggleStock('COST')" data-code="COST" data-type="mid" data-tw="0" data-on="1"><span class="cc">COST</span><span class="cn">Costco</span></span>
-      <span class="sc act usc" onclick="toggleStock('PG')" data-code="PG" data-type="mid" data-tw="0" data-on="1"><span class="cc">PG</span><span class="cn">P&G</span></span>
-      <span class="sc act usc" onclick="toggleStock('HD')" data-code="HD" data-type="mid" data-tw="0" data-on="1"><span class="cc">HD</span><span class="cn">Home Depot</span></span>
-      <span class="sc act usc" onclick="toggleStock('JNJ')" data-code="JNJ" data-type="mid" data-tw="0" data-on="1"><span class="cc">JNJ</span><span class="cn">J&J</span></span>
-      <span class="sc act usc" onclick="toggleStock('NFLX')" data-code="NFLX" data-type="mid" data-tw="0" data-on="1"><span class="cc">NFLX</span><span class="cn">Netflix</span></span>
-      <span class="sc act usc" onclick="toggleStock('ABBV')" data-code="ABBV" data-type="mid" data-tw="0" data-on="1"><span class="cc">ABBV</span><span class="cn">AbbVie</span></span>
-      <span class="sc act usc" onclick="toggleStock('CRM')" data-code="CRM" data-type="mid" data-tw="0" data-on="1"><span class="cc">CRM</span><span class="cn">Salesforce</span></span>
-      <span class="sc act usc" onclick="toggleStock('BAC')" data-code="BAC" data-type="mid" data-tw="0" data-on="1"><span class="cc">BAC</span><span class="cn">BofA</span></span>
-      <span class="sc act usc" onclick="toggleStock('AMD')" data-code="AMD" data-type="mid" data-tw="0" data-on="1"><span class="cc">AMD</span><span class="cn">AMD</span></span>
-      <span class="sc act usc" onclick="toggleStock('CVX')" data-code="CVX" data-type="mid" data-tw="0" data-on="1"><span class="cc">CVX</span><span class="cn">Chevron</span></span>
-      <span class="sc act usc" onclick="toggleStock('ADBE')" data-code="ADBE" data-type="mid" data-tw="0" data-on="1"><span class="cc">ADBE</span><span class="cn">Adobe</span></span>
-      <span class="sc act usc" onclick="toggleStock('WMT')" data-code="WMT" data-type="mid" data-tw="0" data-on="1"><span class="cc">WMT</span><span class="cn">Walmart</span></span>
-      <span class="sc act usc" onclick="toggleStock('PEP')" data-code="PEP" data-type="mid" data-tw="0" data-on="1"><span class="cc">PEP</span><span class="cn">PepsiCo</span></span>
-      <span class="sc act usc" onclick="toggleStock('KO')" data-code="KO" data-type="mid" data-tw="0" data-on="1"><span class="cc">KO</span><span class="cn">Coca-Cola</span></span>
-      <span class="sc act usc" onclick="toggleStock('ASML')" data-code="ASML" data-type="mid" data-tw="0" data-on="1"><span class="cc">ASML</span><span class="cn">ASML</span></span>
-      <span class="sc act usc" onclick="toggleStock('AZN')" data-code="AZN" data-type="mid" data-tw="0" data-on="1"><span class="cc">AZN</span><span class="cn">AstraZeneca</span></span>
-      <span class="sc act usc" onclick="toggleStock('LIN')" data-code="LIN" data-type="mid" data-tw="0" data-on="1"><span class="cc">LIN</span><span class="cn">Linde</span></span>
-      <span class="sc act usc" onclick="toggleStock('TMUS')" data-code="TMUS" data-type="mid" data-tw="0" data-on="1"><span class="cc">TMUS</span><span class="cn">T-Mobile</span></span>
-      <span class="sc act usc" onclick="toggleStock('CSCO')" data-code="CSCO" data-type="mid" data-tw="0" data-on="1"><span class="cc">CSCO</span><span class="cn">Cisco</span></span>
-      <span class="sc act usc" onclick="toggleStock('INTC')" data-code="INTC" data-type="mid" data-tw="0" data-on="1"><span class="cc">INTC</span><span class="cn">Intel</span></span>
-      <span class="sc act usc" onclick="toggleStock('QCOM')" data-code="QCOM" data-type="mid" data-tw="0" data-on="1"><span class="cc">QCOM</span><span class="cn">Qualcomm</span></span>
-      <span class="sc act usc" onclick="toggleStock('TXN')" data-code="TXN" data-type="mid" data-tw="0" data-on="1"><span class="cc">TXN</span><span class="cn">Texas Inst.</span></span>
-      <span class="sc act usc" onclick="toggleStock('AMAT')" data-code="AMAT" data-type="mid" data-tw="0" data-on="1"><span class="cc">AMAT</span><span class="cn">AppliedMat</span></span>
-      <span class="sc act usc" onclick="toggleStock('INTU')" data-code="INTU" data-type="mid" data-tw="0" data-on="1"><span class="cc">INTU</span><span class="cn">Intuit</span></span>
-      <span class="sc act usc" onclick="toggleStock('ISRG')" data-code="ISRG" data-type="mid" data-tw="0" data-on="1"><span class="cc">ISRG</span><span class="cn">Intuitive</span></span>
-      <span class="sc act usc" onclick="toggleStock('AMGN')" data-code="AMGN" data-type="mid" data-tw="0" data-on="1"><span class="cc">AMGN</span><span class="cn">Amgen</span></span>
-      <span class="sc act usc" onclick="toggleStock('HON')" data-code="HON" data-type="mid" data-tw="0" data-on="1"><span class="cc">HON</span><span class="cn">Honeywell</span></span>
-      <span class="sc act usc" onclick="toggleStock('LRCX')" data-code="LRCX" data-type="mid" data-tw="0" data-on="1"><span class="cc">LRCX</span><span class="cn">Lam Research</span></span>
-      <span class="sc act usc" onclick="toggleStock('BKNG')" data-code="BKNG" data-type="mid" data-tw="0" data-on="1"><span class="cc">BKNG</span><span class="cn">Booking</span></span>
-      <span class="sc act usc" onclick="toggleStock('VRTX')" data-code="VRTX" data-type="mid" data-tw="0" data-on="1"><span class="cc">VRTX</span><span class="cn">Vertex</span></span>
-      <span class="sc act usc" onclick="toggleStock('TMO')" data-code="TMO" data-type="mid" data-tw="0" data-on="1"><span class="cc">TMO</span><span class="cn">Thermo Fisher</span></span>
-    </div></div>
-
-    <div class="ig"><div class="ih" onclick="toggleInd(this)"><span class="in">[US] US-ETF</span><span class="ic" id="ic0">11/11</span></div><div class="ib" id="ib0">
-      <span class="sc act usc" onclick="toggleStock('SPY')" data-code="SPY" data-type="mid" data-tw="0" data-on="1"><span class="cc">SPY</span><span class="cn">SPY500</span><span class="cd" onclick="event.stopPropagation();deleteStock('SPY')">&times;</span></span>
-      <span class="sc act usc" onclick="toggleStock('QQQ')" data-code="QQQ" data-type="mid" data-tw="0" data-on="1"><span class="cc">QQQ</span><span class="cn">NasdaqETF</span><span class="cd" onclick="event.stopPropagation();deleteStock('QQQ')">&times;</span></span>
-      <span class="sc act usc" onclick="toggleStock('IWM')" data-code="IWM" data-type="mid" data-tw="0" data-on="1"><span class="cc">IWM</span><span class="cn">SmallCap</span><span class="cd" onclick="event.stopPropagation();deleteStock('IWM')">&times;</span></span>
-      <span class="sc act usc" onclick="toggleStock('VEU')" data-code="VEU" data-type="mid" data-tw="0" data-on="1"><span class="cc">VEU</span><span class="cn">GlobalExUS</span><span class="cd" onclick="event.stopPropagation();deleteStock('VEU')">&times;</span></span>
-      <span class="sc act usc" onclick="toggleStock('EFA')" data-code="EFA" data-type="mid" data-tw="0" data-on="1"><span class="cc">EFA</span><span class="cn">DevelMkt</span><span class="cd" onclick="event.stopPropagation();deleteStock('EFA')">&times;</span></span>
-      <span class="sc act usc" onclick="toggleStock('EEM')" data-code="EEM" data-type="mid" data-tw="0" data-on="1"><span class="cc">EEM</span><span class="cn">EmergMkt</span><span class="cd" onclick="event.stopPropagation();deleteStock('EEM')">&times;</span></span>
-      <span class="sc act usc" onclick="toggleStock('TLT')" data-code="TLT" data-type="mid" data-tw="0" data-on="1"><span class="cc">TLT</span><span class="cn">Bond20Y</span><span class="cd" onclick="event.stopPropagation();deleteStock('TLT')">&times;</span></span>
-      <span class="sc act usc" onclick="toggleStock('IEF')" data-code="IEF" data-type="mid" data-tw="0" data-on="1"><span class="cc">IEF</span><span class="cn">Bond7Y</span><span class="cd" onclick="event.stopPropagation();deleteStock('IEF')">&times;</span></span>
-      <span class="sc act usc" onclick="toggleStock('GLD')" data-code="GLD" data-type="mid" data-tw="0" data-on="1"><span class="cc">GLD</span><span class="cn">Gold</span><span class="cd" onclick="event.stopPropagation();deleteStock('GLD')">&times;</span></span>
-      <span class="sc act usc" onclick="toggleStock('SLV')" data-code="SLV" data-type="mid" data-tw="0" data-on="1"><span class="cc">SLV</span><span class="cn">Silver</span><span class="cd" onclick="event.stopPropagation();deleteStock('SLV')">&times;</span></span>
-      <span class="sc act usc" onclick="toggleStock('VNQ')" data-code="VNQ" data-type="mid" data-tw="0" data-on="1"><span class="cc">VNQ</span><span class="cn">REIT</span><span class="cd" onclick="event.stopPropagation();deleteStock('VNQ')">&times;</span></span>
-    </div></div>
-
-    <div class="ig"><div class="ih" onclick="toggleInd(this)"><span class="in">[US] US-Mag7</span><span class="ic" id="ic1">7/7</span></div><div class="ib" id="ib1">
-      <span class="sc act usc" onclick="toggleStock('AAPL')" data-code="AAPL" data-type="mid" data-tw="0" data-on="1"><span class="cc">AAPL</span><span class="cn">Apple</span></span>
-      <span class="sc act usc" onclick="toggleStock('MSFT')" data-code="MSFT" data-type="mid" data-tw="0" data-on="1"><span class="cc">MSFT</span><span class="cn">Microsoft</span></span>
-      <span class="sc act usc" onclick="toggleStock('GOOGL')" data-code="GOOGL" data-type="mid" data-tw="0" data-on="1"><span class="cc">GOOGL</span><span class="cn">Alphabet</span></span>
-      <span class="sc act usc" onclick="toggleStock('AMZN')" data-code="AMZN" data-type="mid" data-tw="0" data-on="1"><span class="cc">AMZN</span><span class="cn">Amazon</span></span>
-      <span class="sc act usc" onclick="toggleStock('META')" data-code="META" data-type="mid" data-tw="0" data-on="1"><span class="cc">META</span><span class="cn">Meta</span></span>
-      <span class="sc act usc" onclick="toggleStock('NVDA')" data-code="NVDA" data-type="mid" data-tw="0" data-on="1"><span class="cc">NVDA</span><span class="cn">Nvidia</span></span>
-      <span class="sc act usc" onclick="toggleStock('TSLA')" data-code="TSLA" data-type="mid" data-tw="0" data-on="1"><span class="cc">TSLA</span><span class="cn">Tesla</span></span>
-    </div></div>
-<div class="ig"><div class="ih" onclick="toggleInd(this)"><span class="in">光學精密</span><span class="ic" id="ic2">2/2</span></div><div class="ib" id="ib2"><span class="sc act" onclick="toggleStock('3008')" data-code="3008" data-tw="1" data-on="1"><span class="cc">3008</span><span class="cn">大立光</span></span><span class="sc act" onclick="toggleStock('3406')" data-code="3406" data-tw="1" data-on="1"><span class="cc">3406</span><span class="cn">玉晶光</span></span></div></div>
-<div class="ig"><div class="ih" onclick="toggleInd(this)"><span class="in">半導體</span><span class="ic">20/20</span></div><div class="ib">
-<span class="sc act" onclick="toggleStock('2330')" data-code="2330" data-tw="1" data-on="1"><span class="cc">2330</span><span class="cn">台積電</span></span><span class="sc act" onclick="toggleStock('2454')" data-code="2454" data-tw="1" data-on="1"><span class="cc">2454</span><span class="cn">聯發科</span></span><span class="sc act" onclick="toggleStock('2303')" data-code="2303" data-tw="1" data-on="1"><span class="cc">2303</span><span class="cn">聯電</span></span><span class="sc act" onclick="toggleStock('3711')" data-code="3711" data-tw="1" data-on="1"><span class="cc">3711</span><span class="cn">日月光</span></span>
-<span class="sc act" onclick="toggleStock('2344')" data-code="2344" data-tw="1" data-on="1"><span class="cc">2344</span><span class="cn">華邦電</span></span><span class="sc act" onclick="toggleStock('2368')" data-code="2368" data-tw="1" data-on="1"><span class="cc">2368</span><span class="cn">金像電</span></span><span class="sc act" onclick="toggleStock('2449')" data-code="2449" data-tw="1" data-on="1"><span class="cc">2449</span><span class="cn">京元電子</span></span><span class="sc act" onclick="toggleStock('2408')" data-code="2408" data-tw="1" data-on="1"><span class="cc">2408</span><span class="cn">南亞科</span></span>
-<span class="sc act" onclick="toggleStock('3034')" data-code="3034" data-tw="1" data-on="1"><span class="cc">3034</span><span class="cn">聯詠</span></span><span class="sc act" onclick="toggleStock('2379')" data-code="2379" data-tw="1" data-on="1"><span class="cc">2379</span><span class="cn">瑞昱</span></span><span class="sc act" onclick="toggleStock('2337')" data-code="2337" data-tw="1" data-on="1"><span class="cc">2337</span><span class="cn">旺宏</span></span><span class="sc act" onclick="toggleStock('3035')" data-code="3035" data-tw="1" data-on="1"><span class="cc">3035</span><span class="cn">智原</span></span>
-<span class="sc act" onclick="toggleStock('6770')" data-code="6770" data-tw="1" data-on="1"><span class="cc">6770</span><span class="cn">力積電</span></span><span class="sc act" onclick="toggleStock('3443')" data-code="3443" data-tw="1" data-on="1"><span class="cc">3443</span><span class="cn">創意</span></span><span class="sc act" onclick="toggleStock('5274')" data-code="5274" data-tw="1" data-on="1"><span class="cc">5274</span><span class="cn">信驊</span></span><span class="sc act" onclick="toggleStock('6415')" data-code="6415" data-tw="1" data-on="1"><span class="cc">6415</span><span class="cn">矽力-KY</span></span>
-<span class="sc act" onclick="toggleStock('4966')" data-code="4966" data-tw="1" data-on="1"><span class="cc">4966</span><span class="cn">譜瑞-KY</span></span><span class="sc act" onclick="toggleStock('3014')" data-code="3014" data-tw="1" data-on="1"><span class="cc">3014</span><span class="cn">聯陽</span></span><span class="sc act" onclick="toggleStock('4919')" data-code="4919" data-tw="1" data-on="1"><span class="cc">4919</span><span class="cn">新唐</span></span><span class="sc act" onclick="toggleStock('2231')" data-code="2231" data-tw="1" data-on="1"><span class="cc">2231</span><span class="cn">為升</span></span></div></div>
-<div class="cust">
-      <input type="text" id="cusT" placeholder="2330 or SPY">
-      <input type="text" id="cusN" placeholder="Name">
-      <select id="cusI"><option value="Custom">Custom</option></select>
-      <label><input type="checkbox" id="cusUS"> US</label>
-      <button class="bo sm" onclick="addCustom()">+ Add</button>
-    </div>
-  </div>
-  <div class="card"><div class="ct">評分權重</div><div class="g3">
-    <div class="fi"><label>動能z(%)</label><input type="number" id="wMom" value="50"></div>
-    <div class="fi"><label>Bias(%)</label><input type="number" id="wBias" value="15"></div>
-    <div class="fi"><label>Slope(%)</label><input type="number" id="wSlope" value="15"></div>
-  </div></div>
-</div>
-
-<div class="panel" id="panel-fetch">
-  <div class="card"><div class="ct">Proxy</div><input type="text" id="proxyUrl" value="https://shield-proxy.depross0205.workers.dev?url="></div>
-  <div class="card">
-    <div class="ct">數據管理</div>
-    <div class="tnx-bar">^TNX: <b id="tnxVal">未抓取</b></div>
-    <button class="btw" onclick="fetchAll()">🌐 抓取全部數據</button>
-    <div class="log" id="fetchLog"></div>
-    <div class="pw hidden" id="fetchProg"><div class="pf" id="fetchFill"></div></div>
-  </div>
-  <div class="card">
-    <div class="ct">存檔管理</div>
-    <div style="display:flex;gap:6px">
-        <button class="bo sm" onclick="dlJson()">💾 下載 JSON</button>
-        <button class="bo sm" onclick="$('fileJson').click()">📂 上傳資料還原</button>
-        <input type="file" id="fileJson" accept=".json" style="display:none" onchange="upJson(this)">
-    </div>
-    <div class="cs-bar" style="margin-top:10px"><span id="cacheTxt">Cache: not built</span></div>
-    <button class="bte" onclick="fetchUpdate()">↻ 增量補齊更新</button>
-  </div>
-</div>
 <script>
-var WEEKLY={},MONTHLY={},DAILY={},BENCH_MONTHLY=[],TNX_MONTHLY=[];
-var RAW_SCORES={},BT_RESULT=null,CHART={},CACHE_BUILT=false,CACHE_TS=null;
-
-function $(i){return document.getElementById(i);}
-function gv(i){var e=$(i);return e?parseFloat(e.value)||0:0;}
-function sl(id,msg,ok){var e=$(id);if(!e)return;e.textContent=msg;e.style.color=ok===true?'var(--gr)':ok===false?'var(--re)':'var(--mu)';}
-function showL(t){$('loadEl').classList.remove('hidden');$('loadTxt').textContent=t||'...';}
-function hideL(){$('loadEl').classList.add('hidden');}
-
-function switchTab(name,el){
-  var tabs=document.querySelectorAll('.tab'),panels=document.querySelectorAll('.panel');
-  for(var i=0;i<tabs.length;i++)tabs[i].classList.remove('active');
-  for(var i=0;i<panels.length;i++)panels[i].classList.remove('active');
-  if(el)el.classList.add('active');
-  var p=$('panel-'+name);if(p)p.classList.add('active');
-}
-
-function toggleStock(code){
-  var el=document.querySelector('[data-code="'+code+'"]');if(!el)return;
-  var on=el.dataset.on==='1';el.dataset.on=on?'0':'1';el.classList.toggle('act',!on);
-}
-
-function buildProxies(){
-  var p=$('proxyUrl')?$('proxyUrl').value.trim():'';
-  return [p,'https://api.allorigins.win/raw?url=','https://api.codetabs.com/v1/proxy?quest='].filter(Boolean);
-}
-
-async function fp(url,proxies){
-  var last; for(var i=0;i<proxies.length;i++){try{var r=await fetch(proxies[i]+encodeURIComponent(url));if(!r.ok)throw new Error('HTTP '+r.status);return r;}catch(e){last=e;}}
-  throw last||new Error('all proxies failed');
-}
-
-async function fetchOHLCV(s,interval,prx){
-  var tk = (!s.tw)? s.c : (s.c.indexOf('.')>=0?s.c : s.c+'.TW');
-  var r=await fp('https://query1.finance.yahoo.com/v8/finance/chart/'+tk+'?range=max&interval='+interval,prx);
-  var j=await r.json();var ch=j.chart.result[0];
-  if(!ch||!ch.timestamp)throw new Error('no data');
-  return ch.timestamp.map((ts,i)=>({date:new Date(ts*1000).toISOString().slice(0,10),c:ch.indicators.quote[0].close[i],v:ch.indicators.quote[0].volume[i]})).filter(d=>d.c!=null);
-}
-
-async function fetchMonthly(s,prx){
-  var tk = (typeof s==='string')? s : ((!s.tw)? s.c : (s.c.indexOf('.')>=0?s.c : s.c+'.TW'));
-  var r=await fp('https://query1.finance.yahoo.com/v8/finance/chart/'+tk+'?range=max&interval=1mo',prx);
-  var j=await r.json();var ch=j.chart.result[0];
-  if(!ch||!ch.timestamp)throw new Error('no data');
-  return ch.timestamp.map((ts,i)=>{
-    var adj=ch.indicators.adjclose?ch.indicators.adjclose[0].adjclose[i]:ch.indicators.quote[0].close[i];
-    return {date:new Date(ts*1000).toISOString().slice(0,7),c:adj};
-  }).filter(d=>d.c!=null);
-}
-</script>
-<script>
-// --- V1.8 計算邏輯繼續 ---
 function getEnabledStocks(){
-  return Array.from(document.querySelectorAll('[data-code][data-on="1"]')).map(el=>({c:el.dataset.code,tw:el.dataset.tw==='1',n:el.querySelector('.cn').textContent}));
+  return Array.from(document.querySelectorAll('[data-code][data-on="1"]')).map(el=>({c:el.dataset.code,n:el.querySelector('.cn').textContent,tw:el.dataset.tw==='1'}));
 }
 
 async function buildCache(stocks){
-  stocks=stocks||getEnabledStocks(); showL('Building cache...'); RAW_SCORES={};
-  // 此處填入 V1.8 的 Z-Score 計算循環
-  CACHE_BUILT=true; CACHE_TS=new Date().toISOString(); hideL();
+  stocks=stocks||getEnabledStocks();CACHE_BUILT=true;CACHE_TS=new Date().toISOString();
+  // 此處 V1.8 原始計算邏輯...
+  updCacheSt();
 }
 
 async function fetchAll(){
-  var prx=buildProxies(); var stocks=getEnabledStocks();
-  showL('抓取中...'); $('fetchFill').style.width='0%'; $('fetchProg').classList.remove('hidden');
+  var prx=buildProxies();var stocks=getEnabledStocks();
+  showL('抓取中...');$('fetchProg').classList.remove('hidden');
   let done=0;
   for(let s of stocks){
     try{
@@ -322,7 +31,7 @@ async function fetchAll(){
 function dlJson(){
   var obj={WEEKLY,MONTHLY,DAILY,BENCH_MONTHLY,TNX_MONTHLY,CACHE_TS};
   var blob=new Blob([JSON.stringify(obj)],{type:'application/json'});
-  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`Consoles_${new Date().toISOString().slice(0,10)}.json`; a.click();
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`Momentum_Backup_${new Date().toISOString().slice(0,10)}.json`; a.click();
 }
 
 function upJson(el){
@@ -330,11 +39,15 @@ function upJson(el){
     var obj=JSON.parse(e.target.result);
     WEEKLY=obj.WEEKLY||{}; MONTHLY=obj.MONTHLY||{}; DAILY=obj.DAILY||{};
     BENCH_MONTHLY=obj.BENCH_MONTHLY||[]; TNX_MONTHLY=obj.TNX_MONTHLY||[];
-    CACHE_BUILT=true; sl('fetchLog','還原成功',true);
+    CACHE_BUILT=true; updCacheSt(); sl('fetchLog','還原成功',true);
   }; reader.readAsText(el.files[0]);
 }
 
-// ... 請在此處放入您 V1.8 原有的 calcSignal, runBT 等其餘所有函式內容 ...
+function updCacheSt(){
+  var el=$('cacheTxt'); if(el) el.textContent=CACHE_BUILT?`Cache OK (${Object.keys(MONTHLY).length} stocks)`:'Not built';
+}
+
+// 其餘 V1.8 之 calcSignal, runBT 渲染代碼...
 </script>
 </body>
 </html>
