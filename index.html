@@ -1214,101 +1214,116 @@ function getBench(dateStr) {
    return masterTicker ? getPriceOnDate(DAILY[masterTicker], dateStr) : null;
 }
 
-
 function runBTcore(mh, mode) {
   if (!CACHE_BUILT) return null;
-  var stocks = getEnabledStocks().filter(function(s) { return DAILY[s.c]; });
-  if (stocks.length < 3) return null;
-  var masterTicker = DAILY['^TWII'] ? '^TWII' : (DAILY['0050'] ? '0050' : (DAILY['SPY'] ? 'SPY' : stocks[0].c));
-  var refDaily = DAILY[masterTicker]; if (!refDaily) return null;
-  var freq = $('btFreq') ? $('btFreq').value : "1";
-  
-  // 確保 allM 裡面只會有絕對乾淨的「換股日」
-  var allM = getPreciseRebalanceDates(refDaily, freq);
-  
-  var rawS = $('btS') ? ($('btS').value || '').trim().slice(0, 10) : '';
-  var rawE = $('btE') ? ($('btE').value || '').trim().slice(0, 10) : '';
-  var lagEl = document.querySelector('input[name="lagMode"]:checked');
-  var LAG = lagEl ? parseInt(lagEl.value) : 1; 
+  const isLarge = document.getElementById('poolMode').value === 'large';
+  const useMA = document.getElementById('ma60Filter').value === 'on';
+  const masterTicker = DAILY['^TWII'] ? '^TWII' : (DAILY['SPY'] ? 'SPY' : null);
+  const refDaily = DAILY[masterTicker];
+  if (!refDaily) return null;
 
-  var MIN = 1, cS = MIN;
-  if (rawS) { 
-    for (var i = cS; i < allM.length; i++) { 
-      if (allM[i] >= rawS) { cS = i; break; } 
-    } 
-  }
+  const freq = document.getElementById('btFreq').value;
+  const allM = getPreciseRebalanceDates(refDaily, freq);
+  const lagEl = document.querySelector('input[name="lagMode"]:checked');
+  const lag = lagEl ? parseInt(lagEl.value) : 1;
   
-  var cE = allM.length - 1;
-  if (rawE) { 
-    for (var i2 = cE; i2 >= cS; i2--) { 
-      if (allM[i2] <= rawE) { cE = i2; break; } 
-    } 
-  }
-  if (cS > cE) return null;
-
-  var INIT = gv('btCap') || 100000, COST = (gv('btC') || 0.3) / 100, ct = gv('corrT') || 0.75;
-  var shortN = parseInt($('btSN') ? $('btSN').value : '0') || 0;
-  var capMode = document.querySelector('input[name="capMode"]:checked') ? document.querySelector('input[name="capMode"]:checked').value : 'neutral';
-  var shortTSF = !!($('btSTSF') && $('btSTSF').checked);
-  
-  var indExitOn = $('btIndExit') && $('btIndExit').value === 'on';
-  var regimeOn = $('btRegime') && $('btRegime').value === 'on';
-  var regimeExp = gv('btRegimeExp') || 50;
+  const INIT = gv('btCap') || 100000;
+  const COST = (gv('btC') || 0.3) / 100;
+  const ct = gv('corrT') || 0.75;
+  const qTW = gv('btQuotaTW'), qUS = gv('btQuotaUS'), qETF = gv('btQuotaETF');
+  const totalQuota = qTW + qUS + qETF;
 
   var nav = INIT, bNav = INIT, records = [], holdings = { CASH: 1.0 };
-  var DEFENSIVE = ['TLT', 'GLD', 'SGOV'];
+  const DEFENSIVE = ['TLT', 'GLD', 'SGOV'];
 
-  for (var idx = cS; idx <= cE; idx++) {
-    var sigM = allM[idx];            
-    var prevM = allM[idx - 1];       
-    
-    var scoreM = getPrevWorkDay(refDaily, prevM, LAG);
-
+  for (var idx = 1; idx < allM.length; idx++) {
+    var sigM = allM[idx], prevM = allM[idx - 1];
+    var scoreM = getPrevWorkDay(refDaily, prevM, lag);
     var hurdle = getHurdle(scoreM);
     var sc2 = calcAllScores(scoreM);
-    var valid = sc2.filter(function(r) { return r.score !== null; });
-    valid.sort(function(a, b) { return b.score - a.score; });
+    var valid = sc2.filter(r => r.score !== null);
 
-    if (valid.length < 5) {
-      var b0x = getPriceOnDate(refDaily, prevM);
-      var b1x = getPriceOnDate(refDaily, sigM);
-      if (b0x && b1x && b0x > 0) bNav *= (1 + (b1x / b0x - 1));
-      
-      var periodStr = prevM + " ~ " + sigM;
-      records.push({ month: sigM, period: periodStr, nav: nav, bNav: bNav, holdings: { CASH: 1.0 }, pRet: 0, hurdle: hurdle, stockRets: {} });
-      holdings = { CASH: 1.0 }; continue;
+    var sel = [];
+    var candidates = valid.filter(r => {
+      if (r.r240 === null || r.r240 <= hurdle) return false;
+      if (useMA && !isStrictTechnicalPass(r.s.c, scoreM)) return false;
+      if (DEFENSIVE.includes(r.s.c)) return false;
+      return true;
+    });
+
+    if (isLarge) {
+      candidates.sort((a, b) => b.score - a.score);
+      for (var cand of candidates) {
+        if (sel.length >= mh) break;
+        if (sel.every(x => Math.abs(calcCorr(cand.s.c, x.s.c, scoreM)) < ct)) {
+          sel.push(cand);
+        }
+      }
+    } else {
+      var sub = { 'tw': [], 'us': [], 'etf': [] };
+      candidates.forEach(r => { if(sub[r.s.pool]) sub[r.s.pool].push(r); });
+      ['us', 'tw', 'etf'].forEach(p => {
+        var q = gv('btQuota' + p.toUpperCase());
+        var list = sub[p].sort((a, b) => b.score - a.score);
+        var pcount = 0;
+        for (var c of list) {
+          if (pcount >= q) break;
+          if (sel.every(x => Math.abs(calcCorr(c.s.c, x.s.c, scoreM)) < ct)) {
+            sel.push(c); pcount++;
+          }
+        }
+      });
     }
-   
-    var qTW = parseInt($('btQuotaTW') ? $('btQuotaTW').value : '2') || 0;
-    var qUS = parseInt($('btQuotaUS') ? $('btQuotaUS').value : '2') || 0;
-    var qETF = parseInt($('btQuotaETF') ? $('btQuotaETF').value : '1') || 0;
-    var quotas = { 'tw': qTW, 'us': qUS, 'etf': qETF };
-    var totalQuota = qTW + qUS + qETF; 
 
-    var pools = { 'tw': [], 'us': [], 'etf': [] };
-    var useMA60 = $('ma60Filter') ? $('ma60Filter').value === 'on' : true;
+    var slots = (isLarge ? mh : totalQuota) - sel.length;
+    if (slots > 0) {
+      var defCands = sc2.filter(r => {
+        if (r.r240 === null) return false;
+        if (r.s.c === 'SGOV') return r.r240 > 0;
+        return (r.s.c === 'TLT' || r.s.c === 'GLD') && r.r240 > hurdle + 0.01;
+      }).sort((a, b) => b.r240 - a.r240);
+      for (var jd = 0; jd < defCands.length && slots > 0; jd++) {
+        sel.push(defCands[jd]); slots--;
+      }
+    }
 
-    valid.forEach(function(r) {
-      var passMom = r.r240 !== null && r.r240 > hurdle && DEFENSIVE.indexOf(r.s.c) === -1;
-      if (!passMom) return;
-      
-      var ma60 = calcMA(DAILY[r.s.c], scoreM, 60);
-      var currentPrice = getPriceOnDate(DAILY[r.s.c], scoreM);
-      var isAboveMA = ma60 && currentPrice && currentPrice >= ma60;
-      var passMA = useMA60 ? isAboveMA : true;
-      if (!passMA) return;
-      
-      var p = r.s.pool; 
-      if (p === 'tw' || p === 'us' || p === 'etf') {
-        if (pools[p]) pools[p].push(r);
+    var target = {};
+    if (!sel.length) { target['CASH'] = 1.0; }
+    else {
+      var lw = 1.0 / sel.length;
+      sel.forEach(r => { target[r.s.c] = lw; });
+    }
+
+    var turnover = 0;
+    var allT = new Set([...Object.keys(holdings), ...Object.keys(target)]);
+    allT.forEach(c => { turnover += Math.abs((target[c] || 0) - (holdings[c] || 0)); });
+    var friction = (turnover / 2) * COST;
+    nav *= (1 - friction);
+
+    var pRet = 0, stockRets = {};
+    Object.keys(target).forEach(c => {
+      if (c === 'CASH') {
+        var r_c = getTNXRate(scoreM) / (freq === "2" ? 24 : 12);
+        pRet += target[c] * r_c;
+        stockRets[c] = { ret: r_c, w: target[c] };
+      } else {
+        var p0 = getPriceOnDate(DAILY[c], prevM), p1 = getPriceOnDate(DAILY[c], sigM);
+        var r_s = (p0 && p1) ? (p1 / p0 - 1) : 0;
+        pRet += target[c] * r_s;
+        stockRets[c] = { ret: r_s, w: target[c] };
       }
     });
 
-    pools['tw'].sort(function(a, b) { return b.score - a.score; });
-    pools['us'].sort(function(a, b) { return b.score - a.score; });
-    pools['etf'].sort(function(a, b) { return b.score - a.score; });
+    nav *= (1 + pRet);
+    var b0 = getPriceOnDate(refDaily, prevM), b1 = getPriceOnDate(getPriceOnDate(refDaily, sigM));
+    if (b0 && b1) bNav *= (1 + (b1 / b0 - 1));
 
-    var sel = [];
+    records.push({ month: sigM, nav: nav, bNav: bNav, pRet: pRet, holdings: target, stockRets: stockRets, hurdle: hurdle });
+    holdings = target;
+  }
+  return records;
+}
+
 
     function pickFromPool(poolName) {
       var candidates = pools[poolName];
@@ -1784,7 +1799,7 @@ function checkDataHealth() {
 
 // 實時信號與排名
 async function calcSignal() {
-  if (!CACHE_BUILT) { alert('請先抓取資料'); return; }
+  if (!CACHE_BUILT) { alert('\u8ACB\u5148\u6293\u53D6\u8CC7\u6599'); return; }
   SKIP_MO = !!($('btSkipMo') && $('btSkipMo').checked);
   if (CACHE_SKIP_MO !== SKIP_MO) { await buildCache(); }
   var stocks = getEnabledStocks().filter(s => RAW_SCORES[s.c]);
@@ -1792,41 +1807,57 @@ async function calcSignal() {
   var latestDate = Object.keys(RAW_SCORES[stocks[0].c]).sort().pop();
   var hurdle = getHurdle(latestDate);
   var allScores = calcAllScores(latestDate);
-  const mode = $('poolMode').value, useMA = $('ma60Filter').value === 'on', ct = gv('corrT') || 0.75;
-  var sel = [], rejectedMap = {}; 
+  
+  const mode = document.getElementById('poolMode').value;
+  const useMA = document.getElementById('ma60Filter').value === 'on';
+  const ct = gv('corrT') || 0.75;
+  const DEFENSIVE = ['TLT', 'GLD', 'SGOV'];
 
+  var sel = [], rejectedMap = {}; 
   allScores.forEach(r => {
-    if (r.r240 <= hurdle) rejectedMap[r.s.c] = "TS 淘汰";
-    else if (useMA && !isStrictTechnicalPass(r.s.c, latestDate)) rejectedMap[r.s.c] = "季線淘汰";
+    const passTS = r.r240 !== null && r.r240 > hurdle;
+    const maOk = isStrictTechnicalPass(r.s.c, latestDate);
+    if (!passTS) rejectedMap[r.s.c] = "TS \u6DD0\u6C70";
+    else if (useMA && !maOk) rejectedMap[r.s.c] = "\u5B63\u7DDA\u6DD0\u6C70";
   });
 
   if (mode === 'large') {
-    var candidates = allScores.filter(r => !rejectedMap[r.s.c]).sort((a,b)=>b.score-a.score);
-    const totalMax = parseInt($('btH').value) || 5;
-    for (var cand of candidates) {
-      if (sel.length >= totalMax) { rejectedMap[cand.s.c] = "名額已滿"; continue; }
-      if (sel.every(x => Math.abs(calcCorr(cand.s.c, x.s.c, latestDate)) < ct)) sel.push(cand);
-      else rejectedMap[cand.s.c] = "相關性過高";
+    var candList = allScores.filter(r => !rejectedMap[r.s.c] && !DEFENSIVE.includes(r.s.c)).sort((a,b)=>b.score-a.score);
+    const totalMax = parseInt(document.getElementById('btH').value) || 5;
+    for (var c of candList) {
+      if (sel.length >= totalMax) { rejectedMap[c.s.c] = "\u540D\u984D\u6EFF"; continue; }
+      if (sel.every(x => Math.abs(calcCorr(c.s.c, x.s.c, latestDate)) < ct)) sel.push(c);
+      else rejectedMap[c.s.c] = "\u76F8\u95DC\u6027\u904E\u9AD8";
     }
   } else {
     var sub = { 'tw': [], 'us': [], 'etf': [] };
-    allScores.filter(r => !rejectedMap[r.s.c]).forEach(r => { if(sub[r.s.pool]) sub[r.s.pool].push(r); });
+    allScores.filter(r => !rejectedMap[r.s.c] && !DEFENSIVE.includes(r.s.c)).forEach(r => { if(sub[r.s.pool]) sub[r.s.pool].push(r); });
     ['us', 'tw', 'etf'].forEach(p => {
-      var q = { 'tw':gv('btQuotaTW'), 'us':gv('btQuotaUS'), 'etf':gv('btQuotaETF') }[p], picked = 0;
+      var q = gv('btQuota' + p.toUpperCase());
       var list = sub[p].sort((a,b)=>b.score-a.score);
-      for (var cand of list) {
-        if (picked >= q) { rejectedMap[cand.s.c] = "配額已滿"; continue; }
-        if (sel.every(x => Math.abs(calcCorr(cand.s.c, x.s.c, latestDate)) < ct)) { sel.push(cand); picked++; }
-        else { rejectedMap[cand.s.c] = "相關性過高"; }
+      var picked = 0;
+      for (var c of list) {
+        if (picked >= q) { rejectedMap[c.s.c] = "\u914D\u984D\u6EFF"; continue; }
+        if (sel.every(x => Math.abs(calcCorr(c.s.c, x.s.c, latestDate)) < ct)) {
+          sel.push(c); picked++;
+        } else { rejectedMap[c.s.c] = "\u76F8\u95DC\u6027\u904E\u9AD8"; }
       }
     });
   }
+
+  var slots = (mode === 'large' ? (parseInt(document.getElementById('btH').value)||5) : (gv('btQuotaTW')+gv('btQuotaUS')+gv('btQuotaETF'))) - sel.length;
+  if (slots > 0) {
+    var defCands = allScores.filter(r => {
+      if (r.r240 === null) return false;
+      if (r.s.c === 'SGOV') return r.r240 > 0;
+      return (r.s.c === 'TLT' || r.s.c === 'GLD') && r.r240 > hurdle + 0.01;
+    }).sort((a, b) => b.r240 - a.r240);
+    for (var jd = 0; jd < defCands.length && slots > 0; jd++) { sel.push(defCands[jd]); slots--; }
+  }
+
   renderSig(sel, allScores.slice().sort((a,b)=>a.score-b.score).slice(0,3), allScores, latestDate, hurdle);
   renderST(allScores, hurdle, sel.map(s => s.s.c), rejectedMap, latestDate);
 }
-
-
-
 
 function renderSig(sel, wk, all, date, hurdle) {
   var zf = function(v) { return v !== null ? (v >= 0 ? '+' : '') + v.toFixed(2) : '-'; };
