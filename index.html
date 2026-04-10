@@ -1,4 +1,4 @@
-lol<!DOCTYPE html>
+ok lol<!DOCTYPE html>
 
 <html lang="zh-TW">
 <head>
@@ -1357,22 +1357,33 @@ function runBTcore(mh, mode, forceLarge = false) {
     // --- D. 權重配置 (Long/Short) ---
     let target = {};
     if (sel.length > 0) {
-      const is1330 = CAP_MODE === '1330';
-      const lScale = is1330 ? 1.0 : 0.5; // 多頭規模
-      
-      if (mode === 'rank') {
+      // 尋找 runBTcore 內部的權重配置段落 (約在第 837 行左右)
+// ----------------------------------------------------
+// 【修正後代碼】
+if (sel.length > 0) {
+    const is1330 = CAP_MODE === '1330';
+    // 真正的 130/30 是多頭 130%，這裡設為 1.3
+    const lScale = is1330 ? 1.3 : 1.0; 
+    const sScale = is1330 ? 0.3 : 0.0; // 若沒選空頭，維持 0
+
+    if (mode === 'rank') {
         let sumRanks = (sel.length * (sel.length + 1)) / 2;
         sel.forEach((r, i) => {
-          target[r.s.c] = lScale * ((sel.length - i) / sumRanks) * exposure;
+            target[r.s.c] = lScale * ((sel.length - i) / sumRanks) * exposure;
         });
-      } else {
+    } else {
         let eqW = (1.0 / sel.length) * lScale * exposure;
         sel.forEach(r => { target[r.s.c] = eqW; });
-      }
+    }
 
-      // 處理空頭 (Short)
-      if (SHORT_N > 0) {
-        const sScale = is1330 ? 0.3 : 0.5;
+    // 處理空頭 (Short) - 如果你有選 Short N 的話
+    if (SHORT_N > 0) {
+        // 如果是 50/50 模式，通常會將多空規模對等，此處可依需求調整
+        const activeSScale = is1330 ? 0.3 : 0.0; 
+        // ... (後續空頭配置邏輯)
+    }
+}
+
         let sCands = allScores.filter(r => !sel.find(x => x.s.c === r.s.c))
                               .sort((a, b) => a.score - b.score)
                               .slice(0, SHORT_N);
@@ -1396,7 +1407,12 @@ function runBTcore(mh, mode, forceLarge = false) {
 var baseSlippage = 0.001; 
 var impactMultiplier = Math.max(1, Math.pow(turnover / 0.2, 1.5)); 
 var impactCost = baseSlippage * impactMultiplier;
-var friction = (turnover * COST) + impactCost; // 這才是真實的摩擦成本
+// 尋找 friction 的計算位置 (約在第 858 行左右)
+// ----------------------------------------------------
+// 【修正後代碼】
+// 移除原本的 / 2，讓手續費符合現實情況
+let friction = turnover * COST; 
+// 這才是真實的摩擦成本
 
 
     // 計算本期各標的報酬
