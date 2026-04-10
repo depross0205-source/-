@@ -848,29 +848,32 @@ async function fetchOHLCV(s, interval, range = 'max') {
 // 恢復 V1.8 專屬：修正 Yahoo 月線時差的函數
 async function fetchAll() {
   const stocks = getEnabledStocks();
-  if(!stocks.length) return alert('\u8ACB\u5148\u9078\u64C7\u80A1\u6C60');
-  showL('\u6293\u53D6\u5168\u6B77\u53F2\u65E5\u7DDA\u8CC7\u6599\u5EAB...'); 
-  document.getElementById('fetchProg').classList.remove('hidden');
+  if(!stocks.length) return alert('請先選擇股池');
+  showL('抓取全歷史日線資料庫 (放慢速度確保穩定)...'); 
+  $('fetchProg').classList.remove('hidden');
 
+  let success = 0;
   for (let i = 0; i < stocks.length; i++) {
-    document.getElementById('loadTxt').textContent = '\u6293\u53D6\u4E2D: ' + stocks[i].c + ' (' + (i+1) + '/' + stocks.length + ')'; 
+    $('loadTxt').textContent = '抓取中: ' + stocks[i].c + ' (' + (i+1) + '/' + stocks.length + ')'; 
     try {
       DAILY[stocks[i].c] = await fetchOHLCV(stocks[i], '1d', 'max');
-      document.getElementById('fetchFill').style.width = `${((i+1)/stocks.length)*100}%`;
+      success++;
+      $('fetchFill').style.width = `${((i+1)/stocks.length)*100}%`;
       updFetchStat();
     } catch(e) { console.error(stocks[i].c, e); }
-    await new Promise(r => setTimeout(r, 350)); 
+    // 延長間隔至 2 秒，避免 Proxy 崩潰
+    await new Promise(r => setTimeout(r, 2000)); 
   }
   
   try {
+    $('loadTxt').textContent = '同步大盤基準與公債利率 (日線)...';
     DAILY['^TNX'] = await fetchOHLCV({c:'^TNX', tw:false}, '1d', 'max');
     DAILY['^TWII'] = await fetchOHLCV({c:'^TWII', tw:true}, '1d', 'max'); 
   } catch(e) { console.error("Bench Fetch Error", e); }
   
-  hideL(); document.getElementById('fetchProg').classList.add('hidden');
+  hideL(); $('fetchProg').classList.add('hidden');
   await buildCache(); await saveAllToDB();
 }
-
 
 
 
@@ -1210,112 +1213,294 @@ function getBench(dateStr) {
    var masterTicker = DAILY['^TWII'] ? '^TWII' : (DAILY['SPY'] ? 'SPY' : null);
    return masterTicker ? getPriceOnDate(DAILY[masterTicker], dateStr) : null;
 }
+
+
 function runBTcore(mh, mode) {
   if (!CACHE_BUILT) return null;
-  const isLarge = document.getElementById('poolMode').value === 'large';
-  const useMA = document.getElementById('ma60Filter').value === 'on';
-  const masterTicker = DAILY['^TWII'] ? '^TWII' : (DAILY['SPY'] ? 'SPY' : null);
-  const refDaily = DAILY[masterTicker];
-  if (!refDaily) return null;
-
-  const freq = document.getElementById('btFreq').value;
-  const allM = getPreciseRebalanceDates(refDaily, freq);
-  const lagEl = document.querySelector('input[name="lagMode"]:checked');
-  const lag = lagEl ? parseInt(lagEl.value) : 1;
+  var stocks = getEnabledStocks().filter(function(s) { return DAILY[s.c]; });
+  if (stocks.length < 3) return null;
+  var masterTicker = DAILY['^TWII'] ? '^TWII' : (DAILY['0050'] ? '0050' : (DAILY['SPY'] ? 'SPY' : stocks[0].c));
+  var refDaily = DAILY[masterTicker]; if (!refDaily) return null;
+  var freq = $('btFreq') ? $('btFreq').value : "1";
   
-  const INIT = gv('btCap') || 100000;
-  const COST = (gv('btC') || 0.3) / 100;
-  const ct = gv('corrT') || 0.75;
-  const qTW = gv('btQuotaTW'), qUS = gv('btQuotaUS'), qETF = gv('btQuotaETF');
-  const totalQuota = qTW + qUS + qETF;
+  // 確保 allM 裡面只會有絕對乾淨的「換股日」
+  var allM = getPreciseRebalanceDates(refDaily, freq);
+  
+  var rawS = $('btS') ? ($('btS').value || '').trim().slice(0, 10) : '';
+  var rawE = $('btE') ? ($('btE').value || '').trim().slice(0, 10) : '';
+  var lagEl = document.querySelector('input[name="lagMode"]:checked');
+  var LAG = lagEl ? parseInt(lagEl.value) : 1; 
+
+  var MIN = 1, cS = MIN;
+  if (rawS) { 
+    for (var i = cS; i < allM.length; i++) { 
+      if (allM[i] >= rawS) { cS = i; break; } 
+    } 
+  }
+  
+  var cE = allM.length - 1;
+  if (rawE) { 
+    for (var i2 = cE; i2 >= cS; i2--) { 
+      if (allM[i2] <= rawE) { cE = i2; break; } 
+    } 
+  }
+  if (cS > cE) return null;
+
+  var INIT = gv('btCap') || 100000, COST = (gv('btC') || 0.3) / 100, ct = gv('corrT') || 0.75;
+  var shortN = parseInt($('btSN') ? $('btSN').value : '0') || 0;
+  var capMode = document.querySelector('input[name="capMode"]:checked') ? document.querySelector('input[name="capMode"]:checked').value : 'neutral';
+  var shortTSF = !!($('btSTSF') && $('btSTSF').checked);
+  
+  var indExitOn = $('btIndExit') && $('btIndExit').value === 'on';
+  var regimeOn = $('btRegime') && $('btRegime').value === 'on';
+  var regimeExp = gv('btRegimeExp') || 50;
 
   var nav = INIT, bNav = INIT, records = [], holdings = { CASH: 1.0 };
-  const DEFENSIVE = ['TLT', 'GLD', 'SGOV'];
+  var DEFENSIVE = ['TLT', 'GLD', 'SGOV'];
 
-  for (var idx = 1; idx < allM.length; idx++) {
-    var sigM = allM[idx], prevM = allM[idx - 1];
-    var scoreM = getPrevWorkDay(refDaily, prevM, lag);
+  for (var idx = cS; idx <= cE; idx++) {
+    var sigM = allM[idx];            
+    var prevM = allM[idx - 1];       
+    
+    var scoreM = getPrevWorkDay(refDaily, prevM, LAG);
+
     var hurdle = getHurdle(scoreM);
     var sc2 = calcAllScores(scoreM);
-    var valid = sc2.filter(r => r.score !== null);
+    var valid = sc2.filter(function(r) { return r.score !== null; });
+    valid.sort(function(a, b) { return b.score - a.score; });
+
+    if (valid.length < 5) {
+      var b0x = getPriceOnDate(refDaily, prevM);
+      var b1x = getPriceOnDate(refDaily, sigM);
+      if (b0x && b1x && b0x > 0) bNav *= (1 + (b1x / b0x - 1));
+      
+      var periodStr = prevM + " ~ " + sigM;
+      records.push({ month: sigM, period: periodStr, nav: nav, bNav: bNav, holdings: { CASH: 1.0 }, pRet: 0, hurdle: hurdle, stockRets: {} });
+      holdings = { CASH: 1.0 }; continue;
+    }
+   
+    var qTW = parseInt($('btQuotaTW') ? $('btQuotaTW').value : '2') || 0;
+    var qUS = parseInt($('btQuotaUS') ? $('btQuotaUS').value : '2') || 0;
+    var qETF = parseInt($('btQuotaETF') ? $('btQuotaETF').value : '1') || 0;
+    var quotas = { 'tw': qTW, 'us': qUS, 'etf': qETF };
+    var totalQuota = qTW + qUS + qETF; 
+
+    var pools = { 'tw': [], 'us': [], 'etf': [] };
+    var useMA60 = $('ma60Filter') ? $('ma60Filter').value === 'on' : true;
+
+    valid.forEach(function(r) {
+      var passMom = r.r240 !== null && r.r240 > hurdle && DEFENSIVE.indexOf(r.s.c) === -1;
+      if (!passMom) return;
+      
+      var ma60 = calcMA(DAILY[r.s.c], scoreM, 60);
+      var currentPrice = getPriceOnDate(DAILY[r.s.c], scoreM);
+      var isAboveMA = ma60 && currentPrice && currentPrice >= ma60;
+      var passMA = useMA60 ? isAboveMA : true;
+      if (!passMA) return;
+      
+      var p = r.s.pool; 
+      if (p === 'tw' || p === 'us' || p === 'etf') {
+        if (pools[p]) pools[p].push(r);
+      }
+    });
+
+    pools['tw'].sort(function(a, b) { return b.score - a.score; });
+    pools['us'].sort(function(a, b) { return b.score - a.score; });
+    pools['etf'].sort(function(a, b) { return b.score - a.score; });
 
     var sel = [];
+
+    function pickFromPool(poolName) {
+      var candidates = pools[poolName];
+      var quota = quotas[poolName];
+      var picked = 0;
+      
+      for (var j = 0; j < candidates.length; j++) {
+        if (picked >= quota) break; 
+        var cand = candidates[j];
+        if (sel.every(function(x) { return Math.abs(calcCorr(cand.s.c, x.s.c, scoreM)) < ct; })) {
+          sel.push(cand);
+          picked++;
+        }
+      }
+    }
+
+        // --- 3. 執行挑股邏輯 (整合大小池切換與 MA 濾網) ---
+    const mode = document.getElementById('poolMode').value;
+    const useMA = document.getElementById('ma60Filter').value === 'on';
+    
+    // [預過濾]：將不符合 TS 或 MA 門檻的直接踢掉
     var candidates = valid.filter(r => {
-      if (r.r240 === null || r.r240 <= hurdle) return false;
+      const passTS = r.r240 !== null && r.r240 > hurdle;
+      if (!passTS) return false;
+      // 排除防禦性資產，避免它們進入主排行
+      if (['TLT', 'GLD', 'SGOV'].indexOf(r.s.c) !== -1) return false;
+      // 執行嚴格 MA 濾網 (前面段落定義的函數)
       if (useMA && !isStrictTechnicalPass(r.s.c, scoreM)) return false;
-      if (DEFENSIVE.includes(r.s.c)) return false;
       return true;
     });
 
-    if (isLarge) {
+    if (mode === 'large') {
+      // --- 大池模式：全體大排行 ---
+      const totalMax = parseInt(document.getElementById('btH').value) || 5;
       candidates.sort((a, b) => b.score - a.score);
       for (var cand of candidates) {
-        if (sel.length >= mh) break;
-        if (sel.every(x => Math.abs(calcCorr(cand.s.c, x.s.c, scoreM)) < ct)) sel.push(cand);
+        if (sel.length >= totalMax) break;
+        // 跨市場相關性檢查
+        if (sel.every(x => Math.abs(calcCorr(cand.s.c, x.s.c, scoreM)) < ct)) {
+          sel.push(cand);
+        }
       }
     } else {
-      var sub = { 'tw': [], 'us': [], 'etf': [] };
-      candidates.forEach(r => { if(sub[r.s.pool]) sub[r.s.pool].push(r); });
-      ['us', 'tw', 'etf'].forEach(p => {
-        var q = gv('btQuota' + p.toUpperCase());
-        var list = sub[p].sort((a, b) => b.score - a.score);
-        var pcount = 0;
-        for (var c of list) {
-          if (pcount >= q) break;
-          if (sel.every(x => Math.abs(calcCorr(c.s.c, x.s.c, scoreM)) < ct)) { sel.push(c); pcount++; }
-        }
-      });
+      // --- 小池模式：維持分池抽卡 ---
+      // 需要先把合格名單重新分回 pools 變數
+      var pools = { 'tw': [], 'us': [], 'etf': [] };
+      candidates.forEach(r => { if(pools[r.s.pool]) pools[r.s.pool].push(r); });
+      
+      // 依序執行你原本定義的 pickFromPool
+      pickFromPool('us');
+      pickFromPool('tw');
+      pickFromPool('etf');
     }
 
-    var slots = (isLarge ? mh : totalQuota) - sel.length;
+    // --- 4. 防禦資產填補空缺 (維持原本邏輯) ---
+    var slots = (mode === 'large' ? (parseInt(document.getElementById('btH').value)||5) : totalQuota) - sel.length;
+    // ... 接下來接原本的 defCands 填補邏輯
+
     if (slots > 0) {
-      var defCands = sc2.filter(r => {
+      var defCands = sc2.filter(function(r) {
         if (r.r240 === null) return false;
         if (r.s.c === 'SGOV') return r.r240 > 0;
         return (r.s.c === 'TLT' || r.s.c === 'GLD') && r.r240 > hurdle + 0.01;
-      }).sort((a, b) => b.r240 - a.r240);
-      for (var jd = 0; jd < defCands.length && slots > 0; jd++) { sel.push(defCands[jd]); slots--; }
+      }).sort(function(a, b) { return b.r240 - a.r240; });
+      
+      for (var jd = 0; jd < defCands.length && slots > 0; jd++) { 
+        sel.push(defCands[jd]); 
+        slots--; 
+      }
     }
 
+    // 💡 1. 大盤風控與曝光度設定
+    var exposure = 1.0;
+    if (regimeOn && isBearishRegime(refDaily, scoreM, 60)) {
+      exposure = regimeExp / 100;
+    }
+
+    // 💡 2. 產生放空候選名單 (Short Side)
+    var selS = [];
+    if (shortN > 0 && sel.length > 0) {
+      var longMap = {}; sel.forEach(function(r) { longMap[r.s.c] = 1; });
+      var sCands = valid.filter(function(r) { return !longMap[r.s.c]; });
+      if (shortTSF) sCands = sCands.filter(function(r) { return r.r240 !== null && r.r240 < 0; });
+      sCands.sort(function(a, b) { return a.score - b.score; });
+      for (var ks = 0; ks < sCands.length && selS.length < shortN; ks++) {
+        var candS = sCands[ks];
+        if (selS.every(function(x) { return Math.abs(calcCorr(candS.s.c, x.s.c, scoreM)) < ct; })) selS.push(candS);
+      }
+    }
+
+    // 💡 3. 完美融合 Long/Short 與 CapMode 的目標權重 (Target)
     var target = {};
-    if (!sel.length) { target['CASH'] = 1.0; }
-    else {
-      var lw = 1.0 / sel.length;
-      sel.forEach(r => { target[r.s.c] = lw; });
+    if (!sel.length) { 
+      target['CASH'] = 1.0; 
+    } else {
+      var is1330 = capMode === '1330';
+      var lScale = is1330 ? 1.0 : 0.5, sScale = is1330 ? 0.3 : 0.5;
+      
+      // 配置多頭 (Long)
+      if (mode === 'rank') {
+        var ldenom = sel.length * (sel.length + 1) / 2;
+        sel.forEach(function(r, i) { target[r.s.c] = lScale * ((sel.length - i) / ldenom) * exposure; });
+      } else {
+        var lw = (lScale / sel.length) * exposure;
+        sel.forEach(function(r) { target[r.s.c] = lw; });
+      }
+      
+      // 配置空頭 (Short)
+      if (selS.length > 0) {
+        var sdenom = mode === 'rank' ? selS.length * (selS.length + 1) / 2 : selS.length;
+        selS.forEach(function(r, i) { target[r.s.c] = -sScale * (mode === 'rank' ? ((selS.length - i) / sdenom) : 1 / sdenom) * exposure; });
+      }
     }
 
+    // 計算剩餘現金部位
+    var totalW = 0; 
+    Object.keys(target).forEach(function(c) { totalW += target[c]; });
+    var cashW = 1.0 - totalW;
+    if (cashW > 0.001) target['CASH'] = (target['CASH'] || 0) + cashW;
+
+    // 💡 4. 計算換手率與真實摩擦成本 (Cost + Impact)
     var turnover = 0;
     var allT = new Set([...Object.keys(holdings), ...Object.keys(target)]);
-    allT.forEach(c => { turnover += Math.abs((target[c] || 0) - (holdings[c] || 0)); });
-    var friction = (turnover / 2) * COST;
-    nav *= (1 - friction);
+    allT.forEach(function(c) {
+      var oldW = holdings[c] || 0; 
+      var newW = target[c] || 0;
+      turnover += Math.abs(newW - oldW);
+    });
+    turnover /= 2;
 
-    var pRet = 0, stockRets = {};
-    Object.keys(target).forEach(c => {
-      if (c === 'CASH') {
-        var r_c = getTNXRate(scoreM) / (freq === "2" ? 24 : 12);
-        pRet += target[c] * r_c;
-        stockRets[c] = { ret: r_c, w: target[c] };
+    var baseSlippage = 0.001; 
+    var impactMultiplier = Math.max(1, Math.pow(turnover / 0.2, 1.5)); 
+    var impactCost = baseSlippage * impactMultiplier;
+    var friction = (turnover * COST) + impactCost;
+
+    // 💡 5. 蒐集本期報價，並【修復 UI 明細表 w 屬性】
+    var cashRet = 0;
+    if (DAILY['SGOV'] && getPriceOnDate(DAILY['SGOV'], prevM) && getPriceOnDate(DAILY['SGOV'], sigM)) {
+      var s0 = getPriceOnDate(DAILY['SGOV'], prevM), s1 = getPriceOnDate(DAILY['SGOV'], sigM);
+      cashRet = s1 / s0 - 1;
+    } else {
+      var cr = getTNXRate(scoreM), cashDivisor = (freq === "2") ? 24 : 12;
+      var CASH_FACTOR = 0.7; 
+      cashRet = (cr * CASH_FACTOR) / cashDivisor; 
+    }
+
+    var stockRets = {};
+    Object.keys(target).forEach(function(c) {
+      if (c === 'CASH') { 
+        stockRets[c] = { ret: cashRet, w: target[c] }; 
       } else {
         var p0 = getPriceOnDate(DAILY[c], prevM), p1 = getPriceOnDate(DAILY[c], sigM);
-        var r_s = (p0 && p1) ? (p1 / p0 - 1) : 0;
-        pRet += target[c] * r_s;
-        stockRets[c] = { ret: r_s, w: target[c] };
+        stockRets[c] = { ret: (p0 && p1 && p0 > 0) ? (p1 / p0 - 1) : null, w: target[c] };
       }
     });
 
-    nav *= (1 + pRet);
+    // 💡 6. 結算本期真實毛報酬 (Gross Return) (防呆機制：缺資料強制轉現金)
+    var grossRet = 0, validTarget = {}, forcedCash = 0;
+    for (var c in target) {
+      var w = target[c], rData = stockRets[c];
+      if (rData.ret === null) { forcedCash += w; } 
+      else { grossRet += w * rData.ret; validTarget[c] = w; }
+    }
+    if (forcedCash > 0) validTarget['CASH'] = (validTarget['CASH'] || 0) + forcedCash;
+
+    if (!isFinite(grossRet) || grossRet <= -0.9999) grossRet = -0.9999; 
+    
+    // 💡 7. 統一口徑：計算真實淨報酬 (Net Return) 並更新淨值
+    // 正確的淨報酬計算：(1 - 摩擦成本) * (1 + 毛報酬) - 1
+    var netRet = (1 - friction) * (1 + grossRet) - 1;
+    nav *= (1 + netRet);
+
+    // 💡 8. 計算期末自然漂移權重 (Drift)
+    var drifted = {};
+    for (var c in validTarget) {
+      drifted[c] = (validTarget[c] * (1 + (stockRets[c]?.ret || 0))) / (1 + grossRet);
+    }
+
+    // 💡 9. 結算大盤與紀錄保存
     var b0 = getPriceOnDate(refDaily, prevM), b1 = getPriceOnDate(refDaily, sigM);
-    if (b0 && b1) bNav *= (1 + (b1 / b0 - 1));
-    records.push({ month: sigM, nav: nav, bNav: bNav, pRet: pRet, holdings: target, stockRets: stockRets, hurdle: hurdle });
-    holdings = target;
+    if (b0 && b1 && b0 > 0) bNav *= (1 + (b1 / b0 - 1));
+
+    var hCopy = {}; Object.keys(target).forEach(k => hCopy[k] = target[k]);
+    var periodStr = prevM + " ~ " + sigM;
+    
+    records.push({ month: sigM, period: periodStr, nav: nav, bNav: bNav, holdings: hCopy, pRet: netRet, hurdle: hurdle, stockRets: stockRets });
+
+    // 💡 10. 狀態傳承
+    holdings = drifted;
   }
-  return records;
+  return records.length >= 6 ? records : null;
 }
-
-
-
-  
 
 
 
@@ -1599,7 +1784,7 @@ function checkDataHealth() {
 
 // 實時信號與排名
 async function calcSignal() {
-  if (!CACHE_BUILT) { alert('\u8ACB\u5148\u6293\u53D6\u8CC7\u6599'); return; }
+  if (!CACHE_BUILT) { alert('請先抓取資料'); return; }
   SKIP_MO = !!($('btSkipMo') && $('btSkipMo').checked);
   if (CACHE_SKIP_MO !== SKIP_MO) { await buildCache(); }
   var stocks = getEnabledStocks().filter(s => RAW_SCORES[s.c]);
@@ -1607,57 +1792,41 @@ async function calcSignal() {
   var latestDate = Object.keys(RAW_SCORES[stocks[0].c]).sort().pop();
   var hurdle = getHurdle(latestDate);
   var allScores = calcAllScores(latestDate);
-  
-  const mode = document.getElementById('poolMode').value;
-  const useMA = document.getElementById('ma60Filter').value === 'on';
-  const ct = gv('corrT') || 0.75;
-  const DEFENSIVE = ['TLT', 'GLD', 'SGOV'];
-
+  const mode = $('poolMode').value, useMA = $('ma60Filter').value === 'on', ct = gv('corrT') || 0.75;
   var sel = [], rejectedMap = {}; 
+
   allScores.forEach(r => {
-    const passTS = r.r240 !== null && r.r240 > hurdle;
-    const maOk = isStrictTechnicalPass(r.s.c, latestDate);
-    if (!passTS) rejectedMap[r.s.c] = "TS \u6DD0\u6C70";
-    else if (useMA && !maOk) rejectedMap[r.s.c] = "\u5B63\u7DDA\u6DD0\u6C70";
+    if (r.r240 <= hurdle) rejectedMap[r.s.c] = "TS 淘汰";
+    else if (useMA && !isStrictTechnicalPass(r.s.c, latestDate)) rejectedMap[r.s.c] = "季線淘汰";
   });
 
   if (mode === 'large') {
-    var candList = allScores.filter(r => !rejectedMap[r.s.c] && !DEFENSIVE.includes(r.s.c)).sort((a,b)=>b.score-a.score);
-    const totalMax = parseInt(document.getElementById('btH').value) || 5;
-    for (var c of candList) {
-      if (sel.length >= totalMax) { rejectedMap[c.s.c] = "\u540D\u984D\u6EFF"; continue; }
-      if (sel.every(x => Math.abs(calcCorr(c.s.c, x.s.c, latestDate)) < ct)) sel.push(c);
-      else rejectedMap[c.s.c] = "\u76F8\u95DC\u6027\u904E\u9AD8";
+    var candidates = allScores.filter(r => !rejectedMap[r.s.c]).sort((a,b)=>b.score-a.score);
+    const totalMax = parseInt($('btH').value) || 5;
+    for (var cand of candidates) {
+      if (sel.length >= totalMax) { rejectedMap[cand.s.c] = "名額已滿"; continue; }
+      if (sel.every(x => Math.abs(calcCorr(cand.s.c, x.s.c, latestDate)) < ct)) sel.push(cand);
+      else rejectedMap[cand.s.c] = "相關性過高";
     }
   } else {
     var sub = { 'tw': [], 'us': [], 'etf': [] };
-    allScores.filter(r => !rejectedMap[r.s.c] && !DEFENSIVE.includes(r.s.c)).forEach(r => { if(sub[r.s.pool]) sub[r.s.pool].push(r); });
+    allScores.filter(r => !rejectedMap[r.s.c]).forEach(r => { if(sub[r.s.pool]) sub[r.s.pool].push(r); });
     ['us', 'tw', 'etf'].forEach(p => {
-      var q = gv('btQuota' + p.toUpperCase());
+      var q = { 'tw':gv('btQuotaTW'), 'us':gv('btQuotaUS'), 'etf':gv('btQuotaETF') }[p], picked = 0;
       var list = sub[p].sort((a,b)=>b.score-a.score);
-      var picked = 0;
-      for (var c of list) {
-        if (picked >= q) { rejectedMap[c.s.c] = "\u914D\u984D\u6EFF"; continue; }
-        if (sel.every(x => Math.abs(calcCorr(c.s.c, x.s.c, latestDate)) < ct)) {
-          sel.push(c); picked++;
-        } else { rejectedMap[c.s.c] = "\u76F8\u95DC\u6027\u904E\u9AD8"; }
+      for (var cand of list) {
+        if (picked >= q) { rejectedMap[cand.s.c] = "配額已滿"; continue; }
+        if (sel.every(x => Math.abs(calcCorr(cand.s.c, x.s.c, latestDate)) < ct)) { sel.push(cand); picked++; }
+        else { rejectedMap[cand.s.c] = "相關性過高"; }
       }
     });
   }
-
-  var slots = (mode === 'large' ? (parseInt(document.getElementById('btH').value)||5) : (gv('btQuotaTW')+gv('btQuotaUS')+gv('btQuotaETF'))) - sel.length;
-  if (slots > 0) {
-    var defCands = allScores.filter(r => {
-      if (r.r240 === null) return false;
-      if (r.s.c === 'SGOV') return r.r240 > 0;
-      return (r.s.c === 'TLT' || r.s.c === 'GLD') && r.r240 > hurdle + 0.01;
-    }).sort((a, b) => b.r240 - a.r240);
-    for (var jd = 0; jd < defCands.length && slots > 0; jd++) { sel.push(defCands[jd]); slots--; }
-  }
-
   renderSig(sel, allScores.slice().sort((a,b)=>a.score-b.score).slice(0,3), allScores, latestDate, hurdle);
   renderST(allScores, hurdle, sel.map(s => s.s.c), rejectedMap, latestDate);
 }
+
+
+
 
 function renderSig(sel, wk, all, date, hurdle) {
   var zf = function(v) { return v !== null ? (v >= 0 ? '+' : '') + v.toFixed(2) : '-'; };
