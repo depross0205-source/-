@@ -1383,17 +1383,21 @@ var target = {};
 if (!sel.length) { 
   target['CASH'] = 1.0; 
 } else {
-  var is1330 = capMode === '1330';
-  var lScale = is1330 ? 1.0 : 0.5, sScale = is1330 ? 0.3 : 0.5;
-  
-  // 配置多頭 (Long)
-  if (mode === 'rank') {
-    var ldenom = sel.length * (sel.length + 1) / 2;
-    sel.forEach(function(r, i) { target[r.s.c] = lScale * ((sel.length - i) / ldenom) * exposure; });
-  } else {
-    var lw = (lScale / sel.length) * exposure;
-    sel.forEach(function(r) { target[r.s.c] = lw; });
-  }
+  if (sel.length > 0) {
+    const is1330 = CAP_MODE === '1330';
+    // 真正的 130/30 是多頭 130%，這裡設為 1.3
+    const lScale = is1330 ? 1.3 : 1.0; 
+    const sScale = is1330 ? 0.3 : 0.0; // 若沒選空頭，維持 0
+
+    if (mode === 'rank') {
+        let sumRanks = (sel.length * (sel.length + 1)) / 2;
+        sel.forEach((r, i) => {
+            target[r.s.c] = lScale * ((sel.length - i) / sumRanks) * exposure;
+        });
+    } else {
+        let eqW = (1.0 / sel.length) * lScale * exposure;
+        sel.forEach(r => { target[r.s.c] = eqW; });
+    }
   
   // 配置空頭 (Short)
   if (selS.length > 0) {
