@@ -1224,7 +1224,12 @@ function runBTcore(mh, mode) {
   var freq = $('btFreq') ? $('btFreq').value : "1";
   
   // 確保 allM 裡面只會有絕對乾淨的「換股日」
-  var allM = getPreciseRebalanceDates(refDaily, freq);
+ var allM = getPreciseRebalanceDates(refDaily, freq);
+// 實作跳過最後一月
+if (SKIP_MO && allM.length > 0) {
+  allM.pop();
+}
+
   
   var rawS = $('btS') ? ($('btS').value || '').trim().slice(0, 10) : '';
   var rawE = $('btE') ? ($('btE').value || '').trim().slice(0, 10) : '';
@@ -1358,10 +1363,20 @@ function runBTcore(mh, mode) {
       candidates.forEach(r => { if(pools[r.s.pool]) pools[r.s.pool].push(r); });
       
       // 依序執行你原本定義的 pickFromPool
-      pickFromPool('us');
-      pickFromPool('tw');
-      pickFromPool('etf');
-    }
+     // 判斷是否為大池模式或正在進行 N 檔比較
+var poolMode = $('poolMode').value;
+var isLarge = (poolMode === 'large' || (typeof forceLarge !== 'undefined' && forceLarge));
+
+if (isLarge) {
+  // 大池模式：無視分區，直接取評分前 N 名
+  sel = candidates.slice(0, mh);
+} else {
+  // 小池模式：保留分區配額邏輯
+  pickFromPool('us');
+  pickFromPool('tw');
+  pickFromPool('etf');
+}
+
 
     // --- 4. 防禦資產填補空缺 (維持原本邏輯) ---
     var slots = (mode === 'large' ? (parseInt(document.getElementById('btH').value)||5) : totalQuota) - sel.length;
@@ -1412,10 +1427,21 @@ function runBTcore(mh, mode) {
         var ldenom = sel.length * (sel.length + 1) / 2;
         sel.forEach(function(r, i) { target[r.s.c] = lScale * ((sel.length - i) / ldenom) * exposure; });
       } else {
-        var lw = (lScale / sel.length) * exposure;
-        sel.forEach(function(r) { target[r.s.c] = lw; });
-      }
-      
+        var mode = getWeightMode(); // 取得 UI 選項 ('eq' 或 'rank')
+if (mode === 'rank') {
+  // 排名加權：評分越高權重越高（等差分配）
+  var n = sel.length;
+  var sumRanks = (n * (n + 1)) / 2;
+  sel.forEach(function(r, i) {
+    var rankWeight = (n - i) / sumRanks;
+    target[r.s.c] = rankWeight * exposure;
+  });
+} else {
+  // 等權重
+  var lw = (1.0 / sel.length) * exposure;
+  sel.forEach(function(r) { target[r.s.c] = lw; });
+}
+
       // 配置空頭 (Short)
       if (selS.length > 0) {
         var sdenom = mode === 'rank' ? selS.length * (selS.length + 1) / 2 : selS.length;
@@ -1460,8 +1486,34 @@ function runBTcore(mh, mode) {
       if (c === 'CASH') { 
         stockRets[c] = { ret: cashRet, w: target[c] }; 
       } else {
-        var p0 = getPriceOnDate(DAILY[c], prevM), p1 = getPriceOnDate(DAILY[c], sigM);
-        stockRets[c] = { ret: (p0 && p1 && p0 > 0) ? (p1 / p0 - 1) : null, w: target[c] };
+       var p0 = getPriceOnDate(DAILY[c], prevM);
+var p1 = getPriceOnDate(DAILY[c], sigM);
+var finalRet = (p0 && p1 && p0 > 0) ? (p1 / p0 - 1) : null;
+
+// 哨兵開關 (假設 UI id 為 btExitSentinel)
+if ($('btExitSentinel') && $('btExitSentinel').value === 'on') {
+  var bars = DAILY[c];
+  if (bars) {
+    // 找出本月期間的所有日線
+    var monthlyBars = bars.filter(b => b.date > prevM && b.date <= sigM);
+    for (var b = 0; b < monthlyBars.length; b++) {
+      var currentBar = monthlyBars[b];
+      // 計算今日與昨日 60MA 判斷斜率
+      var maToday = calcMA(bars, currentBar.date, 60);
+      var prevDate = getPrevWorkDay(bars, currentBar.date, 1);
+      var maYesterday = calcMA(bars, prevDate, 60);
+
+      // 條件：股價 < 60MA 且 斜率由正轉負 (今日 < 昨日)
+      if (currentBar.c < maToday && maToday < maYesterday) {
+        finalRet = (currentBar.c / p0 - 1); // 結算至破線當日
+        // 額外標記：此資金剩餘時間轉為現金（0% 報酬）
+        break; 
+      }
+    }
+  }
+}
+stockRets[c] = { ret: finalRet, w: target[c] };
+
       }
     });
 
@@ -1550,7 +1602,9 @@ function runCompare() {
       if (CACHE_SKIP_MO !== SKIP_MO) { await buildCache(); }
       var init = gv('btCap') || 100000, results = [];
       for (var n = 1; n <= maxN; n++) {
-        var recs = runBTcore(n, mode);
+       // 強制傳入 forceLarge = true，確保比較時不受分區配額干擾
+var recs = runBTcore(n, true); 
+
         if (recs) results.push({ n: n, recs: recs, k: kpi(recs, init) });
       }
       if (!results.length) { alert('No results'); hideL(); return; }
