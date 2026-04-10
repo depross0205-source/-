@@ -1148,7 +1148,9 @@ function calcAllScores(dateStr) {
       rMs.push(r.rm); rBs.push(r.rb); rSs.push(r.rs); rVs.push(r.rv); rKs.push(r.rk);
       return {s: s, raw: r};
     });
-    var zMs=crossZ(rMs,99), zBs=crossZ(rBs,2), zSs=crossZ(rSs,99), zVs=crossZ(rVs,2), zKs=crossZ(rKs,99);
+    // 恢復完成版的 Z-Score 限制，避免極端值造成績效虛高 [source: 2]
+var zMs=crossZ(rMs, 2), zBs=crossZ(rBs, 2), zSs=crossZ(rSs, 2), zVs=crossZ(rVs, 2), zKs=crossZ(rKs, 2);
+
     return infos.map((d, i) => ({
       s: d.s, score: (w.m*zMs[i] + w.b*zBs[i] + w.s*zSs[i] + w.v*zVs[i] + w.k*zKs[i]),
       zm: zMs[i], zb: zBs[i], zs: zSs[i], zv: zVs[i], zk: zKs[i], r240: d.raw.r240
@@ -1390,7 +1392,12 @@ function runBTcore(mh, mode, forceLarge = false) {
     allTickers.forEach(t => {
       turnover += Math.abs((target[t] || 0) - (holdings[t] || 0));
     });
-    let friction = (turnover / 2) * COST;
+    // 恢復完成版的非線性市場衝擊成本模型 [source: 2]
+var baseSlippage = 0.001; 
+var impactMultiplier = Math.max(1, Math.pow(turnover / 0.2, 1.5)); 
+var impactCost = baseSlippage * impactMultiplier;
+var friction = (turnover * COST) + impactCost; // 這才是真實的摩擦成本
+
 
     // 計算本期各標的報酬
     let stockRets = {};
@@ -1498,7 +1505,9 @@ function runCompare() {
       var init = gv('btCap') || 100000, results = [];
       for (var n = 1; n <= maxN; n++) {
        // 強制傳入 forceLarge = true，確保比較時不受分區配額干擾
-var recs = runBTcore(n, true); 
+// 修正參數傳遞，確保強制開啟大池模式進行 N 值的橫向比較 [source: 1]
+var recs = runBTcore(n, mode, true); 
+
 
         if (recs) results.push({ n: n, recs: recs, k: kpi(recs, init) });
       }
