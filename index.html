@@ -1640,8 +1640,13 @@ function renderBT(records, init, mode) {
 
   // ... 圖表繪製部分保持原樣 (Chart.js設定) ...
 
+    var _holdHistory = {};
+  recs.forEach(function(r) { _holdHistory[r.month] = Object.keys(r.holdings).filter(function(k){return k!=='CASH';}); });
+  var _sortedMonths = recs.map(function(r){return r.month;});
+
   $('btBody').innerHTML = recs.slice().reverse().map(function(r, ri) {
     var idx2 = recs.length - 1 - ri;
+
     var pb = idx2 > 0 ? recs[idx2 - 1].bNav : init;
     var prevNav = idx2 > 0 ? recs[idx2 - 1].nav : init;
     var bRet = r.bNav / pb - 1;
@@ -1659,7 +1664,10 @@ function renderBT(records, init, mode) {
       var nm = getStockName(k);
       var pct = Math.abs(wt * 100).toFixed(0) + '%';
       var lbl = (isShort ? 'S ' : '') + k + (nm && nm !== k ? ' ' + nm : '');
-      return `<span style="background:${bg}; color:${col}; border:1px ${bst} ${col}; padding:1px 6px; border-radius:3px; font-size:10px; font-family:monospace; margin:1px;">${lbl} ${pct}</span>`;
+      var _hpx = (k !== 'CASH' && DAILY[k]) ? getPriceOnDate(DAILY[k], r.month) : null;
+      var _hpxStr = _hpx ? ' @' + _hpx.toFixed(2) : '';
+      return `<span style="background:${bg}; color:${col}; border:1px ${bst} ${col}; padding:1px 6px; border-radius:3px; font-size:10px; font-family:monospace; margin:1px;">${lbl} ${pct}${_hpxStr}</span>`;
+
     }).join('');
 
     var summaryRow = `
