@@ -1676,8 +1676,23 @@ function renderBT(records, init, mode) {
     var _entered = _curHeld.filter(function(k){return _prevHeld.indexOf(k) === -1;});
     var _exited  = _prevHeld.filter(function(k){return _curHeld.indexOf(k) === -1;});
     var _eeStr = '';
-    _entered.forEach(function(k){ _eeStr += '<span style="background:rgba(0,229,160,0.15);color:var(--gr);border:1px solid var(--gr);padding:1px 5px;border-radius:3px;font-size:10px;font-family:monospace;margin:1px">IN ' + k + '</span>'; });
-    _exited.forEach(function(k){  _eeStr += '<span style="background:rgba(255,77,109,0.15);color:var(--re);border:1px solid var(--re);padding:1px 5px;border-radius:3px;font-size:10px;font-family:monospace;margin:1px">OUT ' + k + '</span>'; });
+       _entered.forEach(function(k){
+      var _detail = '';
+      if (ri === 0 && r.scoreM && DAILY[k]) {
+        var _p = getPriceOnDate(DAILY[k], r.scoreM);
+        if (_p) _detail = ' ' + r.scoreM + ' @' + _p.toFixed(2);
+      }
+      _eeStr += '<span style="background:rgba(0,229,160,0.15);color:var(--gr);border:1px solid var(--gr);padding:1px 5px;border-radius:3px;font-size:10px;font-family:monospace;margin:1px">IN ' + k + _detail + '</span>';
+    });
+    _exited.forEach(function(k){
+      var _detail = '';
+      if (ri === 0 && r.scoreM && DAILY[k]) {
+        var _p = getPriceOnDate(DAILY[k], r.scoreM);
+        if (_p) _detail = ' ' + r.scoreM + ' @' + _p.toFixed(2);
+      }
+      _eeStr += '<span style="background:rgba(255,77,109,0.15);color:var(--re);border:1px solid var(--re);padding:1px 5px;border-radius:3px;font-size:10px;font-family:monospace;margin:1px">OUT ' + k + _detail + '</span>';
+    });
+
 
     var summaryRow = `
       <tr style="border-top:2px solid var(--bd);">
