@@ -596,7 +596,8 @@ tr:hover{background:var(--sf2)}
     <div class="tw-wrap"><table><thead><tr>
       <th>#</th><th>Code</th><th>Name</th><th>Ind</th>
       <th>Score</th><th>MomZ</th><th>BiasZ</th><th>SlopeZ</th><th>VolZ</th><th>KbarZ</th>
-      <th>R12</th><th>R6</th><th>R3</th><th>TS</th>
+           <th>R12</th><th>R6</th><th>R3</th><th>Price</th><th>TS</th>
+
     </tr></thead><tbody id="stBody"></tbody></table></div>
   </div>
 </div>
@@ -1889,7 +1890,9 @@ function renderST(all, hurdle, selectedCodes, rejectedMap, scoreM) {
     pStocks.forEach((r, i) => {
       var isSel = selectedCodes.includes(r.s.c), reason = rejectedMap[r.s.c] || "名次靠後";
       var status = isSel ? '<span style="color:var(--gr)">★ 入選</span>' : `<span style="color:var(--mu);font-size:11px">${reason}</span>`;
-      html += `<tr><td>${i+1}</td><td style="color:${r.s.tw?'var(--tw)':'var(--us)'}">${r.s.c}</td><td>${r.s.n}</td><td>${status}</td><td>${zf(r.score)}</td><td>${zf(r.zm)}</td><td>${zf(r.zb)}</td><td>${zf(r.zs)}</td><td>${zf(r.zv)}</td><td>${zf(r.zk)}</td><td style="color:${r.r240>hurdle?'var(--gr)':'var(--re)'}">${pf(r.r240)}</td><td>${isStrictTechnicalPass(r.s.c, scoreM)?'Y':'N'}</td></tr>`;
+            var _spx = getPriceOnDate(DAILY[r.s.c], scoreM); var _spxStr = _spx ? _spx.toFixed(2) : '-';
+      html += `<tr><td>${i+1}</td><td style="color:${r.s.tw?'var(--tw)':'var(--us)'}">${r.s.c}</td><td>${r.s.n}</td><td>${status}</td><td>${zf(r.score)}</td><td>${zf(r.zm)}</td><td>${zf(r.zb)}</td><td>${zf(r.zs)}</td><td>${zf(r.zv)}</td><td>${zf(r.zk)}</td><td style="color:${r.r240>hurdle?'var(--gr)':'var(--re)'}">${pf(r.r240)}</td><td class='mono' style='color:var(--wh)'>${_spxStr}</td><td>${isStrictTechnicalPass(r.s.c, scoreM)?'Y':'N'}</td></tr>`;
+
     });
   });
   $('stBody').innerHTML = html;
