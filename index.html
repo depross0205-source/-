@@ -1670,10 +1670,20 @@ function renderBT(records, init, mode) {
 
     }).join('');
 
+        var _prevMonthIdx = _sortedMonths.indexOf(r.month) - 1;
+    var _prevHeld = _prevMonthIdx >= 0 ? (_holdHistory[_sortedMonths[_prevMonthIdx]] || []) : [];
+    var _curHeld = Object.keys(r.holdings).filter(function(k){return k!=='CASH';});
+    var _entered = _curHeld.filter(function(k){return _prevHeld.indexOf(k) === -1;});
+    var _exited  = _prevHeld.filter(function(k){return _curHeld.indexOf(k) === -1;});
+    var _eeStr = '';
+    _entered.forEach(function(k){ _eeStr += '<span style="background:rgba(0,229,160,0.15);color:var(--gr);border:1px solid var(--gr);padding:1px 5px;border-radius:3px;font-size:10px;font-family:monospace;margin:1px">IN ' + k + '</span>'; });
+    _exited.forEach(function(k){  _eeStr += '<span style="background:rgba(255,77,109,0.15);color:var(--re);border:1px solid var(--re);padding:1px 5px;border-radius:3px;font-size:10px;font-family:monospace;margin:1px">OUT ' + k + '</span>'; });
+
     var summaryRow = `
       <tr style="border-top:2px solid var(--bd);">
         <td class="mono" style="font-weight:700; vertical-align:top;">${r.month}</td>
-        <td style="vertical-align:top;">${holdStr}</td>
+        <td style="vertical-align:top;">${holdStr}${_eeStr ? '<div style="margin-top:3px;">' + _eeStr + '</div>' : ''}</td>
+
         <td class="mono" style="font-size:10px; color:var(--bl); vertical-align:top;">${(r.hurdle * 100).toFixed(1)}%</td>
         <td class="mono" style="color:${rc}; font-weight:700; vertical-align:top;">${r.pRet >= 0 ? '+' : ''}${(r.pRet * 100).toFixed(2)}%</td>
         <td class="mono" style="color:var(--tw); font-weight:700; vertical-align:top;">$${Math.round(r.nav).toLocaleString()}</td>
