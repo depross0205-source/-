@@ -1499,18 +1499,36 @@ function runBT() {
 function runCompare() {
   $('btRes').classList.remove('hidden');
   $('rollingRes').classList.add('hidden');
-  var html='<div class="shbar">比較 N = 1 ~ 15 (等權重)</div><div class="tw-wrap"><table><thead><tr><th>N</th><th>CAGR</th><th>MDD</th><th>Sharpe</th><th>End NAV</th></tr></thead><tbody>';
+  
+  // 記錄原本的 UI 狀態
+  var origH = $('btH') ? $('btH').value : '5';
+  var elMode = document.getElementById('poolMode');
+  var origMode = elMode ? elMode.value : 'small';
+  
+  // 強制切換至大池模式 (比較 N 只有在全局排名才有意義)
+  if (elMode) elMode.value = 'large';
+
+  var html='<div class="shbar">比較 N = 1 ~ 15 (全局排名模式)</div><div class="tw-wrap"><table><thead><tr><th>N</th><th>CAGR</th><th>MDD</th><th>Sharpe</th><th>End NAV</th></tr></thead><tbody>';
+  
   for(var i=1; i<=15; i++) {
+    if ($('btH')) $('btH').value = i; // 動態修改 DOM 讓 core 吃到正確的 N
     var res = runBTcore(i);
     if(res) {
       var st = kpi(res, gv('btCap')||100000);
       html += '<tr><td><b>'+i+'</b></td><td class="tg">'+fp(st.cagr)+'</td><td class="tr">'+fp(st.mdd)+'</td><td class="wh">'+st.sharpe.toFixed(2)+'</td><td>'+st.nav.toLocaleString(undefined,{maximumFractionDigits:0})+'</td></tr>';
+    } else {
+      html += '<tr><td><b>'+i+'</b></td><td colspan="4" class="mu">條件不足或無資料</td></tr>';
     }
   }
   html += '</tbody></table></div>';
   $('btMetrics').innerHTML = html;
   $('btBody').innerHTML = '';
+
+  // 復原 UI 狀態
+  if ($('btH')) $('btH').value = origH;
+  if (elMode) elMode.value = origMode;
 }
+
 
 function runRolling() {
   var res = runBTcore(gv('btH'));
@@ -1546,79 +1564,185 @@ function runRolling() {
 // ==========================================
 function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t;}return a;}
 
-function runMonteCarlo() {
-  if(!BT_RESULT) return alert('請先執行單次回測');
-  var n = gv('stSimN')||1000, init = gv('btCap')||100000;
-  var rets = BT_RESULT.map(function(r){return r.pRet;});
-  var cagrs = [], mdds = [];
-  $('stressRes').classList.remove('hidden');
-  $('stressMetrics').innerHTML = ''; // 清空舊資料
+function ptile(arr, p) {
+  var s = arr.slice().sort((a, b) => a - b);
+  var i = (p / 100) * (s.length - 1);
+  var lo = Math.floor(i), hi = Math.ceil(i);
+  return s[lo] + (s[hi] - s[lo]) * (i - lo);
+}
+
+function renderStress(cagrs, mdds, sharpes, label, simN, origRets, initCap) {
+  var origNav = initCap, origPk = initCap, origMdd = 0;
+  origRets.forEach(r => { 
+    origNav *= (1 + r); 
+    if (origNav > origPk) origPk = origNav; 
+    var dd = (origNav - origPk) / origPk; 
+    if (dd < origMdd) origMdd = dd; 
+  });
+  var origYrs = origRets.length / 12;
+  var origCagr = origYrs > 0 ? Math.pow(Math.max(origNav/initCap, 0.001), 1/origYrs) - 1 : 0;
+  var origAvg = origRets.reduce((a, b) => a + b, 0) / origRets.length;
+  var origStd = Math.sqrt(origRets.reduce((a, b) => a + Math.pow(b - origAvg, 2), 0) / (origRets.length>1?origRets.length-1:1)) * Math.sqrt(12);
+  var origSharpe = origStd > 0 ? (origCagr - 0.015) / origStd : 0;
+
+  var winRate = cagrs.filter(v => v > 0).length / simN;
+  var rows = [
+    ['指標 CAGR', cagrs, true, origCagr],
+    ['指標 MDD', mdds, true, origMdd],
+    ['指標 Sharpe', sharpes, false, origSharpe]
+  ];
+
+  var html = '<div class="card" style="border-top:3px solid var(--ac);margin-bottom:10px;">';
+  html += '<div class="ct">' + label + ' (N=' + simN + ')</div>';
+  html += '<div class="tw-wrap"><table><thead><tr><th></th><th>P10</th><th>P25</th><th>P50</th><th>P75</th><th>P90</th><th>平均</th><th>原始策略</th></tr></thead><tbody>';
   
-  for(var i=0; i<n; i++) {
-    var sim = shuffle(rets.slice());
-    var nav = init, pk = init, dd = 0;
-    sim.forEach(function(r){
-      nav *= (1+r); if(nav>pk) pk=nav;
-      var curDD = (nav-pk)/pk; if(curDD<dd) dd=curDD;
-    });
-    var yrs = sim.length/12;
-    cagrs.push(yrs>0 ? Math.pow(Math.max(nav/init, 0.001), 1/yrs)-1 : 0);
-    mdds.push(dd);
-  }
-  cagrs.sort(function(a,b){return a-b;}); mdds.sort(function(a,b){return a-b;});
+  rows.forEach(row => {
+    var name = row[0], arr = row[1], isPct = row[2], origVal = row[3];
+    var f = v => isPct ? (v>=0?'+':'')+(v*100).toFixed(2)+'%' : v.toFixed(2);
+    var gc = v => v>=0?'var(--gr)':'var(--re)';
+    var p10 = ptile(arr, 10), p25 = ptile(arr, 25), med = ptile(arr, 50), p75 = ptile(arr, 75), p90 = ptile(arr, 90), av = arr.reduce((a,b)=>a+b,0)/arr.length;
+    html += `<tr><td style="color:var(--mu);font-size:10px">${name}</td>
+             <td class="mono" style="color:${gc(p10)}">${f(p10)}</td><td class="mono" style="color:${gc(p25)}">${f(p25)}</td>
+             <td class="mono" style="color:${gc(med)}">${f(med)}</td><td class="mono" style="color:${gc(p75)}">${f(p75)}</td>
+             <td class="mono" style="color:${gc(p90)}">${f(p90)}</td><td class="mono" style="color:${gc(av)}">${f(av)}</td>
+             <td class="mono" style="color:var(--ye)">${f(origVal)}</td></tr>`;
+  });
+  html += `<tr><td style="color:var(--mu);font-size:10px">勝率(CAGR>0)</td><td colspan="7" class="mono" style="color:var(--gr)">${(winRate * 100).toFixed(1)}%</td></tr>`;
+  html += '</tbody></table></div></div>';
   
-  var p5C = cagrs[Math.floor(n*0.05)], p50C = cagrs[Math.floor(n*0.5)], p95C = cagrs[Math.floor(n*0.95)];
-  var p5D = mdds[Math.floor(n*0.05)], p50D = mdds[Math.floor(n*0.5)], p95D = mdds[Math.floor(n*0.95)];
-  
-  var html = '<div class="shbar">Monte Carlo (Resampling) - N='+n+'</div>' +
-    '<div class="g3" style="margin-bottom:10px">' +
-    '<div class="scard"><div class="ct2">CAGR (5% / 50% / 95%)</div><div style="font-size:16px;font-weight:700" class="tg">'+fp(p5C)+' / '+fp(p50C)+' / '+fp(p95C)+'</div></div>' +
-    '<div class="scard"><div class="ct2">MDD (5% / 50% / 95%)</div><div style="font-size:16px;font-weight:700" class="tr">'+fp(p5D)+' / '+fp(p50D)+' / '+fp(p95D)+'</div></div>' +
-    '</div>';
   $('stressMetrics').insertAdjacentHTML('beforeend', html);
+}
+
+function runMonteCarlo() {
+  if(!BT_RESULT || !BT_RESULT.length) return alert('請先執行單次回測');
+  var n = gv('stSimN')||1000, init = gv('btCap')||100000;
+  var rets = BT_RESULT.map(r => r.pRet);
+  var cagrs = [], mdds = [], sharpes = [];
+  $('stressRes').classList.remove('hidden'); $('stressMetrics').innerHTML = '';
+  for(var i=0; i<n; i++) {
+    var sim = [], nav = init, pk = init, dd = 0;
+    for(var j=0; j<rets.length; j++) sim.push(rets[Math.floor(Math.random() * rets.length)]);
+    sim.forEach(r => { nav *= (1+r); if(nav>pk) pk=nav; var curDD = (nav-pk)/pk; if(curDD<dd) dd=curDD; });
+    var yrs = sim.length/12;
+    var cagr = yrs>0 ? Math.pow(Math.max(nav/init, 0.001), 1/yrs)-1 : 0;
+    var avg = sim.reduce((a,b)=>a+b,0)/sim.length;
+    var std = Math.sqrt(sim.reduce((a,b)=>a+Math.pow(b-avg,2),0)/(sim.length>1?sim.length-1:1))*Math.sqrt(12);
+    cagrs.push(cagr); mdds.push(dd); sharpes.push(std>0 ? (cagr-0.015)/std : 0);
+  }
+  renderStress(cagrs, mdds, sharpes, 'Monte Carlo', n, rets, init);
 }
 
 function runBlockBootstrap() {
-  if(!BT_RESULT) return alert('請先執行單次回測');
+  if(!BT_RESULT || !BT_RESULT.length) return alert('請先執行單次回測');
   var n = gv('stSimN')||1000, bs = gv('stBlock')||4, init = gv('btCap')||100000;
-  var rets = BT_RESULT.map(function(r){return r.pRet;});
-  var len = rets.length;
-  var blocks = [];
-  for(var i=0; i<=len-bs; i++) blocks.push(rets.slice(i, i+bs));
-  if(!blocks.length) return alert('Block Size 設太大');
+  var rets = BT_RESULT.map(r => r.pRet);
+  var cagrs = [], mdds = [], sharpes = [];
+  $('stressRes').classList.remove('hidden'); $('stressMetrics').innerHTML = '';
+  for(var i=0; i<n; i++) {
+    var sim = [], nav = init, pk = init, dd = 0;
+    while(sim.length < rets.length) {
+      var start = Math.floor(Math.random() * (rets.length - bs + 1));
+      for(var b=0; b<bs && sim.length<rets.length; b++) sim.push(rets[start+b]);
+    }
+    sim.forEach(r => { nav *= (1+r); if(nav>pk) pk=nav; var curDD = (nav-pk)/pk; if(curDD<dd) dd=curDD; });
+    var yrs = sim.length/12;
+    var cagr = yrs>0 ? Math.pow(Math.max(nav/init, 0.001), 1/yrs)-1 : 0;
+    var avg = sim.reduce((a,b)=>a+b,0)/sim.length;
+    var std = Math.sqrt(sim.reduce((a,b)=>a+Math.pow(b-avg,2),0)/(sim.length>1?sim.length-1:1))*Math.sqrt(12);
+    cagrs.push(cagr); mdds.push(dd); sharpes.push(std>0 ? (cagr-0.015)/std : 0);
+  }
+  renderStress(cagrs, mdds, sharpes, `Block Bootstrap (Block=${bs}mo)`, n, rets, init);
+}
+
+
+// Walk-Forward & 其他進階測試因篇幅關係簡化介面呼叫
+function runWalkForward() {
+  if (!CACHE_BUILT) return alert('請先建立快取');
+  var minTY = parseInt($('wfMinTrain') ? $('wfMinTrain').value : '8') || 8;
+  var testWY = parseInt($('wfTestWin') ? $('wfTestWin').value : '1') || 1;
+  var refDaily = DAILY['^TWII'] || DAILY['SPY'];
+  if (!refDaily) return alert('無大盤基準資料');
+  
+  var freq = $('btFreq') ? $('btFreq').value : '1';
+  var allM = getPreciseRebalanceDates(refDaily, freq);
+  if (!allM.length) return;
+
+  var firstYear = parseInt(allM[0].slice(0, 4));
+  var lastYear = parseInt(allM[allM.length - 1].slice(0, 4));
+  var firstTestYear = firstYear + minTY;
+  if (firstTestYear > lastYear) return alert('資料長度不足以執行 Walk-Forward');
+
+  var init = gv('btCap') || 100000;
+  var origS = $('btS') ? $('btS').value : '';
+  var origE = $('btE') ? $('btE').value : '';
+  var results = [], combinedOOS = [];
+
+  showL('執行 Walk-Forward 錨定分析...');
+  setTimeout(function() {
+    try {
+      for (var ty = firstTestYear; ty + testWY - 1 <= lastYear; ty += testWY) {
+        var tStart = ty + '-01', tEnd = (ty + testWY - 1) + '-12';
+        if ($('btS')) $('btS').value = tStart;
+        if ($('btE')) $('btE').value = tEnd;
+
+        var oosRecs = runBTcore(gv('btH'));
+        if (!oosRecs || oosRecs.length < 2) continue;
+
+        var k = kpi(oosRecs, oosRecs[0].nav / (1 + oosRecs[0].pRet));
+        oosRecs.forEach(r => combinedOOS.push(r.pRet));
+        results.push({ period: tStart + '~' + tEnd, months: oosRecs.length, cagr: k.cagr, mdd: k.mdd, sharpe: k.sharpe });
+      }
+
+      // 復原 UI 狀態
+      if ($('btS')) $('btS').value = origS;
+      if ($('btE')) $('btE').value = origE;
+
+      if (!combinedOOS.length) { hideL(); return alert('無 OOS 結果'); }
+
+      // 結算 Spliced OOS
+      var sNav = init, sPeak = init, sMdd = 0;
+      combinedOOS.forEach(r => { sNav *= (1 + r); if (sNav > sPeak) sPeak = sNav; var dd = (sNav - sPeak) / sPeak; if (dd < sMdd) sMdd = dd; });
+      var sYrs = combinedOOS.length / 12;
+      var sCagr = sYrs > 0 ? Math.pow(sNav / init, 1 / sYrs) - 1 : 0;
+      var sAvg = combinedOOS.reduce((a, b) => a + b, 0) / combinedOOS.length;
+      var sStd = Math.sqrt(combinedOOS.reduce((a, b) => a + Math.pow(b - sAvg, 2), 0) / combinedOOS.length) * Math.sqrt(12);
+      
+      renderWalkForward(results, { cagr: sCagr, mdd: sMdd, sharpe: sStd > 0 ? (sCagr - 0.015) / sStd : 0, months: combinedOOS.length });
+    } catch (e) {
+      console.error(e);
+      alert('WF 分析發生錯誤');
+    } finally {
+      hideL();
+    }
+  }, 100);
+}
+
+function renderWalkForward(results, spliced) {
+  var fp = v => (v >= 0 ? '+' : '') + (v * 100).toFixed(2) + '%';
+  var gc = v => v >= 0 ? 'var(--gr)' : 'var(--re)';
+  
+  var html = '<div class="card" style="border-top:3px solid var(--ye);margin-bottom:10px;">';
+  html += '<div class="ct">WALK-FORWARD ANALYSIS (ANCHORED)</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;">';
+  html += `<div class="card" style="border-top:2px solid var(--gr);padding:9px;"><div style="font-size:10px;font-weight:700;color:var(--mu);margin-bottom:4px">OOS CAGR (拼接)</div><div class="mono" style="font-size:20px;color:${gc(spliced.cagr)}">${fp(spliced.cagr)}</div></div>`;
+  html += `<div class="card" style="border-top:2px solid var(--re);padding:9px;"><div style="font-size:10px;font-weight:700;color:var(--mu);margin-bottom:4px">OOS MDD (拼接)</div><div class="mono" style="font-size:20px;color:var(--re)">${fp(spliced.mdd)}</div></div>`;
+  html += `<div class="card" style="border-top:2px solid var(--bl);padding:9px;"><div style="font-size:10px;font-weight:700;color:var(--mu);margin-bottom:4px">OOS Sharpe</div><div class="mono" style="font-size:20px;color:${gc(spliced.sharpe)}">${spliced.sharpe.toFixed(2)}</div></div>`;
+  html += '</div>';
+
+  var winCount = results.filter(r => r.cagr > 0).length;
+  html += `<div style="font-size:11px;color:var(--mu);margin-bottom:6px;">勝率(CAGR>0): <b style="color:${winCount/results.length >= 0.5 ? 'var(--gr)' : 'var(--re)'}">${(winCount/results.length * 100).toFixed(0)}%</b> (${winCount}/${results.length} windows) | OOS 總月數: <b>${spliced.months}</b></div>`;
+  
+  html += '<div class="tw-wrap"><table><thead><tr><th>OOS Period</th><th>Mo</th><th>CAGR</th><th>MDD</th><th>Sharpe</th><th>Status</th></tr></thead><tbody>';
+  results.forEach(r => {
+    var ok = r.cagr > 0;
+    html += `<tr><td class="mono" style="font-size:11px">${r.period}</td><td class="mono">${r.months}</td><td class="mono" style="color:${gc(r.cagr)}">${fp(r.cagr)}</td><td class="mono" style="color:var(--re)">${fp(r.mdd)}</td><td class="mono" style="color:${gc(r.sharpe)}">${r.sharpe.toFixed(2)}</td><td style="color:${ok ? 'var(--gr)' : 'var(--re)'};font-size:11px">${ok ? 'Profit' : 'Loss'}</td></tr>`;
+  });
+  html += '</tbody></table></div></div>';
   
   $('stressRes').classList.remove('hidden');
-  $('stressMetrics').innerHTML = '';
-  var cagrs = [], mdds = [];
-  for(var i=0; i<n; i++) {
-    var sim = [];
-    while(sim.length < len) {
-      var rndB = blocks[Math.floor(Math.random()*blocks.length)];
-      sim = sim.concat(rndB);
-    }
-    sim = sim.slice(0, len);
-    var nav = init, pk = init, dd = 0;
-    sim.forEach(function(r){
-      nav *= (1+r); if(nav>pk) pk=nav;
-      var curDD = (nav-pk)/pk; if(curDD<dd) dd=curDD;
-    });
-    var yrs = len/12;
-    cagrs.push(yrs>0 ? Math.pow(Math.max(nav/init, 0.001), 1/yrs)-1 : 0);
-    mdds.push(dd);
-  }
-  cagrs.sort(function(a,b){return a-b;}); mdds.sort(function(a,b){return a-b;});
-  var html = '<div class="shbar" style="background:var(--usd);border-color:var(--us);color:var(--us)">Block Bootstrap (Block='+bs+'mo) - N='+n+'</div>' +
-    '<div class="g3" style="margin-bottom:10px">' +
-    '<div class="scard"><div class="ct2">CAGR (5% / 50% / 95%)</div><div style="font-size:16px;font-weight:700" class="tg">'+fp(cagrs[Math.floor(n*0.05)])+' / '+fp(cagrs[Math.floor(n*0.5)])+' / '+fp(cagrs[Math.floor(n*0.95)])+'</div></div>' +
-    '<div class="scard"><div class="ct2">MDD (5% / 50% / 95%)</div><div style="font-size:16px;font-weight:700" class="tr">'+fp(mdds[Math.floor(n*0.05)])+' / '+fp(mdds[Math.floor(n*0.5)])+' / '+fp(mdds[Math.floor(n*0.95)])+'</div></div>' +
-    '</div>';
   $('stressMetrics').insertAdjacentHTML('beforeend', html);
 }
 
-// Walk-Forward & 其他進階測試因篇幅關係簡化介面呼叫
-function runWalkForward() { alert('Walk-Forward 分析已觸發 (請見主控台日誌確認實作細節)'); }
-function runWFNCompare() { alert('WF N 比較已觸發'); }
-function runPoolCompare() { alert('Pool Compare A+B 已觸發'); }
 
 // ==========================================
 // 💡 即時信號渲染
