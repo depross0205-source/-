@@ -1914,6 +1914,17 @@ function renderSig(sel, wk, all, date, hurdle) {
 }
 function renderST(all, hurdle, selectedCodes, rejectedMap, scoreM) {
   $('stCard').classList.remove('hidden');
+    // --- 日頻訊號按鈕 ---
+  var _dfBtn = document.getElementById('dfSigBtn');
+  if (!_dfBtn) {
+    var _dfWrap = document.createElement('div');
+    _dfWrap.style.cssText = 'margin-bottom:10px';
+    _dfWrap.innerHTML = '<button id="dfSigBtn" class="bo" style="width:100%;color:var(--ye);border-color:var(--ye)" onclick="runDailySignal()">'
+      + '&#x25B6; Daily Signal Scan (&#x65E5;&#x983B;&#x9032;&#x51FA;&#x8A0A;&#x865F;)</button>'
+      + '<div id="dfSigOut" style="margin-top:8px"></div>';
+    $('btRes').insertBefore(_dfWrap, $('btRes').firstChild);
+  }
+
   var zf = v => (v !== null ? (v >= 0 ? '+' : '') + v.toFixed(2) : '-'), pf = v => (v !== null ? (v >= 0 ? '+' : '') + (v * 100).toFixed(1) + '%' : '-');
   var html = '';
   ['tw', 'us', 'etf'].forEach(pKey => {
@@ -1937,6 +1948,128 @@ window.onload = async function() {
   var hasData = await loadFromDB();
   if (!hasData) console.log('No local data found in IndexedDB.');
 };
+
+  function runDailySignal() {
+  if (!CACHE_BUILT) { alert('Fetch data first'); return; }
+  var out = $('dfSigOut'); if (!out) return;
+  out.innerHTML = '<span style="color:var(--mu);font-size:11px">Scanning...</span>';
+
+  setTimeout(function() {
+    try {
+      var refKey = DAILY['^TWII'] ? '^TWII' : (DAILY['SPY'] ? 'SPY' : null);
+      if (!refKey) { out.innerHTML = 'No benchmark'; return; }
+      var refDaily = DAILY[refKey];
+      var LAG = document.querySelector('input[name="lagMode"]:checked') ? parseInt(document.querySelector('input[name="lagMode"]:checked').value) : 1;
+      var spread = gv('btSpread') || 0.5;
+      var ct = gv('corrT') || 0.75;
+
+      // Get all trading dates
+      var allDates = refDaily.map(function(b) { return b.date; });
+      if (allDates.length < LAG + 250) { out.innerHTML = 'Not enough data'; return; }
+
+      var stocks = getEnabledStocks().filter(function(s) { return DAILY[s.c] && DAILY[s.c].length > 200; });
+
+      // Scan last 60 trading days for portfolio changes
+      var SCAN = Math.min(60, allDates.length - LAG - 250);
+      var startIdx = allDates.length - SCAN;
+      var prevCodes = [];
+      var changes = [];
+
+      for (var i = startIdx; i < allDates.length; i++) {
+        var sigDate = allDates[i];
+        var scoreDate = allDates[Math.max(0, i - LAG)];
+        var hurdle = Math.max(0, (getPriceOnDate(DAILY['^TNX'], scoreDate) || 4) / 100 + spread / 100);
+
+        // Calc scores
+        var rMs=[], rBs=[], rSs=[], rVs=[], rKs=[], infos=[];
+        stocks.forEach(function(s) {
+          var bars = DAILY[s.c]; if (!bars) return;
+          var idx = -1;
+          for (var j = 0; j < bars.length; j++) { if (bars[j].date <= scoreDate) idx = j; else break; }
+          if (idx < 240) return;
+          var cut = bars.slice(0, idx + 1);
+          rMs.push(rawMom(bars, idx));
+          rBs.push(calcBias(cut, 60));
+          rSs.push(calcSlope(cut, 60));
+          rVs.push(calcVol(cut, 60));
+          rKs.push(calcKbar(cut, 60));
+          infos.push({ s: s, r240: bars[idx].c / (bars[idx-240] ? bars[idx-240].c : 1) - 1 });
+        });
+
+        var zMs=crossZ(rMs,99), zBs=crossZ(rBs,2), zSs=crossZ(rSs,99), zVs=crossZ(rVs,2), zKs=crossZ(rKs,99);
+        var w = { m:0.5, b:0.15, s:0.15, v:0.10, k:0.10 };
+        var scored = [];
+        infos.forEach(function(d, ii) {
+          if (d.r240 === null || zMs[ii] === null) return;
+          var sc = w.m*(zMs[ii]||0) + w.b*(zBs[ii]||0) + w.s*(zSs[ii]||0) + w.v*(zVs[ii]||0) + w.k*(zKs[ii]||0);
+          scored.push({ s: d.s, score: sc, r240: d.r240 });
+        });
+
+        // Select portfolio (small pool)
+        var qTW = gv('btQuotaTW')||2, qUS = gv('btQuotaUS')||2, qETF = gv('btQuotaETF')||1;
+        var pools = { tw:[], us:[], etf:[] }, quotas = { tw:qTW, us:qUS, etf:qETF };
+        scored.filter(function(r) { return r.r240 > hurdle && ['TLT','GLD','SGOV'].indexOf(r.s.c) === -1; })
+          .sort(function(a, b) { return b.score - a.score; })
+          .forEach(function(r) { if (pools[r.s.pool]) pools[r.s.pool].push(r); });
+        var sel = [];
+        ['us','tw','etf'].forEach(function(p) {
+          var picked = 0;
+          (pools[p]||[]).forEach(function(c) {
+            if (picked >= quotas[p]) return;
+            if (sel.every(function(x) { return Math.abs(calcCorr(c.s.c, x.s.c, scoreDate)) < ct; })) { sel.push(c); picked++; }
+          });
+        });
+        var curCodes = sel.map(function(r) { return r.s.c; });
+
+        var entered = curCodes.filter(function(c) { return prevCodes.indexOf(c) === -1; });
+        var exited  = prevCodes.filter(function(c) { return curCodes.indexOf(c) === -1; });
+
+        if (entered.length || exited.length) {
+          changes.push({ date: sigDate, scoreDate: scoreDate, entered: entered, exited: exited });
+        }
+        prevCodes = curCodes;
+      }
+
+      if (!changes.length) {
+        out.innerHTML = '<div style="color:var(--mu);font-size:12px;padding:8px">No changes in the last ' + SCAN + ' trading days.</div>';
+        return;
+      }
+
+      // Render - show all changes, most recent first
+      var html = '<div style="font-size:10px;color:var(--mu);font-weight:700;margin-bottom:6px">DAILY SIGNAL CHANGES (last ' + SCAN + ' trading days, ' + changes.length + ' events)</div>';
+      changes.slice().reverse().forEach(function(ev) {
+        html += '<div style="border:1px solid var(--bd);border-radius:3px;padding:8px;margin-bottom:6px;background:var(--sf2)">';
+        html += '<div style="font-size:10px;color:var(--mu);margin-bottom:5px">Signal: <b style="color:var(--ye)">' + ev.scoreDate + '</b> &rarr; Trade: <b style="color:var(--wh)">' + ev.date + '</b></div>';
+        ev.entered.forEach(function(c) {
+          var px = getPriceOnDate(DAILY[c], ev.date);
+          var nm = getStockName(c);
+          html += '<div style="background:var(--ted);border-left:3px solid var(--te);padding:6px 10px;margin-bottom:3px;border-radius:2px;display:flex;gap:10px;align-items:center">'
+            + '<span style="color:var(--te);font-weight:700;font-size:12px">BUY</span>'
+            + '<span style="color:var(--tw);font-family:monospace;font-weight:700">' + c + '</span>'
+            + (nm ? '<span style="color:var(--mu);font-size:11px">' + nm + '</span>' : '')
+            + '<span style="color:var(--wh);font-family:monospace">@ ' + (px ? px.toFixed(2) : '--') + '</span>'
+            + '<span style="color:var(--mu);font-size:10px">' + ev.date + '</span>'
+            + '</div>';
+        });
+        ev.exited.forEach(function(c) {
+          var px = getPriceOnDate(DAILY[c], ev.date);
+          var nm = getStockName(c);
+          html += '<div style="background:var(--red);border-left:3px solid var(--re);padding:6px 10px;margin-bottom:3px;border-radius:2px;display:flex;gap:10px;align-items:center">'
+            + '<span style="color:var(--re);font-weight:700;font-size:12px">SELL</span>'
+            + '<span style="color:var(--tw);font-family:monospace;font-weight:700">' + c + '</span>'
+            + (nm ? '<span style="color:var(--mu);font-size:11px">' + nm + '</span>' : '')
+            + '<span style="color:var(--wh);font-family:monospace">@ ' + (px ? px.toFixed(2) : '--') + '</span>'
+            + '<span style="color:var(--mu);font-size:10px">' + ev.date + '</span>'
+            + '</div>';
+        });
+        html += '</div>';
+      });
+      out.innerHTML = html;
+
+    } catch(e) { out.innerHTML = '<span style="color:var(--re)">Error: ' + e.message + '</span>'; console.error(e); }
+  }, 50);
+}
+
 </script>
 
 
