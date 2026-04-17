@@ -598,6 +598,40 @@ function getEnabledStocks() {
   });
   return result;
 }
+  // ==========================================
+// 💡 資料庫存取 (已移除幽靈變數)
+// ==========================================
+const DB_NAME='FearlessConsoleDB', DB_VERSION=1;
+function initDB(){return new Promise((resolve,reject)=>{const request=indexedDB.open(DB_NAME,DB_VERSION);request.onupgradeneeded=(e)=>{const db=e.target.result;if(!db.objectStoreNames.contains('stockData'))db.createObjectStore('stockData',{keyPath:'id'});};request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});}
+async function saveAllToDB(){try{const db=await initDB();const tx=db.transaction('stockData','readwrite');tx.objectStore('stockData').put({id:'main_cache',DAILY,ts:new Date().toISOString()});}catch(e){console.error('DB Error:',e);}}
+async function loadFromDB(){try{const db=await initDB();const tx=db.transaction('stockData','readonly');const request=tx.objectStore('stockData').get('main_cache');return new Promise((resolve)=>{request.onsuccess=async()=>{const res=request.result;if(res){DAILY=res.DAILY||{};updFetchStat();updTNX();await buildCache();sl('dlLog','從資料庫恢復成功 ('+res.ts.slice(0,16).replace('T',' ')+')',true);resolve(true);}else resolve(false);};});}catch(e){return false;}}
+
+// ==========================================
+// 💡 基礎 UI 工具函數 (這段不見導致按鈕失效)
+// ==========================================
+function $(i){return document.getElementById(i);}
+function gv(i){var e=$(i);return e?parseFloat(e.value)||0:0;}
+function sl(id,msg,ok){var e=$(id);if(!e)return;e.textContent=msg;e.style.color=ok===true?'var(--gr)':ok===false?'var(--re)':'var(--mu)';}
+function showL(t){var el=$('loadEl');if(el){el.classList.remove('hidden');$('loadTxt').textContent=t||'...';}}
+function hideL(){var el=$('loadEl');if(el)el.classList.add('hidden');}
+function dlBlob(b,n){var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;document.body.appendChild(a);a.click();document.body.removeChild(a);}
+function dlText(t,n,ty){dlBlob(new Blob([t],{type:ty||'text/plain;charset=utf-8'}),n);}
+function switchTab(name,el){var tabs=document.querySelectorAll('.tab'),panels=document.querySelectorAll('.panel');for(var i=0;i<tabs.length;i++)tabs[i].classList.remove('active');for(var i=0;i<panels.length;i++)panels[i].classList.remove('active');if(el)el.classList.add('active');var p=$('panel-'+name);if(p)p.classList.add('active');}
+function toggleGroup(ibId,turnOn){var ib=$(ibId);if(!ib)return;ib.querySelectorAll('[data-code]').forEach(function(el){el.dataset.on=turnOn?'1':'0';turnOn?el.classList.add('act'):el.classList.remove('act');});updCountByIb(ib);}
+function initGroupToggles(){document.querySelectorAll('.ih').forEach(function(ih){var ib=ih.nextElementSibling;if(!ib||!ib.classList.contains('ib'))return;var ibId=ib.id;if(!ibId)return;var wrap=document.createElement('span');wrap.style.cssText='display:inline-flex;align-items:center;gap:3px;margin-right:6px';var b1=document.createElement('button');b1.className='bo sm';b1.style.cssText='padding:1px 5px;font-size:10px;color:var(--gr);border-color:var(--gr)';b1.textContent='全';b1.onclick=function(e){e.stopPropagation();toggleGroup(ibId,true);};var b2=document.createElement('button');b2.className='bo sm';b2.style.cssText='padding:1px 5px;font-size:10px;color:var(--re);border-color:var(--re)';b2.textContent='停';b2.onclick=function(e){e.stopPropagation();toggleGroup(ibId,false);};wrap.appendChild(b1);wrap.appendChild(b2);var ic=ih.querySelector('.ic');ih.insertBefore(wrap,ic);});}
+function toggleStock(code){var el=document.querySelector('[data-code="'+code+'"]');if(!el)return;var on=el.dataset.on==='1';el.dataset.on=on?'0':'1';el.classList.toggle('act',!on);updCount(el);}
+function deleteStock(code){var el=document.querySelector('[data-code="'+code+'"]');if(!el||el.dataset.type==='tw50'||code==='SGOV')return;var ib=el.closest('.ib');el.remove();if(ib)updCountByIb(ib);}
+function toggleInd(ih){var ib=ih.nextElementSibling;if(ib)ib.classList.toggle('col');}
+function selectAll(){document.querySelectorAll('[data-code]').forEach(function(el){el.dataset.on='1';el.classList.add('act');});updAllCounts();}
+function selectNone(){document.querySelectorAll('[data-code]').forEach(function(el){el.dataset.on='0';el.classList.remove('act');});updAllCounts();}
+function selectTW(turnOn){document.querySelectorAll('[data-code][data-tw="1"]').forEach(function(el){el.dataset.on=turnOn?'1':'0';turnOn?el.classList.add('act'):el.classList.remove('act');});updAllCounts();}
+function updCount(chip){var ib=chip.closest('.ib');if(ib)updCountByIb(ib);}
+function updCountByIb(ib){var all=ib.querySelectorAll('[data-code]'),act=ib.querySelectorAll('[data-on="1"]');var ih=ib.previousElementSibling;if(ih){var ic=ih.querySelector('.ic');if(ic)ic.textContent=act.length+'/'+all.length;}}
+function updAllCounts(){document.querySelectorAll('.ib').forEach(function(ib){updCountByIb(ib);});}
+function addCustom(){var raw=$('cusT').value.trim().toUpperCase();var isUS=$('cusUS')&&$('cusUS').checked;var code=isUS?raw:raw.replace('.TW','');if(!code)return;if(document.querySelector('[data-code="'+code+'"]'))return;var name=$('cusN').value.trim()||code;var chip=document.createElement('span');chip.className='sc act'+(isUS?' usc':'');chip.setAttribute('onclick',"toggleStock('"+code+"')");chip.dataset.code=code;chip.dataset.type='mid';chip.dataset.tw=isUS?'0':'1';chip.dataset.on='1';chip.innerHTML='<span class="cc">'+code+'</span><span class="cn">'+name+'</span><span class="cd" onclick="event.stopPropagation();deleteStock(\''+code+'\')">x</span>';var ibs=document.querySelectorAll('.ib');if(ibs.length)ibs[0].appendChild(chip);$('cusT').value='';$('cusN').value='';updAllCounts();}
+function getStockName(code){var el=document.querySelector('[data-code="'+code+'"] .cn');return el?el.textContent:code;}
+function getWeightMode(){var r=document.querySelector('input[name="wtMode"]:checked');return r?r.value:'eq';}
+
 // Proxy 輪詢機制
 function buildProxies() {
   var p = $('proxyUrl') ? $('proxyUrl').value.trim() : '';
