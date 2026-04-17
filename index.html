@@ -1,4 +1,4 @@
-lol<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html lang="zh-TW">
 <head>
@@ -22,7 +22,8 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--tx);
 h1{font-size:18px;font-weight:700;color:var(--wh);display:flex;align-items:center;gap:8px;margin-bottom:4px}
 .tag{font-size:11px;padding:2px 8px;border-radius:3px;background:var(--tw);color:#000;font-weight:700}
 .sub{font-size:11px;color:var(--mu);margin-bottom:14px;line-height:1.8}
-.tabs{display:flex;border-bottom:2px solid wood var(--bd);margin-bottom:14px;overflow-x:auto;white-space:nowrap}
+.tabs{display:flex;border-bottom:2px solid var(--bd);...}
+
 .tab{padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;color:var(--mu);border:none;border-bottom:3px solid transparent;margin-bottom:-2px;background:none;font-family:inherit;transition:.15s}
 .tab.active{color:var(--tw);border-bottom-color:var(--tw)}
 .panel{display:none}.panel.active{display:block}
@@ -108,6 +109,9 @@ tr:hover{background:var(--sf2)}
   <button class="tab" onclick="switchTab('fetch',this)">&#x1F310; &#x6293;&#x53D6;</button>
   <button class="tab" onclick="switchTab('signal',this)">&#x1F4E1; &#x4FE1;&#x865F;</button>
   <button class="tab" onclick="switchTab('backtest',this)">&#x1F4C8; &#x56DE;&#x6E2C;</button>
+<button class="tab" onclick="switchTab('stress',this)">&#x1F9EA; &#x58D3;&#x529B;&#x6E2C;&#x8A66;</button>
+
+
 </div>
 <div class="panel active" id="panel-pool">
   <div class="shbar">
@@ -596,13 +600,43 @@ tr:hover{background:var(--sf2)}
     <div class="tw-wrap"><table><thead><tr>
       <th>#</th><th>Code</th><th>Name</th><th>Ind</th>
       <th>Score</th><th>MomZ</th><th>BiasZ</th><th>SlopeZ</th><th>VolZ</th><th>KbarZ</th>
-           <th>R12</th><th>R6</th><th>R3</th><th>Price</th><th>TS</th>
-
+      <th>R12</th><th>R6</th><th>R3</th><th>TS</th>
     </tr></thead><tbody id="stBody"></tbody></table></div>
   </div>
 </div>
 
-<div class="panel" id="panel-backtest">
+<div class="panel" id="panel-stress">
+  <div class="card">
+    <div class="ct">&#x58D3;&#x529B;&#x6E2C;&#x8A66;</div>
+    <div class="g3">
+      <div class="fi"><label>&#x6A21;&#x64EC;&#x6B21;&#x6578;</label><input type="number" id="stSimN" value="1000" min="100" max="5000" step="100"></div>
+      <div class="fi"><label>Block Size (&#x6708;)</label><input type="number" id="stBlock" value="4" min="1" max="12"></div>
+    </div>
+   <div class="fi"><label>WF 最少訓練年數</label><input type="number" id="wfMinTrain" value="8" min="3" max="20"></div>
+<div class="fi"><label>WF 測試窗口(年)</label><input type="number" id="wfTestWin" value="1" min="1" max="3"></div>
+<div class="fi"><label>Pool Compare ETF&#x914D;&#x984D;</label><input type="number" id="wfETFQuota" value="1" min="0" max="5"></div>
+
+ 
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="bo" onclick="runMonteCarlo()" style="flex:1">&#x25B6; Monte Carlo</button>
+      <button class="bo" onclick="runBlockBootstrap()" style="flex:1">&#x25B6; Block Bootstrap</button>
+      
+
+      <button class="bo sm" onclick="$('stressMetrics').innerHTML=''" style="color:var(--re);border-color:var(--re)">&#x1F5D1;</button>
+    </div>
+    <button class="bo" onclick="runWalkForward()" style="width:100%;margin-top:6px;color:var(--ye);border-color:var(--ye)">&#x25B6; Walk-Forward Analysis (Anchored)</button>
+        <button class="bo" onclick="runWFNCompare()" style="width:100%;margin-top:6px;color:var(--ac);border-color:var(--ac)">&#x25B6; WF N&#x6BD4;&#x8F03; (N=2~15)</button>
+    <button class="bo" onclick="runPoolCompare()" style="width:100%;margin-top:6px;color:var(--bl);border-color:var(--bl)">&#x25B6; Pool Compare A+B (&#x7D04;30~60&#x79D2;)</button>
+
+    <div class="log" id="stressLog"></div>
+
+  </div>
+  <div id="stressRes" class="hidden">
+    <div id="stressMetrics"></div>
+  </div>
+</div>
+
+
   <div class="card">
     <div class="ct">&#x56DE;&#x6E2C;&#x8A2D;&#x5B9A;</div>
     <div class="g3">
@@ -643,6 +677,10 @@ tr:hover{background:var(--sf2)}
           </label>
           <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
             <input type="radio" name="wtMode" id="wtRank" value="rank" style="width:14px;accent-color:var(--tw)"> &#x6392;&#x540D;&#x52A0;&#x6B0A;
+        <label style="display:flex;align-items:center;gap:4px;">
+  <input type="radio" name="wtMode" value="ivol"> IV&#x52A0;&#x6B0A;
+</label>
+
           </label>
         </div>
       </div>
@@ -731,7 +769,6 @@ tr:hover{background:var(--sf2)}
   </div>
 </div>
 </div>
- // ... 這是你原本 script 標籤的開頭 ...
 <script>
 function updTotalH() {
   var t = gv('btQuotaTW') + gv('btQuotaUS') + gv('btQuotaETF');
@@ -914,10 +951,26 @@ async function fetchUpdate() {
     await new Promise(function(r) { setTimeout(r, 350); });
   }
   
-  hideL(); updFetchStat();
-  sl('updateLog', '更新完成。新增:' + missing.length + ' 續接:' + stale.length + ' 失敗:' + failed.length, failed.length === 0);
+    hideL(); updFetchStat();
+  sl('updateLog', '\u66f4\u65b0\u5b8c\u6210\u3002\u65b0\u589e:' + missing.length + ' \u7e8c\u63a5:' + stale.length + ' \u5931\u6557:' + failed.length, failed.length === 0);
+
+  var benchList = [{ c: '^TNX', tw: false }, { c: '^TWII', tw: true }];
+  for (var bi = 0; bi < benchList.length; bi++) {
+    var bs = benchList[bi];
+    if (!DAILY[bs.c] || !DAILY[bs.c].length) continue;
+    var lastBenchDate = DAILY[bs.c][DAILY[bs.c].length - 1].date;
+    var benchCut = bs.tw ? twCut : usCut;
+    if (lastBenchDate >= benchCut) continue;
+    try {
+      var bDelayDays = Math.floor((new Date() - new Date(lastBenchDate)) / (1000 * 60 * 60 * 24));
+      var bRange = bDelayDays <= 7 ? '5d' : bDelayDays <= 30 ? '1mo' : bDelayDays <= 90 ? '3mo' : '6mo';
+      DAILY[bs.c] = mergeArr(DAILY[bs.c], await fetchOHLCV(bs, '1d', bRange));
+    } catch (e) { console.warn('Bench update failed: ' + bs.c, e); }
+    await new Promise(function(r) { setTimeout(r, 350); });
+  }
+
   await buildCache(); await saveAllToDB();
-}
+
 
 
 function updTNX(){
@@ -937,6 +990,28 @@ function updFetchStat(){
     return '<span class="bdg" style="background:'+bg+';color:'+col+';border:1px solid '+bd+'">'+s.c+'</span>';
   }).join('');
 }
+    function calcHistVol(bars, dateStr, win) {
+
+  if (!bars) return null;
+  var idx = -1;
+  for (var i = 0; i < bars.length; i++) {
+    if (bars[i].date <= dateStr) idx = i; else break;
+  }
+  if (idx < win) return null;
+  var rets = [];
+  for (var j = idx - win + 1; j <= idx; j++) {
+    if (bars[j-1] && bars[j].c > 0 && bars[j-1].c > 0) {
+      rets.push(bars[j].c / bars[j-1].c - 1);
+    }
+  }
+  if (rets.length < 10) return null;
+  var mean = rets.reduce(function(a, b) { return a + b; }, 0) / rets.length;
+  var variance = rets.reduce(function(a, b) {
+    return a + Math.pow(b - mean, 2);
+  }, 0) / rets.length;
+  return Math.sqrt(variance * 252);
+}
+
 function calcMA(bars, dateStr, period) {
   if (!bars || !bars.length) return null;
   
@@ -1149,9 +1224,7 @@ function calcAllScores(dateStr) {
       rMs.push(r.rm); rBs.push(r.rb); rSs.push(r.rs); rVs.push(r.rv); rKs.push(r.rk);
       return {s: s, raw: r};
     });
-    // 恢復完成版的 Z-Score 限制，避免極端值造成績效虛高 [source: 2]
-var zMs=crossZ(rMs, 2), zBs=crossZ(rBs, 2), zSs=crossZ(rSs, 2), zVs=crossZ(rVs, 2), zKs=crossZ(rKs, 2);
-
+    var zMs=crossZ(rMs,99), zBs=crossZ(rBs,2), zSs=crossZ(rSs,99), zVs=crossZ(rVs,2), zKs=crossZ(rKs,99);
     return infos.map((d, i) => ({
       s: d.s, score: (w.m*zMs[i] + w.b*zBs[i] + w.s*zSs[i] + w.v*zVs[i] + w.k*zKs[i]),
       zm: zMs[i], zb: zBs[i], zs: zSs[i], zv: zVs[i], zk: zKs[i], r240: d.raw.r240
@@ -1218,12 +1291,6 @@ function getBench(dateStr) {
 }
 
 
-/**
- * 核心回測引擎 V2.0 (整合修正版)
- * @param {number} mh - 最大持股數 (N)
- * @param {string} mode - 權重模式 ('eq' 或 'rank')
- * @param {boolean} forceLarge - 強制大池模式 (用於 runCompare)
- */
 function runBTcore(mh, mode) {
   if (!CACHE_BUILT) return null;
   var stocks = getEnabledStocks().filter(function(s) { return DAILY[s.c]; });
@@ -1258,6 +1325,9 @@ function runBTcore(mh, mode) {
   var INIT = gv('btCap') || 100000, COST = (gv('btC') || 0.3) / 100, ct = gv('corrT') || 0.75;
   var shortN = parseInt($('btSN') ? $('btSN').value : '0') || 0;
   var capMode = document.querySelector('input[name="capMode"]:checked') ? document.querySelector('input[name="capMode"]:checked').value : 'neutral';
+  var wtModeEl = document.querySelector('input[name="wtMode"]:checked');
+var wtMode = wtModeEl ? wtModeEl.value : 'equal';
+
   var shortTSF = !!($('btSTSF') && $('btSTSF').checked);
   
   var indExitOn = $('btIndExit') && $('btIndExit').value === 'on';
@@ -1274,7 +1344,10 @@ function runBTcore(mh, mode) {
     var scoreM = getPrevWorkDay(refDaily, prevM, LAG);
 
     var hurdle = getHurdle(scoreM);
-    var sc2 = calcAllScores(scoreM);
+    var skipMoOn = !!($('btSkipMo') && $('btSkipMo').checked);
+var scoringM = skipMoOn ? getPrevWorkDay(refDaily, scoreM, 22) : scoreM;
+var sc2 = calcAllScores(scoringM);
+
     var valid = sc2.filter(function(r) { return r.score !== null; });
     valid.sort(function(a, b) { return b.score - a.score; });
 
@@ -1297,21 +1370,31 @@ function runBTcore(mh, mode) {
     var pools = { 'tw': [], 'us': [], 'etf': [] };
     var useMA60 = $('ma60Filter') ? $('ma60Filter').value === 'on' : true;
 
+        var exitMap = {};
+    if (useMA60) {
+      Object.keys(holdings).forEach(function(c) {
+        if (c === 'CASH') return;
+        var bars = DAILY[c]; if (!bars) return;
+        var ma = calcMA(bars, scoreM, 60);
+        var price = getPriceOnDate(bars, scoreM);
+        var prevDate = getPrevWorkDay(refDaily, scoreM, 5);
+        var prevMa = calcMA(bars, prevDate, 60);
+        var belowMA = ma && price && price < ma;
+        var slopeNeg = ma && prevMa && ma < prevMa;
+        if (belowMA || slopeNeg) exitMap[c] = true;
+      });
+    }
+
     valid.forEach(function(r) {
       var passMom = r.r240 !== null && r.r240 > hurdle && DEFENSIVE.indexOf(r.s.c) === -1;
       if (!passMom) return;
-      
-      var ma60 = calcMA(DAILY[r.s.c], scoreM, 60);
-      var currentPrice = getPriceOnDate(DAILY[r.s.c], scoreM);
-      var isAboveMA = ma60 && currentPrice && currentPrice >= ma60;
-      var passMA = useMA60 ? isAboveMA : true;
-      if (!passMA) return;
-      
-      var p = r.s.pool; 
+      if (exitMap[r.s.c]) return;
+      var p = r.s.pool;
       if (p === 'tw' || p === 'us' || p === 'etf') {
         if (pools[p]) pools[p].push(r);
       }
     });
+
 
     pools['tw'].sort(function(a, b) { return b.score - a.score; });
     pools['us'].sort(function(a, b) { return b.score - a.score; });
@@ -1335,21 +1418,21 @@ function runBTcore(mh, mode) {
     }
 
         // --- 3. 執行挑股邏輯 (整合大小池切換與 MA 濾網) ---
-    const mode = document.getElementById('poolMode').value;
+        var poolMode = document.getElementById('poolMode').value;
+
     const useMA = document.getElementById('ma60Filter').value === 'on';
     
     // [預過濾]：將不符合 TS 或 MA 門檻的直接踢掉
-    var candidates = valid.filter(r => {
-      const passTS = r.r240 !== null && r.r240 > hurdle;
-      if (!passTS) return false;
-      // 排除防禦性資產，避免它們進入主排行
+        var candidates = valid.filter(function(r) {
+      if (r.r240 === null || r.r240 <= hurdle) return false;
       if (['TLT', 'GLD', 'SGOV'].indexOf(r.s.c) !== -1) return false;
-      // 執行嚴格 MA 濾網 (前面段落定義的函數)
-      if (useMA && !isStrictTechnicalPass(r.s.c, scoreM)) return false;
+      if (exitMap[r.s.c]) return false;
       return true;
     });
 
-    if (mode === 'large') {
+
+        if (poolMode === 'large') {
+
       // --- 大池模式：全體大排行 ---
       const totalMax = parseInt(document.getElementById('btH').value) || 5;
       candidates.sort((a, b) => b.score - a.score);
@@ -1373,7 +1456,8 @@ function runBTcore(mh, mode) {
     }
 
     // --- 4. 防禦資產填補空缺 (維持原本邏輯) ---
-    var slots = (mode === 'large' ? (parseInt(document.getElementById('btH').value)||5) : totalQuota) - sel.length;
+        var slots = (poolMode === 'large' ? (parseInt(document.getElementById('btH').value)||5) : totalQuota) - sel.length;
+
     // ... 接下來接原本的 defCands 填補邏輯
 
     if (slots > 0) {
@@ -1417,18 +1501,34 @@ function runBTcore(mh, mode) {
       var lScale = is1330 ? 1.0 : 0.5, sScale = is1330 ? 0.3 : 0.5;
       
       // 配置多頭 (Long)
-      if (mode === 'rank') {
+     if (wtMode === 'rank') {
+
         var ldenom = sel.length * (sel.length + 1) / 2;
         sel.forEach(function(r, i) { target[r.s.c] = lScale * ((sel.length - i) / ldenom) * exposure; });
       } else {
-        var lw = (lScale / sel.length) * exposure;
-        sel.forEach(function(r) { target[r.s.c] = lw; });
+        if (wtMode === 'ivol') {
+  var volSum = 0;
+    var ivolArr = sel.map(function(r) {
+    var v = calcHistVol(DAILY[r.s.c], scoreM, 60);
+    v = (v && v > 0) ? v : 0.2;
+    volSum += 1 / v;
+    return { c: r.s.c, iv: 1 / v };
+  });
+  ivolArr.forEach(function(x) {
+    target[x.c] = (lScale * x.iv / volSum) * exposure;
+  });
+} else {
+  var lw = (lScale / sel.length) * exposure;
+  sel.forEach(function(r) { target[r.s.c] = lw; });
+}
+
       }
       
       // 配置空頭 (Short)
       if (selS.length > 0) {
-        var sdenom = mode === 'rank' ? selS.length * (selS.length + 1) / 2 : selS.length;
-        selS.forEach(function(r, i) { target[r.s.c] = -sScale * (mode === 'rank' ? ((selS.length - i) / sdenom) : 1 / sdenom) * exposure; });
+        var sdenom = wtMode === 'rank' ? selS.length * (selS.length + 1) / 2 : selS.length;
+                selS.forEach(function(r, i) { target[r.s.c] = -sScale * (wtMode === 'rank' ? ((selS.length - i) / sdenom) : 1 / sdenom) * exposure; });
+
       }
     }
 
@@ -1448,10 +1548,10 @@ function runBTcore(mh, mode) {
     });
     turnover /= 2;
 
-    var baseSlippage = 0.001; 
-    var impactMultiplier = Math.max(1, Math.pow(turnover / 0.2, 1.5)); 
-    var impactCost = baseSlippage * impactMultiplier;
+        var baseSlippage = 0.001;
+    var impactCost = turnover > 0.001 ? baseSlippage * Math.max(1, Math.pow(turnover / 0.2, 1.5)) : 0;
     var friction = (turnover * COST) + impactCost;
+
 
     // 💡 5. 蒐集本期報價，並【修復 UI 明細表 w 屬性】
     var cashRet = 0;
@@ -1513,7 +1613,6 @@ function runBTcore(mh, mode) {
 
 
 
-
 function kpi(records, init) {
   var last = records[records.length - 1];
   var yrs = (new Date(last.month) - new Date(records[0].month)) / (365.25 * 86400000);
@@ -1554,19 +1653,22 @@ function runCompare() {
   SKIP_MO = !!($('btSkipMo') && $('btSkipMo').checked);
   CORR_WIN = parseInt($('corrW') ? $('corrW').value : '24') || 24;
   var maxN = parseInt($('btH') ? $('btH').value : '5') || 5, mode = getWeightMode();
+  var elMode = document.getElementById('poolMode');
+var origMode = elMode ? elMode.value : 'large';
+if (elMode) elMode.value = 'large';
+
   sl('btLog', 'Comparing N=1 to ' + maxN + '...', null); showL('Comparing...');
   setTimeout(async function() {
     try {
       if (CACHE_SKIP_MO !== SKIP_MO) { await buildCache(); }
       var init = gv('btCap') || 100000, results = [];
       for (var n = 1; n <= maxN; n++) {
-       // 強制傳入 forceLarge = true，確保比較時不受分區配額干擾
-// 修正參數傳遞，確保強制開啟大池模式進行 N 值的橫向比較 [source: 1]
-var recs = runBTcore(n, mode, true); 
-
+        if ($('btH')) $('btH').value = n;
+var recs = runBTcore(n, mode);
 
         if (recs) results.push({ n: n, recs: recs, k: kpi(recs, init) });
       }
+      if (elMode) elMode.value = origMode;
       if (!results.length) { alert('No results'); hideL(); return; }
             renderCompare(results, init, mode);
       var dStart = results[0].recs[0].month;
@@ -1640,13 +1742,8 @@ function renderBT(records, init, mode) {
 
   // ... 圖表繪製部分保持原樣 (Chart.js設定) ...
 
-    var _holdHistory = {};
-  recs.forEach(function(r) { _holdHistory[r.month] = Object.keys(r.holdings).filter(function(k){return k!=='CASH';}); });
-  var _sortedMonths = recs.map(function(r){return r.month;});
-
   $('btBody').innerHTML = recs.slice().reverse().map(function(r, ri) {
     var idx2 = recs.length - 1 - ri;
-
     var pb = idx2 > 0 ? recs[idx2 - 1].bNav : init;
     var prevNav = idx2 > 0 ? recs[idx2 - 1].nav : init;
     var bRet = r.bNav / pb - 1;
@@ -1664,41 +1761,13 @@ function renderBT(records, init, mode) {
       var nm = getStockName(k);
       var pct = Math.abs(wt * 100).toFixed(0) + '%';
       var lbl = (isShort ? 'S ' : '') + k + (nm && nm !== k ? ' ' + nm : '');
-      var _hpx = (k !== 'CASH' && DAILY[k]) ? getPriceOnDate(DAILY[k], r.month) : null;
-      var _hpxStr = _hpx ? ' @' + _hpx.toFixed(2) : '';
-      return `<span style="background:${bg}; color:${col}; border:1px ${bst} ${col}; padding:1px 6px; border-radius:3px; font-size:10px; font-family:monospace; margin:1px;">${lbl} ${pct}${_hpxStr}</span>`;
-
+      return `<span style="background:${bg}; color:${col}; border:1px ${bst} ${col}; padding:1px 6px; border-radius:3px; font-size:10px; font-family:monospace; margin:1px;">${lbl} ${pct}</span>`;
     }).join('');
-
-        var _prevMonthIdx = _sortedMonths.indexOf(r.month) - 1;
-    var _prevHeld = _prevMonthIdx >= 0 ? (_holdHistory[_sortedMonths[_prevMonthIdx]] || []) : [];
-    var _curHeld = Object.keys(r.holdings).filter(function(k){return k!=='CASH';});
-    var _entered = _curHeld.filter(function(k){return _prevHeld.indexOf(k) === -1;});
-    var _exited  = _prevHeld.filter(function(k){return _curHeld.indexOf(k) === -1;});
-    var _eeStr = '';
-       _entered.forEach(function(k){
-      var _detail = '';
-      if (ri === 0 && r.scoreM && DAILY[k]) {
-        var _p = getPriceOnDate(DAILY[k], r.scoreM);
-        if (_p) _detail = ' ' + r.scoreM + ' @' + _p.toFixed(2);
-      }
-      _eeStr += '<span style="background:rgba(0,229,160,0.15);color:var(--gr);border:1px solid var(--gr);padding:1px 5px;border-radius:3px;font-size:10px;font-family:monospace;margin:1px">IN ' + k + _detail + '</span>';
-    });
-    _exited.forEach(function(k){
-      var _detail = '';
-      if (ri === 0 && r.scoreM && DAILY[k]) {
-        var _p = getPriceOnDate(DAILY[k], r.scoreM);
-        if (_p) _detail = ' ' + r.scoreM + ' @' + _p.toFixed(2);
-      }
-      _eeStr += '<span style="background:rgba(255,77,109,0.15);color:var(--re);border:1px solid var(--re);padding:1px 5px;border-radius:3px;font-size:10px;font-family:monospace;margin:1px">OUT ' + k + _detail + '</span>';
-    });
-
 
     var summaryRow = `
       <tr style="border-top:2px solid var(--bd);">
         <td class="mono" style="font-weight:700; vertical-align:top;">${r.month}</td>
-        <td style="vertical-align:top;">${holdStr}${_eeStr ? '<div style="margin-top:3px;">' + _eeStr + '</div>' : ''}</td>
-
+        <td style="vertical-align:top;">${holdStr}</td>
         <td class="mono" style="font-size:10px; color:var(--bl); vertical-align:top;">${(r.hurdle * 100).toFixed(1)}%</td>
         <td class="mono" style="color:${rc}; font-weight:700; vertical-align:top;">${r.pRet >= 0 ? '+' : ''}${(r.pRet * 100).toFixed(2)}%</td>
         <td class="mono" style="color:var(--tw); font-weight:700; vertical-align:top;">$${Math.round(r.nav).toLocaleString()}</td>
@@ -1842,10 +1911,10 @@ async function calcSignal() {
   const mode = $('poolMode').value, useMA = $('ma60Filter').value === 'on', ct = gv('corrT') || 0.75;
   var sel = [], rejectedMap = {}; 
 
-  allScores.forEach(r => {
-    if (r.r240 <= hurdle) rejectedMap[r.s.c] = "TS 淘汰";
-    else if (useMA && !isStrictTechnicalPass(r.s.c, latestDate)) rejectedMap[r.s.c] = "季線淘汰";
+    allScores.forEach(function(r) {
+    if (r.r240 <= hurdle) rejectedMap[r.s.c] = 'TS \u6DD8\u6C70';
   });
+
 
   if (mode === 'large') {
     var candidates = allScores.filter(r => !rejectedMap[r.s.c]).sort((a,b)=>b.score-a.score);
@@ -1914,17 +1983,6 @@ function renderSig(sel, wk, all, date, hurdle) {
 }
 function renderST(all, hurdle, selectedCodes, rejectedMap, scoreM) {
   $('stCard').classList.remove('hidden');
-    // --- 日頻訊號按鈕 ---
-  var _dfBtn = document.getElementById('dfSigBtn');
-  if (!_dfBtn) {
-    var _dfWrap = document.createElement('div');
-    _dfWrap.style.cssText = 'margin-bottom:10px';
-    _dfWrap.innerHTML = '<button id="dfSigBtn" class="bo" style="width:100%;color:var(--ye);border-color:var(--ye)" onclick="runDailySignal()">'
-      + '&#x25B6; Daily Signal Scan (&#x65E5;&#x983B;&#x9032;&#x51FA;&#x8A0A;&#x865F;)</button>'
-      + '<div id="dfSigOut" style="margin-top:8px"></div>';
-    $('btRes').insertBefore(_dfWrap, $('btRes').firstChild);
-  }
-
   var zf = v => (v !== null ? (v >= 0 ? '+' : '') + v.toFixed(2) : '-'), pf = v => (v !== null ? (v >= 0 ? '+' : '') + (v * 100).toFixed(1) + '%' : '-');
   var html = '';
   ['tw', 'us', 'etf'].forEach(pKey => {
@@ -1934,9 +1992,7 @@ function renderST(all, hurdle, selectedCodes, rejectedMap, scoreM) {
     pStocks.forEach((r, i) => {
       var isSel = selectedCodes.includes(r.s.c), reason = rejectedMap[r.s.c] || "名次靠後";
       var status = isSel ? '<span style="color:var(--gr)">★ 入選</span>' : `<span style="color:var(--mu);font-size:11px">${reason}</span>`;
-            var _spx = getPriceOnDate(DAILY[r.s.c], scoreM); var _spxStr = _spx ? _spx.toFixed(2) : '-';
-      html += `<tr><td>${i+1}</td><td style="color:${r.s.tw?'var(--tw)':'var(--us)'}">${r.s.c}</td><td>${r.s.n}</td><td>${status}</td><td>${zf(r.score)}</td><td>${zf(r.zm)}</td><td>${zf(r.zb)}</td><td>${zf(r.zs)}</td><td>${zf(r.zv)}</td><td>${zf(r.zk)}</td><td style="color:${r.r240>hurdle?'var(--gr)':'var(--re)'}">${pf(r.r240)}</td><td class='mono' style='color:var(--wh)'>${_spxStr}</td><td>${isStrictTechnicalPass(r.s.c, scoreM)?'Y':'N'}</td></tr>`;
-
+      html += `<tr><td>${i+1}</td><td style="color:${r.s.tw?'var(--tw)':'var(--us)'}">${r.s.c}</td><td>${r.s.n}</td><td>${status}</td><td>${zf(r.score)}</td><td>${zf(r.zm)}</td><td>${zf(r.zb)}</td><td>${zf(r.zs)}</td><td>${zf(r.zv)}</td><td>${zf(r.zk)}</td><td style="color:${r.r240>hurdle?'var(--gr)':'var(--re)'}">${pf(r.r240)}</td><td>${isStrictTechnicalPass(r.s.c, scoreM)?'Y':'N'}</td></tr>`;
     });
   });
   $('stBody').innerHTML = html;
@@ -1948,126 +2004,856 @@ window.onload = async function() {
   var hasData = await loadFromDB();
   if (!hasData) console.log('No local data found in IndexedDB.');
 };
+  function runMultiCount() {
+  if (!CACHE_BUILT) { alert('Build cache first'); return; }
+  var el = $('btH');
+  if (!el) { alert('btH not found'); return; }
+  var orig = el.value;
+  var counts = [3, 5, 7, 10];
+  var rows = [];
 
-  function runDailySignal() {
-  if (!CACHE_BUILT) { alert('Fetch data first'); return; }
-  var out = $('dfSigOut'); if (!out) return;
-  out.innerHTML = '<span style="color:var(--mu);font-size:11px">Scanning...</span>';
+  counts.forEach(function(n) {
+    el.value = n;
+    var recs = runBTcore(n, 'large');
+    if (!recs || recs.length < 6) { rows.push({ n: n, err: true }); return; }
+
+    var initNav = recs[0].nav / (1 + recs[0].pRet);
+    var finalNav = recs[recs.length - 1].nav;
+    var years = (new Date(recs[recs.length - 1].month) - new Date(recs[0].month)) / (365.25 * 86400000);
+    if (years <= 0) { rows.push({ n: n, err: true }); return; }
+    var cagr = Math.pow(finalNav / initNav, 1 / years) - 1;
+    var peak = initNav, mdd = 0;
+    recs.forEach(function(r) {
+      if (r.nav > peak) peak = r.nav;
+      var dd = (r.nav - peak) / peak;
+      if (dd < mdd) mdd = dd;
+    });
+
+    var rets = recs.map(function(r) { return r.pRet; });
+    var mean = rets.reduce(function(a, b) { return a + b; }, 0) / rets.length;
+    var variance = rets.reduce(function(a, b) {
+      return a + Math.pow(b - mean, 2);
+    }, 0) / rets.length;
+    var annualStd = Math.sqrt(variance) * Math.sqrt(12);
+    var sharpe = annualStd > 0 ? (cagr - 0.015) / annualStd : 0;
+    
+
+    rows.push({ n: n, cagr: cagr, mdd: mdd, sharpe: sharpe });
+  });
+
+  el.value = orig;
+
+  var html = '<table style="border-collapse:collapse;width:100%;font-size:0.9em;text-align:center;">';
+  html += '<tr style="background:#e8f0fe;">'
+    + '<th style="padding:6px 12px;">N</th>'
+    + '<th style="padding:6px 12px;">CAGR</th>'
+    + '<th style="padding:6px 12px;">MDD</th>'
+    + '<th style="padding:6px 12px;">Sharpe</th>'
+    + '</tr>';
+
+  rows.forEach(function(r, i) {
+    var bg = i % 2 === 0 ? '#fff' : '#f8f9fa';
+    if (r.err) {
+      html += '<tr style="background:' + bg + '"><td>' + r.n + '</td><td colspan="3">--</td></tr>';
+    } else {
+      var mddColor = r.mdd < -0.3 ? '#c0392b' : '#555';
+      html += '<tr style="background:' + bg + '">'
+        + '<td style="padding:5px 12px;font-weight:bold;">' + r.n + '</td>'
+        + '<td style="padding:5px 12px;">' + (r.cagr * 100).toFixed(2) + '%</td>'
+        + '<td style="padding:5px 12px;color:' + mddColor + ';">' + (r.mdd * 100).toFixed(2) + '%</td>'
+        + '<td style="padding:5px 12px;">' + r.sharpe.toFixed(2) + '</td>'
+        + '</tr>';
+    }
+  });
+  html += '</table>';
+
+  var out = $('btResult') || $('result') || $('btOut');
+  if (out) out.innerHTML = html;
+}
+function runMonteCarlo() {
+  if (!BT_RESULT) { alert('Run backtest first'); return; }
+  var simN = parseInt($('stSimN') ? $('stSimN').value : '1000') || 1000;
+  var rets = BT_RESULT.records.map(function(r) { return r.pRet; });
+  var init = BT_RESULT.initial;
+  var n = rets.length;
+  sl('stressLog', 'Running Monte Carlo x' + simN + '...', null);
+  showL('Monte Carlo...');
+  setTimeout(function() {
+    try {
+      var cagrs = [], mdds = [], sharpes = [];
+      for (var s = 0; s < simN; s++) {
+        var sim = [];
+        for (var i = 0; i < n; i++) {
+          sim.push(rets[Math.floor(Math.random() * n)]);
+        }
+        var nav = init, peak = init, mdd = 0;
+        sim.forEach(function(r) {
+          nav *= (1 + r);
+          if (nav > peak) peak = nav;
+          var dd = (nav - peak) / peak;
+          if (dd < mdd) mdd = dd;
+        });
+        var yrs = n / 12;
+        var cagr = Math.pow(nav / init, 1 / yrs) - 1;
+        var avg = sim.reduce(function(a, b) { return a + b; }, 0) / sim.length;
+        var std = Math.sqrt(sim.reduce(function(a, b) {
+          return a + Math.pow(b - avg, 2);
+        }, 0) / sim.length) * Math.sqrt(12);
+        var sharpe = std > 0 ? (cagr - 0.015) / std : 0;
+        cagrs.push(cagr); mdds.push(mdd); sharpes.push(sharpe);
+      }
+      renderStress(cagrs, mdds, sharpes, 'Monte Carlo', simN);
+      sl('stressLog', 'Monte Carlo \u5B8C\u6210 ' + simN + ' \u6B21', true);
+    } catch(e) { sl('stressLog', 'Error: ' + e.message, false); }
+    finally { hideL(); }
+  }, 80);
+}
+
+function runBlockBootstrap() {
+  if (!BT_RESULT) { alert('Run backtest first'); return; }
+  var simN = parseInt($('stSimN') ? $('stSimN').value : '1000') || 1000;
+  var blk = parseInt($('stBlock') ? $('stBlock').value : '4') || 4;
+  var rets = BT_RESULT.records.map(function(r) { return r.pRet; });
+  var init = BT_RESULT.initial;
+  var n = rets.length;
+  sl('stressLog', 'Running Block Bootstrap x' + simN + ' block=' + blk + '...', null);
+  showL('Block Bootstrap...');
+  setTimeout(function() {
+    try {
+      var cagrs = [], mdds = [], sharpes = [];
+      for (var s = 0; s < simN; s++) {
+        var sim = [];
+        while (sim.length < n) {
+          var start = Math.floor(Math.random() * (n - blk + 1));
+          for (var b = 0; b < blk && sim.length < n; b++) {
+            sim.push(rets[start + b]);
+          }
+        }
+        var nav = init, peak = init, mdd = 0;
+        sim.forEach(function(r) {
+          nav *= (1 + r);
+          if (nav > peak) peak = nav;
+          var dd = (nav - peak) / peak;
+          if (dd < mdd) mdd = dd;
+        });
+        var yrs = n / 12;
+        var cagr = Math.pow(nav / init, 1 / yrs) - 1;
+        var avg = sim.reduce(function(a, b) { return a + b; }, 0) / sim.length;
+        var std = Math.sqrt(sim.reduce(function(a, b) {
+          return a + Math.pow(b - avg, 2);
+        }, 0) / sim.length) * Math.sqrt(12);
+        var sharpe = std > 0 ? (cagr - 0.015) / std : 0;
+        cagrs.push(cagr); mdds.push(mdd); sharpes.push(sharpe);
+      }
+      renderStress(cagrs, mdds, sharpes, 'Block Bootstrap (blk=' + blk + ')', simN);
+      sl('stressLog', 'Block Bootstrap \u5B8C\u6210 ' + simN + ' \u6B21', true);
+    } catch(e) { sl('stressLog', 'Error: ' + e.message, false); }
+    finally { hideL(); }
+  }, 80);
+}
+
+function renderStress(cagrs, mdds, sharpes, label, simN) {
+  function ptile(arr, p) {
+    var s = arr.slice().sort(function(a, b) { return a - b; });
+    var i = (p / 100) * (s.length - 1);
+    var lo = Math.floor(i), hi = Math.ceil(i);
+    return s[lo] + (s[hi] - s[lo]) * (i - lo);
+  }
+  function avgArr(arr) { return arr.reduce(function(a, b) { return a + b; }, 0) / arr.length; }
+  function fmtP(v) { return (v >= 0 ? '+' : '') + (v * 100).toFixed(2) + '%'; }
+  function fmtN(v) { return v.toFixed(2); }
+  function gc(v) { return v >= 0 ? 'var(--gr)' : 'var(--re)'; }
+
+  var winRate = cagrs.filter(function(v) { return v > 0; }).length / simN;
+  var orig = BT_RESULT.records;
+  var origInit = BT_RESULT.initial;
+  var origLast = orig[orig.length - 1];
+  var origYrs = (new Date(origLast.month) - new Date(orig[0].month)) / (365.25 * 86400000);
+  var origCagr = Math.pow(origLast.nav / origInit, 1 / origYrs) - 1;
+  var origRets = orig.map(function(r) { return r.pRet; });
+  var origAvg = avgArr(origRets);
+  var origStd = Math.sqrt(origRets.reduce(function(a, b) {
+    return a + Math.pow(b - origAvg, 2);
+  }, 0) / origRets.length) * Math.sqrt(12);
+  var origSharpe = origStd > 0 ? (origCagr - 0.015) / origStd : 0;
+  var origPeak = origInit, origMdd = 0;
+  orig.forEach(function(r) {
+    if (r.nav > origPeak) origPeak = r.nav;
+    var dd = (r.nav - origPeak) / origPeak;
+    if (dd < origMdd) origMdd = dd;
+  });
+
+  var rows = [
+    ['\u6307\u6A19 CAGR', cagrs, true, origCagr],
+    ['\u6307\u6A19 MDD', mdds, true, origMdd],
+    ['\u6307\u6A19 Sharpe', sharpes, false, origSharpe]
+  ];
+
+  var html = '<div class="card" style="border-top:3px solid var(--ac);margin-bottom:10px;">';
+  html += '<div class="ct">' + label + ' (N=' + simN + ')</div>';
+  html += '<div class="tw-wrap"><table><thead><tr>';
+  html += '<th></th><th>P10</th><th>P25</th><th>P50</th><th>P75</th><th>P90</th>';
+  html += '<th>\u5E73\u5747</th><th>\u539F\u59CB</th></tr></thead><tbody>';
+
+  rows.forEach(function(row) {
+    var name = row[0], arr = row[1], isPct = row[2], origVal = row[3];
+    var f = isPct ? fmtP : fmtN;
+    var p10 = ptile(arr, 10), p25 = ptile(arr, 25);
+    var med = ptile(arr, 50), p75 = ptile(arr, 75), p90 = ptile(arr, 90);
+    var av = avgArr(arr);
+    html += '<tr>';
+    html += '<td style="color:var(--mu);font-size:10px">' + name + '</td>';
+    html += '<td class="mono" style="color:' + gc(p10) + '">' + f(p10) + '</td>';
+    html += '<td class="mono" style="color:' + gc(p25) + '">' + f(p25) + '</td>';
+    html += '<td class="mono" style="color:' + gc(med) + '">' + f(med) + '</td>';
+    html += '<td class="mono" style="color:' + gc(p75) + '">' + f(p75) + '</td>';
+    html += '<td class="mono" style="color:' + gc(p90) + '">' + f(p90) + '</td>';
+    html += '<td class="mono" style="color:' + gc(av) + '">' + f(av) + '</td>';
+    html += '<td class="mono" style="color:var(--ye)">' + f(origVal) + '</td>';
+    html += '</tr>';
+  });
+
+  html += '<tr><td style="color:var(--mu);font-size:10px">\u52DD\u7387(CAGR>0)</td>';
+  html += '<td colspan="7" class="mono" style="color:var(--gr)">';
+  html += (winRate * 100).toFixed(1) + '%</td></tr>';
+  html += '</tbody></table></div></div>';
+
+  $('stressRes').classList.remove('hidden');
+  var el = $('stressMetrics');
+  if (el) el.innerHTML = el.innerHTML + html;
+}
+  
+function runWalkForward() {
+    if (!CACHE_BUILT) {
+        alert('Build cache first');
+        return;
+    }
+
+    var minTY = parseInt($('wfMinTrain') ? $('wfMinTrain').value : '8') || 8;
+    var testWY = parseInt($('wfTestWin') ? $('wfTestWin').value : '1') || 1;
+    var masterTicker = DAILY['^TWII'] ? '^TWII' : (DAILY['SPY'] ? 'SPY' : null);
+
+    if (!masterTicker) {
+        alert('No benchmark data');
+        return;
+    }
+
+    var refDaily = DAILY[masterTicker];
+    var freq = $('btFreq') ? $('btFreq').value : '1';
+    var allM = getPreciseRebalanceDates(refDaily, freq);
+
+    if (!allM.length) return;
+
+    var firstYear = parseInt(allM[0].slice(0, 4));
+    var lastYear = parseInt(allM[allM.length - 1].slice(0, 4));
+    var firstTestYear = firstYear + minTY;
+
+    if (firstTestYear > lastYear) {
+        alert('Not enough data for Walk-Forward');
+        return;
+    }
+
+    var init = gv('btCap') || 100000;
+    var mh = parseInt($('btH') ? $('btH').value : '5') || 5;
+    var mode = getWeightMode();
+    var origS = $('btS') ? $('btS').value : '';
+    var origE = $('btE') ? $('btE').value : '';
+
+    sl('stressLog', 'Running Walk-Forward...', null);
+    showL('Walk-Forward Analysis...');
+
+    setTimeout(function() {
+        try {
+            var results = [], combinedOOS = [];
+            for (var ty = firstTestYear; ty + testWY - 1 <= lastYear; ty += testWY) {
+                var tStart = ty + '-01';
+                var tEnd = (ty + testWY - 1) + '-12';
+
+                if ($('btS')) $('btS').value = tStart;
+                if ($('btE')) $('btE').value = tEnd;
+
+                var oosRecs = runBTcore(mh, mode);
+                if (!oosRecs || oosRecs.length < 2) continue;
+
+                var oosInit = oosRecs[0].nav / (1 + oosRecs[0].pRet);
+                var k = kpi(oosRecs, oosInit);
+
+                oosRecs.forEach(function(r) { combinedOOS.push(r.pRet); });
+                results.push({
+                    period: tStart + '~' + tEnd,
+                    months: oosRecs.length,
+                    cagr: k.cagr,
+                    mdd: k.mdd,
+                    sharpe: k.sharpe
+                });
+            }
+
+            if ($('btS')) $('btS').value = origS;
+            if ($('btE')) $('btE').value = origE;
+
+            if (!combinedOOS.length) {
+                sl('stressLog', 'No OOS results', false);
+                hideL();
+                return;
+            }
+
+            var sNav = init, sPeak = init, sMdd = 0;
+            combinedOOS.forEach(function(r) {
+                sNav *= (1 + r);
+                if (sNav > sPeak) sPeak = sNav;
+                var dd = (sNav - sPeak) / sPeak;
+                if (dd < sMdd) sMdd = dd;
+            });
+
+            var sYrs = combinedOOS.length / 12;
+            var sCagr = sYrs > 0 ? Math.pow(sNav / init, 1 / sYrs) - 1 : 0;
+            var sAvg = combinedOOS.reduce(function(a, b) { return a + b; }, 0) / combinedOOS.length;
+            var sStd = Math.sqrt(combinedOOS.reduce(function(a, b) { return a + Math.pow(b - sAvg, 2); }, 0) / combinedOOS.length) * Math.sqrt(12);
+            var sSharpe = sStd > 0 ? (sCagr - 0.015) / sStd : 0;
+
+            renderWalkForward(results, { cagr: sCagr, mdd: sMdd, sharpe: sSharpe, months: combinedOOS.length });
+            sl('stressLog', 'Walk-Forward: ' + results.length + ' windows, OOS=' + combinedOOS.length + 'mo', true);
+
+        } catch (e) {
+            if ($('btS')) $('btS').value = origS;
+            if ($('btE')) $('btE').value = origE;
+            sl('stressLog', 'Error: ' + e.message, false);
+            console.error(e);
+        }
+        hideL();
+    }, 80);
+}
+
+function renderWalkForward(results, spliced) {
+    function fp(v) { return (v >= 0 ? '+' : '') + (v * 100).toFixed(2) + '%'; }
+    function gc(v) { return v >= 0 ? 'var(--gr)' : 'var(--re)'; }
+
+    var isCAGR = null;
+    if (typeof BT_RESULT !== 'undefined' && BT_RESULT) {
+        try { isCAGR = kpi(BT_RESULT.records, BT_RESULT.initial).cagr; } catch (e) {}
+    }
+
+    var html = '<div class="card" style="border-top:3px solid var(--ye);margin-bottom:10px;">';
+    html += '<div class="ct">WALK-FORWARD ANALYSIS (ANCHORED)</div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;">';
+    html += '<div class="card" style="border-top:2px solid var(--gr);padding:9px;"><div style="font-size:10px;font-weight:700;color:var(--mu);margin-bottom:4px">OOS CAGR (spliced)</div>';
+    html += '<div class="mono" style="font-size:20px;color:' + gc(spliced.cagr) + '">' + fp(spliced.cagr) + '</div></div>';
+    html += '<div class="card" style="border-top:2px solid var(--re);padding:9px;"><div style="font-size:10px;font-weight:700;color:var(--mu);margin-bottom:4px">OOS MDD (spliced)</div>';
+    html += '<div class="mono" style="font-size:20px;color:var(--re)">' + fp(spliced.mdd) + '</div></div>';
+    html += '<div class="card" style="border-top:2px solid var(--bl);padding:9px;"><div style="font-size:10px;font-weight:700;color:var(--mu);margin-bottom:4px">OOS Sharpe (spliced)</div>';
+    html += '<div class="mono" style="font-size:20px;color:' + gc(spliced.sharpe) + '">' + spliced.sharpe.toFixed(2) + '</div></div>';
+    html += '</div>';
+
+    if (isCAGR !== null && isCAGR !== 0) {
+        var ratio = spliced.cagr / isCAGR;
+        var ratioCol = ratio >= 0.6 ? 'var(--gr)' : ratio >= 0.4 ? 'var(--ye)' : 'var(--re)';
+        var verdict = ratio >= 0.6 ? 'PASS - Real Edge' : ratio >= 0.4 ? 'WARN - Partial Decay' : 'FAIL - Overfitting Signal';
+        html += '<div style="background:var(--sf2);border:1px solid var(--bd);padding:8px;font-size:12px;margin-bottom:10px;">';
+        html += 'IS CAGR: <b style="color:var(--ye)">' + fp(isCAGR) + '</b>';
+        html += ' | OOS/IS: <b style="color:' + ratioCol + '">' + (ratio * 100).toFixed(0) + '%</b>';
+        html += ' | <b style="color:' + ratioCol + '">' + verdict + '</b></div>';
+    }
+
+    var winCount = results.filter(function(r) { return r.cagr > 0; }).length;
+    var winRate = results.length > 0 ? winCount / results.length : 0;
+    html += '<div style="font-size:11px;color:var(--mu);margin-bottom:6px;">Win rate(CAGR>0): <b style="color:' + (winRate >= 0.7 ? 'var(--gr)' : winRate >= 0.5 ? 'var(--ye)' : 'var(--re)') + '">' + (winRate * 100).toFixed(0) + '%</b>';
+    html += ' (' + winCount + '/' + results.length + ' windows) | OOS months: <b>' + spliced.months + '</b></div>';
+    html += '<div class="tw-wrap"><table><thead><tr><th>OOS Period</th><th>Mo</th><th>CAGR</th><th>MDD</th><th>Sharpe</th><th>Status</th></tr></thead><tbody>';
+
+    results.forEach(function(r) {
+        var ok = r.cagr > 0;
+        html += '<tr><td class="mono" style="font-size:11px">' + r.period + '</td>';
+        html += '<td class="mono">' + r.months + '</td>';
+        html += '<td class="mono" style="color:' + gc(r.cagr) + '">' + fp(r.cagr) + '</td>';
+        html += '<td class="mono" style="color:var(--re)">' + fp(r.mdd) + '</td>';
+        html += '<td class="mono" style="color:' + gc(r.sharpe) + '">' + r.sharpe.toFixed(2) + '</td>';
+        html += '<td style="color:' + (ok ? 'var(--gr)' : 'var(--re)') + ';font-size:11px">' + (ok ? 'Profit' : 'Loss') + '</td></tr>';
+    });
+
+    html += '</tbody></table></div>';
+    html += '<div style="font-size:10px;color:var(--mu);margin-top:8px;">Verdict: OOS/IS >= 60% PASS | 40-60% WARN | <40% Overfitting</div>';
+    html += '</div>';
+
+    var container = $('stressRes');
+    if (container) container.classList.remove('hidden');
+    var el = $('stressMetrics');
+    if (el) el.innerHTML = el.innerHTML + html;
+}
+function runWFNCompare() {
+    if (!CACHE_BUILT) {
+        alert('Build cache first');
+        return;
+    }
+
+    var minTY = parseInt($('wfMinTrain') ? $('wfMinTrain').value : '8') || 8;
+    var testWY = parseInt($('wfTestWin') ? $('wfTestWin').value : '1') || 1;
+    var masterTicker = DAILY['^TWII'] ? '^TWII' : (DAILY['SPY'] ? 'SPY' : null);
+
+    if (!masterTicker) {
+        alert('No benchmark data');
+        return;
+    }
+
+    var refDaily = DAILY[masterTicker];
+    var freq = $('btFreq') ? $('btFreq').value : '1';
+    var allM = getPreciseRebalanceDates(refDaily, freq);
+
+    if (!allM.length) {
+        alert('No rebalance dates');
+        return;
+    }
+
+    var firstYear = parseInt(allM[0].slice(0, 4));
+    var lastYear = parseInt(allM[allM.length - 1].slice(0, 4));
+    var firstTestYear = firstYear + minTY;
+
+    if (firstTestYear > lastYear) {
+        alert('Not enough data');
+        return;
+    }
+
+    var init = gv('btCap') || 100000;
+    var wtEl = document.querySelector('input[name="wtMode"]:checked');
+    var mode = wtEl ? wtEl.value : 'eq';
+    var origS = $('btS') ? $('btS').value : '';
+    var origE = $('btE') ? $('btE').value : '';
+    var origH = $('btH') ? $('btH').value : '5';
+    var origPool = document.getElementById('poolMode') ? document.getElementById('poolMode').value : 'large';
+
+    if (document.getElementById('poolMode')) {
+        document.getElementById('poolMode').value = 'large';
+    }
+
+    sl('stressLog', 'Running WF N=2~15 comparison...', null);
+    showL('WF N Compare...');
+
+    setTimeout(function() {
+        try {
+            var scanN = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+            var allResults = [];
+
+            for (var ni = 0; ni < scanN.length; ni++) {
+                var N = scanN[ni];
+                if ($('btH')) $('btH').value = N;
+                var oosMonths = [];
+
+                for (var ty = firstTestYear; ty + testWY - 1 <= lastYear; ty += testWY) {
+                    var tStart = ty + '-01';
+                    var tEnd = (ty + testWY - 1) + '-12';
+                    if ($('btS')) $('btS').value = tStart;
+                    if ($('btE')) $('btE').value = tEnd;
+
+                    var recs = runBTcore(N, mode);
+                    if (!recs || recs.length < 2) continue;
+                    recs.forEach(function(r) { oosMonths.push(r.pRet); });
+                }
+
+                if ($('btS')) $('btS').value = origS;
+                if ($('btE')) $('btE').value = origE;
+
+                if (!oosMonths.length) {
+                    allResults.push({ N: N, err: true });
+                    continue;
+                }
+
+                var sNav = init, sPeak = init, sMdd = 0;
+                oosMonths.forEach(function(r) {
+                    sNav *= (1 + r);
+                    if (sNav > sPeak) sPeak = sNav;
+                    var dd = (sNav - sPeak) / sPeak;
+                    if (dd < sMdd) sMdd = dd;
+                });
+
+                var sYrs = oosMonths.length / 12;
+                var sCagr = sYrs > 0 ? Math.pow(sNav / init, 1 / sYrs) - 1 : 0;
+                var sAvg = oosMonths.reduce(function(a, b) { return a + b; }, 0) / oosMonths.length;
+                var sStd = Math.sqrt(oosMonths.reduce(function(a, b) {
+                    return a + Math.pow(b - sAvg, 2);
+                }, 0) / oosMonths.length) * Math.sqrt(12);
+                var sSharpe = sStd > 0 ? (sCagr - 0.015) / sStd : 0;
+                var winRate = oosMonths.filter(function(r) { return r > 0; }).length / oosMonths.length;
+
+                allResults.push({
+                    N: N, cagr: sCagr, mdd: sMdd, sharpe: sSharpe,
+                    nav: sNav, months: oosMonths.length, winRate: winRate, err: false
+                });
+            }
+
+            if ($('btH')) $('btH').value = origH;
+            if (document.getElementById('poolMode')) {
+                document.getElementById('poolMode').value = origPool;
+            }
+
+            renderWFNCompare(allResults, init, minTY, testWY);
+            sl('stressLog', 'WF N Compare done: N=2~15', true);
+
+        } catch (e) {
+            if ($('btS')) $('btS').value = origS;
+            if ($('btE')) $('btE').value = origE;
+            if ($('btH')) $('btH').value = origH;
+            if (document.getElementById('poolMode')) {
+                document.getElementById('poolMode').value = origPool;
+            }
+            sl('stressLog', 'Error: ' + e.message, false);
+            console.error(e);
+        }
+        hideL();
+    }, 80);
+}
+
+function renderWFNCompare(results, init, minTY, testWY) {
+    function fp(v) { return (v >= 0 ? '+' : '') + (v * 100).toFixed(2) + '%'; }
+    function gc(v) { return v >= 0 ? 'var(--gr)' : 'var(--re)'; }
+    function sc(v) { return v >= 1.0 ? 'var(--gr)' : v >= 0.7 ? 'var(--ye)' : 'var(--re)'; }
+
+    var valid = results.filter(function(r) { return !r.err; });
+    if (!valid.length) return;
+
+    var bestCagr = valid.reduce(function(a, b) { return b.cagr > a.cagr ? b : a; });
+    var bestSharpe = valid.reduce(function(a, b) { return b.sharpe > a.sharpe ? b : a; });
+    var bestMdd = valid.reduce(function(a, b) { return b.mdd > a.mdd ? b : a; });
+
+    var html = '<div class="card" style="border-top:3px solid var(--ac);margin-bottom:10px;">';
+    html += '<div class="ct">WF N COMPARE (Large Pool, Train=' + minTY + 'Y, Test=' + testWY + 'Y)</div>';
+    html += '<div class="tw-wrap"><table><thead><tr>';
+    html += '<th>N</th><th>OOS CAGR</th><th>OOS MDD</th><th>OOS Sharpe</th><th>Win Rate</th><th>OOS Months</th><th>Final NAV</th>';
+    html += '</tr></thead><tbody>';
+
+    results.forEach(function(r) {
+        if (r.err) {
+            html += '<tr><td class="mono">' + r.N + '</td><td colspan="6" style="color:var(--mu)">no data</td></tr>';
+            return;
+        }
+        var isBestC = r.N === bestCagr.N;
+        var isBestS = r.N === bestSharpe.N;
+        var isBestM = r.N === bestMdd.N;
+        var rowStyle = (isBestC || isBestS) ? 'background:var(--sf2);' : '';
+        html += '<tr style="' + rowStyle + '">';
+        html += '<td class="mono" style="font-weight:700;color:' + (isBestS ? 'var(--gr)' : isBestC ? 'var(--tw)' : 'var(--tx)') + '">' + r.N + (isBestC ? ' *C' : '') + (isBestS ? ' *S' : '') + '</td>';
+        html += '<td class="mono" style="color:' + gc(r.cagr) + '">' + fp(r.cagr) + '</td>';
+        html += '<td class="mono" style="color:var(--re)">' + fp(r.mdd) + '</td>';
+        html += '<td class="mono" style="color:' + sc(r.sharpe) + '">' + r.sharpe.toFixed(2) + '</td>';
+        html += '<td class="mono" style="color:' + (r.winRate >= 0.6 ? 'var(--gr)' : 'var(--ye)') + '">' + (r.winRate * 100).toFixed(0) + '%</td>';
+        html += '<td class="mono" style="color:var(--mu)">' + r.months + '</td>';
+        html += '<td class="mono" style="color:var(--wh)">$' + Math.round(r.nav).toLocaleString() + '</td>';
+        html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    html += '<div style="font-size:10px;color:var(--mu);margin-bottom:10px;">*C = best CAGR | *S = best Sharpe | highlighted row = notable</div>';
+    html += '<div id="wfnChartWrap" style="position:relative;height:220px;margin-bottom:8px"><canvas id="wfnChart"></canvas></div>';
+    html += '</div>';
+
+    $('stressRes').classList.remove('hidden');
+    var el = $('stressMetrics');
+    if (el) el.innerHTML = el.innerHTML + html;
+
+    setTimeout(function() {
+        var ctx = document.getElementById('wfnChart');
+        if (!ctx || typeof Chart === 'undefined') return;
+        var labels = valid.map(function(r) { return 'N=' + r.N; });
+        var cagrData = valid.map(function(r) { return (r.cagr * 100).toFixed(2); });
+        var sharpeData = valid.map(function(r) { return r.sharpe.toFixed(2); });
+        var mddData = valid.map(function(r) { return (r.mdd * 100).toFixed(2); });
+        var gridColor = '#1a2030';
+        var tickColor = '#6b7a99';
+
+        new Chart(ctx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'OOS CAGR %', data: cagrData, borderColor: '#00e5a0', borderWidth: 2, pointRadius: 4, yAxisID: 'y' },
+                    { label: 'OOS Sharpe', data: sharpeData, borderColor: '#ffb830', borderWidth: 2, pointRadius: 4, yAxisID: 'y2' },
+                    { label: 'OOS MDD %', data: mddData, borderColor: '#ff4d6d', borderWidth: 2, pointRadius: 4, borderDash: [4, 3], yAxisID: 'y' }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                animation: { duration: 300 },
+                plugins: { legend: { labels: { color: tickColor, boxWidth: 10, font: { size: 11 } } } },
+                scales: {
+                    x: { ticks: { color: tickColor }, grid: { color: gridColor } },
+                    y: { 
+                        position: 'left', 
+                        ticks: { color: tickColor, callback: function(v) { return v + '%'; } }, 
+                        grid: { color: gridColor }, 
+                        title: { display: true, text: 'CAGR / MDD %', color: tickColor, font: { size: 10 } } 
+                    },
+                    y2: { 
+                        position: 'right', 
+                        ticks: { color: '#ffb830' }, 
+                        grid: { drawOnChartArea: false }, 
+                        title: { display: true, text: 'Sharpe', color: '#ffb830', font: { size: 10 } } 
+                    }
+                }
+            }
+        });
+    }, 100);
+}
+  
+function runPoolCompare() {
+  if (!CACHE_BUILT) { alert('Build cache first'); return; }
+  var minTY = parseInt($('wfMinTrain') && $('wfMinTrain').value ? $('wfMinTrain').value : '8') || 8;
+  var testWY = parseInt($('wfTestWin') && $('wfTestWin').value ? $('wfTestWin').value : '1') || 1;
+  var etfQ = parseInt($('wfETFQuota') && $('wfETFQuota').value ? $('wfETFQuota').value : '1');
+  if (isNaN(etfQ) || etfQ < 0) etfQ = 1;
+  var masterTicker = DAILY['^TWII'] ? '^TWII' : (DAILY['SPY'] ? 'SPY' : null);
+  if (!masterTicker) { alert('No benchmark data'); return; }
+  var refDaily = DAILY[masterTicker];
+  if (!refDaily || !refDaily.length) { alert('No benchmark data loaded'); return; }
+  var freq = $('btFreq') ? $('btFreq').value : '1';
+  var allM = getPreciseRebalanceDates(refDaily, freq);
+  if (!allM || !allM.length) { alert('No rebalance dates'); return; }
+  var firstYear = parseInt(allM[0].slice(0, 4));
+  var lastYear = parseInt(allM[allM.length - 1].slice(0, 4));
+  var firstTestYear = firstYear + minTY;
+  if (firstTestYear > lastYear) { alert('Not enough data (need ' + minTY + ' train years)'); return; }
+  var init = gv('btCap') || 100000;
+  var wtEl = document.querySelector('input[name="wtMode"]:checked');
+  var mode = wtEl ? wtEl.value : 'eq';
+  var origS = $('btS') ? $('btS').value : '';
+  var origE = $('btE') ? $('btE').value : '';
+  var origH = $('btH') ? $('btH').value : '5';
+  var origPool = document.getElementById('poolMode') ? document.getElementById('poolMode').value : 'large';
+  var origTW = $('btQuotaTW') ? $('btQuotaTW').value : '2';
+  var origUS = $('btQuotaUS') ? $('btQuotaUS').value : '2';
+  var origETF = $('btQuotaETF') ? $('btQuotaETF').value : '1';
+  sl('stressLog', 'Running Pool Compare A+B...', null);
+  showL('Pool Compare A+B...');
+
+  function restoreAll() {
+    if (document.getElementById('poolMode')) document.getElementById('poolMode').value = origPool;
+    if ($('btQuotaTW')) $('btQuotaTW').value = origTW;
+    if ($('btQuotaUS')) $('btQuotaUS').value = origUS;
+    if ($('btQuotaETF')) $('btQuotaETF').value = origETF;
+    if ($('btH')) $('btH').value = origH;
+    if ($('btS')) $('btS').value = origS;
+    if ($('btE')) $('btE').value = origE;
+  }
 
   setTimeout(function() {
     try {
-      var refKey = DAILY['^TWII'] ? '^TWII' : (DAILY['SPY'] ? 'SPY' : null);
-      if (!refKey) { out.innerHTML = 'No benchmark'; return; }
-      var refDaily = DAILY[refKey];
-      var LAG = document.querySelector('input[name="lagMode"]:checked') ? parseInt(document.querySelector('input[name="lagMode"]:checked').value) : 1;
-      var spread = gv('btSpread') || 0.5;
-      var ct = gv('corrT') || 0.75;
-
-      // Get all trading dates
-      var allDates = refDaily.map(function(b) { return b.date; });
-      if (allDates.length < LAG + 250) { out.innerHTML = 'Not enough data'; return; }
-
-      var stocks = getEnabledStocks().filter(function(s) { return DAILY[s.c] && DAILY[s.c].length > 200; });
-
-      // Scan last 60 trading days for portfolio changes
-      var SCAN = Math.min(60, allDates.length - LAG - 250);
-      var startIdx = allDates.length - SCAN;
-      var prevCodes = [];
-      var changes = [];
-
-      for (var i = startIdx; i < allDates.length; i++) {
-        var sigDate = allDates[i];
-        var scoreDate = allDates[Math.max(0, i - LAG)];
-        var hurdle = Math.max(0, (getPriceOnDate(DAILY['^TNX'], scoreDate) || 4) / 100 + spread / 100);
-
-        // Calc scores
-        var rMs=[], rBs=[], rSs=[], rVs=[], rKs=[], infos=[];
-        stocks.forEach(function(s) {
-          var bars = DAILY[s.c]; if (!bars) return;
-          var idx = -1;
-          for (var j = 0; j < bars.length; j++) { if (bars[j].date <= scoreDate) idx = j; else break; }
-          if (idx < 240) return;
-          var cut = bars.slice(0, idx + 1);
-          rMs.push(rawMom(bars, idx));
-          rBs.push(calcBias(cut, 60));
-          rSs.push(calcSlope(cut, 60));
-          rVs.push(calcVol(cut, 60));
-          rKs.push(calcKbar(cut, 60));
-          infos.push({ s: s, r240: bars[idx].c / (bars[idx-240] ? bars[idx-240].c : 1) - 1 });
-        });
-
-        var zMs=crossZ(rMs,99), zBs=crossZ(rBs,2), zSs=crossZ(rSs,99), zVs=crossZ(rVs,2), zKs=crossZ(rKs,99);
-        var w = { m:0.5, b:0.15, s:0.15, v:0.10, k:0.10 };
-        var scored = [];
-        infos.forEach(function(d, ii) {
-          if (d.r240 === null || zMs[ii] === null) return;
-          var sc = w.m*(zMs[ii]||0) + w.b*(zBs[ii]||0) + w.s*(zSs[ii]||0) + w.v*(zVs[ii]||0) + w.k*(zKs[ii]||0);
-          scored.push({ s: d.s, score: sc, r240: d.r240 });
-        });
-
-        // Select portfolio (small pool)
-        var qTW = gv('btQuotaTW')||2, qUS = gv('btQuotaUS')||2, qETF = gv('btQuotaETF')||1;
-        var pools = { tw:[], us:[], etf:[] }, quotas = { tw:qTW, us:qUS, etf:qETF };
-        scored.filter(function(r) { return r.r240 > hurdle && ['TLT','GLD','SGOV'].indexOf(r.s.c) === -1; })
-          .sort(function(a, b) { return b.score - a.score; })
-          .forEach(function(r) { if (pools[r.s.pool]) pools[r.s.pool].push(r); });
-        var sel = [];
-        ['us','tw','etf'].forEach(function(p) {
-          var picked = 0;
-          (pools[p]||[]).forEach(function(c) {
-            if (picked >= quotas[p]) return;
-            if (sel.every(function(x) { return Math.abs(calcCorr(c.s.c, x.s.c, scoreDate)) < ct; })) { sel.push(c); picked++; }
+      function runOneWF(poolMode, tw, us, etf, totalN) {
+        try {
+          if (document.getElementById('poolMode')) document.getElementById('poolMode').value = poolMode;
+          if ($('btQuotaTW')) $('btQuotaTW').value = tw;
+          if ($('btQuotaUS')) $('btQuotaUS').value = us;
+          if ($('btQuotaETF')) $('btQuotaETF').value = etf;
+          if ($('btH')) $('btH').value = totalN;
+          var oosMonths = [];
+          for (var ty = firstTestYear; ty + testWY - 1 <= lastYear; ty += testWY) {
+            var tS = ty + '-01', tE = (ty + testWY - 1) + '-12';
+            if ($('btS')) $('btS').value = tS;
+            if ($('btE')) $('btE').value = tE;
+            var recs = runBTcore(totalN, mode);
+            if (!recs || recs.length < 2) continue;
+            recs.forEach(function(r) { oosMonths.push(r.pRet); });
+          }
+          if ($('btS')) $('btS').value = origS;
+          if ($('btE')) $('btE').value = origE;
+          if (!oosMonths.length) return null;
+          var sNav = init, sPeak = init, sMdd = 0;
+          oosMonths.forEach(function(r) {
+            sNav *= (1 + r);
+            if (sNav > sPeak) sPeak = sNav;
+            var dd = (sNav - sPeak) / sPeak;
+            if (dd < sMdd) sMdd = dd;
           });
-        });
-        var curCodes = sel.map(function(r) { return r.s.c; });
-
-        var entered = curCodes.filter(function(c) { return prevCodes.indexOf(c) === -1; });
-        var exited  = prevCodes.filter(function(c) { return curCodes.indexOf(c) === -1; });
-
-        if (entered.length || exited.length) {
-          changes.push({ date: sigDate, scoreDate: scoreDate, entered: entered, exited: exited });
+          var sYrs = oosMonths.length / 12;
+          var sCagr = sYrs > 0 ? Math.pow(sNav / init, 1 / sYrs) - 1 : 0;
+          var sAvg = oosMonths.reduce(function(a, b) { return a + b; }, 0) / oosMonths.length;
+          var sStd = Math.sqrt(oosMonths.reduce(function(a, b) { return a + Math.pow(b - sAvg, 2); }, 0) / oosMonths.length) * Math.sqrt(12);
+          var sSharpe = sStd > 0 ? (sCagr - 0.015) / sStd : 0;
+          return { cagr: sCagr, mdd: sMdd, sharpe: sSharpe, nav: sNav, months: oosMonths.length };
+        } catch (innerE) {
+          if ($('btS')) $('btS').value = origS;
+          if ($('btE')) $('btE').value = origE;
+          console.error('runOneWF error:', innerE);
+          return null;
         }
-        prevCodes = curCodes;
       }
 
-      if (!changes.length) {
-        out.innerHTML = '<div style="color:var(--mu);font-size:12px;padding:8px">No changes in the last ' + SCAN + ' trading days.</div>';
-        return;
+      // ==== PART A: Large Pool, ETF fixed, TW/US scale ====
+      var planA = [
+        { n: 2 + etfQ, tw: 1, us: 1, etf: etfQ },
+        { n: 3 + etfQ, tw: 2, us: 1, etf: etfQ },
+        { n: 4 + etfQ, tw: 2, us: 2, etf: etfQ },
+        { n: 5 + etfQ, tw: 3, us: 2, etf: etfQ },
+        { n: 6 + etfQ, tw: 3, us: 3, etf: etfQ },
+        { n: 7 + etfQ, tw: 4, us: 3, etf: etfQ },
+        { n: 8 + etfQ, tw: 4, us: 4, etf: etfQ },
+        { n: 9 + etfQ, tw: 5, us: 4, etf: etfQ }
+      ];
+      var partA = [];
+      for (var ai = 0; ai < planA.length; ai++) {
+        var p = planA[ai];
+        $('loadTxt').textContent = 'Part A: N=' + p.n + ' (' + (ai + 1) + '/' + planA.length + ')';
+        var res = runOneWF('large', p.tw, p.us, p.etf, p.n);
+        partA.push({ n: p.n, tw: p.tw, us: p.us, etf: p.etf, res: res });
       }
 
-      // Render - show all changes, most recent first
-      var html = '<div style="font-size:10px;color:var(--mu);font-weight:700;margin-bottom:6px">DAILY SIGNAL CHANGES (last ' + SCAN + ' trading days, ' + changes.length + ' events)</div>';
-      changes.slice().reverse().forEach(function(ev) {
-        html += '<div style="border:1px solid var(--bd);border-radius:3px;padding:8px;margin-bottom:6px;background:var(--sf2)">';
-        html += '<div style="font-size:10px;color:var(--mu);margin-bottom:5px">Signal: <b style="color:var(--ye)">' + ev.scoreDate + '</b> &rarr; Trade: <b style="color:var(--wh)">' + ev.date + '</b></div>';
-        ev.entered.forEach(function(c) {
-          var px = getPriceOnDate(DAILY[c], ev.date);
-          var nm = getStockName(c);
-          html += '<div style="background:var(--ted);border-left:3px solid var(--te);padding:6px 10px;margin-bottom:3px;border-radius:2px;display:flex;gap:10px;align-items:center">'
-            + '<span style="color:var(--te);font-weight:700;font-size:12px">BUY</span>'
-            + '<span style="color:var(--tw);font-family:monospace;font-weight:700">' + c + '</span>'
-            + (nm ? '<span style="color:var(--mu);font-size:11px">' + nm + '</span>' : '')
-            + '<span style="color:var(--wh);font-family:monospace">@ ' + (px ? px.toFixed(2) : '--') + '</span>'
-            + '<span style="color:var(--mu);font-size:10px">' + ev.date + '</span>'
-            + '</div>';
-        });
-        ev.exited.forEach(function(c) {
-          var px = getPriceOnDate(DAILY[c], ev.date);
-          var nm = getStockName(c);
-          html += '<div style="background:var(--red);border-left:3px solid var(--re);padding:6px 10px;margin-bottom:3px;border-radius:2px;display:flex;gap:10px;align-items:center">'
-            + '<span style="color:var(--re);font-weight:700;font-size:12px">SELL</span>'
-            + '<span style="color:var(--tw);font-family:monospace;font-weight:700">' + c + '</span>'
-            + (nm ? '<span style="color:var(--mu);font-size:11px">' + nm + '</span>' : '')
-            + '<span style="color:var(--wh);font-family:monospace">@ ' + (px ? px.toFixed(2) : '--') + '</span>'
-            + '<span style="color:var(--mu);font-size:10px">' + ev.date + '</span>'
-            + '</div>';
-        });
-        html += '</div>';
-      });
-      out.innerHTML = html;
+      // ==== PART B: Small Pool, ETF fixed, TW x US matrix ====
+      var twRange = [1, 2, 3, 4, 5];
+      var usRange = [1, 2, 3, 4, 5];
+      var totalB = twRange.length * usRange.length;
+      var bi = 0;
+      var partB = [];
+      for (var ti = 0; ti < twRange.length; ti++) {
+        partB.push([]);
+        for (var ui = 0; ui < usRange.length; ui++) {
+          var tw = twRange[ti], us = usRange[ui], totalN = tw + us + etfQ;
+          bi++;
+          $('loadTxt').textContent = 'Part B: TW=' + tw + ' US=' + us + ' (' + bi + '/' + totalB + ')';
+          var res2 = runOneWF('small', tw, us, etfQ, totalN);
+          partB[ti].push({ tw: tw, us: us, etf: etfQ, n: totalN, res: res2 });
+        }
+      }
 
-    } catch(e) { out.innerHTML = '<span style="color:var(--re)">Error: ' + e.message + '</span>'; console.error(e); }
-  }, 50);
+      restoreAll();
+      renderPoolCompare(partA, partB, twRange, usRange, init, minTY, testWY, etfQ);
+      sl('stressLog', 'Pool Compare A+B done (ETF=' + etfQ + ')', true);
+    } catch (e) {
+      restoreAll();
+      sl('stressLog', 'Error: ' + e.message, false);
+      console.error('runPoolCompare error:', e);
+    }
+    hideL();
+  }, 80);
+}
+
+function renderPoolCompare(partA, partB, twRange, usRange, init, minTY, testWY, etfQ) {
+  function fp(v) { return (v >= 0 ? '+' : '') + (v * 100).toFixed(2) + '%'; }
+  function gc(v) { return v >= 0 ? 'var(--gr)' : 'var(--re)'; }
+  function sc(v) { return v >= 1.0 ? 'var(--gr)' : v >= 0.7 ? 'var(--ye)' : 'var(--re)'; }
+  function heatColor(v, mn, mx) {
+    if (v === null || v === undefined) return '#1a2030';
+    var t = mx > mn ? (v - mn) / (mx - mn) : 0.5;
+    t = Math.max(0, Math.min(1, t));
+    var r = Math.round(255 * (1 - t));
+    var g = Math.round(229 * t);
+    return 'rgb(' + r + ',' + g + ',80)';
+  }
+
+  var validA = partA.filter(function(p) { return p.res; });
+  var bestAS = validA.length ? validA.reduce(function(a, b) { return b.res.sharpe > a.res.sharpe ? b : a; }) : null;
+  var bestAC = validA.length ? validA.reduce(function(a, b) { return b.res.cagr > a.res.cagr ? b : a; }) : null;
+
+  var html = '<div class="card" style="border-top:3px solid var(--ac);margin-bottom:10px;">';
+  html += '<div class="ct">POOL COMPARE (Train=' + minTY + 'Y / Test=' + testWY + 'Y / ETF=' + etfQ + ')</div>';
+
+  // -- PART A --
+  html += '<div style="background:var(--sf2);border:1px solid var(--bd);border-radius:3px;padding:10px;margin-bottom:14px;">';
+  html += '<div style="font-size:12px;font-weight:700;color:var(--ac);margin-bottom:6px">PART A - Large Pool (ETF=' + etfQ + ' fixed, TW/US scale with N)</div>';
+  html += '<div style="font-size:11px;color:var(--mu);margin-bottom:8px;line-height:1.7">Large pool mode: all stocks compete globally. ETF quota=' + etfQ + ' fixed. TW and US alternate as N grows.<br>Purpose: isolate the effect of total position count on OOS performance.</div>';
+  html += '<div class="tw-wrap"><table><thead><tr><th>N (total)</th><th>TW</th><th>US</th><th>ETF</th><th>OOS CAGR</th><th>OOS MDD</th><th>Sharpe</th><th>Final NAV</th></tr></thead><tbody>';
+  partA.forEach(function(p) {
+    if (!p.res) {
+      html += '<tr><td class="mono">' + p.n + '</td><td>' + p.tw + '</td><td>' + p.us + '</td><td>' + p.etf + '</td><td colspan="4" style="color:var(--mu)">no data</td></tr>';
+      return;
+    }
+    var isBestS = bestAS && p.n === bestAS.n;
+    var isBestC = bestAC && p.n === bestAC.n;
+    var mark = isBestS ? ' *S' : (isBestC ? ' *C' : '');
+    var nameCol = isBestS ? 'var(--gr)' : isBestC ? 'var(--tw)' : 'var(--tx)';
+    html += '<tr style="' + ((isBestS || isBestC) ? 'background:rgba(255,255,255,0.04)' : '') + '">';
+    html += '<td class="mono" style="font-weight:700;color:' + nameCol + '">' + p.n + mark + '</td>';
+    html += '<td class="mono" style="color:var(--tw)">' + p.tw + '</td>';
+    html += '<td class="mono" style="color:var(--us)">' + p.us + '</td>';
+    html += '<td class="mono" style="color:var(--mu)">' + p.etf + '</td>';
+    html += '<td class="mono" style="color:' + gc(p.res.cagr) + '">' + fp(p.res.cagr) + '</td>';
+    html += '<td class="mono" style="color:var(--re)">' + fp(p.res.mdd) + '</td>';
+    html += '<td class="mono" style="color:' + sc(p.res.sharpe) + '">' + p.res.sharpe.toFixed(2) + '</td>';
+    html += '<td class="mono" style="color:var(--wh)">$' + Math.round(p.res.nav).toLocaleString() + '</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  html += '<div style="font-size:10px;color:var(--mu);margin-top:4px;">*S = best Sharpe | *C = best CAGR</div>';
+  html += '</div>';
+
+  // -- PART B --
+  var allSharpes = [], allCagrs = [];
+  for (var ti = 0; ti < partB.length; ti++) {
+    for (var ui = 0; ui < partB[ti].length; ui++) {
+      var cell = partB[ti][ui];
+      if (cell && cell.res) {
+        allSharpes.push(cell.res.sharpe);
+        allCagrs.push(cell.res.cagr);
+      }
+    }
+  }
+  var minSh = allSharpes.length ? Math.min.apply(null, allSharpes) : 0;
+  var maxSh = allSharpes.length ? Math.max.apply(null, allSharpes) : 1;
+  var minCa = allCagrs.length ? Math.min.apply(null, allCagrs) : 0;
+  var maxCa = allCagrs.length ? Math.max.apply(null, allCagrs) : 1;
+
+  var bestB = null;
+  for (var ti = 0; ti < partB.length; ti++) {
+    for (var ui = 0; ui < partB[ti].length; ui++) {
+      var cell = partB[ti][ui];
+      if (!cell || !cell.res) continue;
+      if (!bestB || cell.res.sharpe > bestB.res.sharpe) bestB = cell;
+    }
+  }
+
+  html += '<div style="background:var(--sf2);border:1px solid var(--bd);border-radius:3px;padding:10px;margin-bottom:14px;">';
+  html += '<div style="font-size:12px;font-weight:700;color:var(--ye);margin-bottom:6px">PART B - Small Pool Matrix (ETF=' + etfQ + ' fixed, TW x US heatmap)</div>';
+  html += '<div style="font-size:11px;color:var(--mu);margin-bottom:8px;line-height:1.7">Small pool mode. ETF=' + etfQ + ' fixed. TW(1-5) x US(1-5) = 25 combos.<br>Heatmap color: green = higher, red = lower. White border = BEST combo.</div>';
+
+  function makeHeatTable(label, minVal, maxVal, valFn, fmtFn) {
+    var t = '<div style="margin-bottom:12px"><div style="font-size:10px;color:var(--mu);margin-bottom:4px;font-weight:700">' + label + '</div>';
+    t += '<div style="overflow-x:auto"><table style="border-collapse:separate;border-spacing:3px;">';
+    t += '<thead><tr><th style="font-size:10px;color:var(--mu);padding:3px 6px">TW \\ US</th>';
+    for (var ui = 0; ui < usRange.length; ui++) {
+      t += '<th style="font-size:10px;color:var(--us);padding:3px 8px">US=' + usRange[ui] + '</th>';
+    }
+    t += '</tr></thead><tbody>';
+    for (var ti = 0; ti < twRange.length; ti++) {
+      t += '<tr><td style="font-size:10px;color:var(--tw);font-weight:700;padding:3px 6px">TW=' + twRange[ti] + '</td>';
+      for (var ui = 0; ui < usRange.length; ui++) {
+        var cell = partB[ti] && partB[ti][ui] ? partB[ti][ui] : null;
+        var v = cell && cell.res ? valFn(cell.res) : null;
+        var bgCol = heatColor(v, minVal, maxVal);
+        var isBest = bestB && cell && cell.tw === bestB.tw && cell.us === bestB.us;
+        var border = isBest ? '2px solid #fff' : '1px solid #252d3d';
+        t += '<td style="background:' + bgCol + ';border:' + border + ';padding:5px 8px;text-align:center;border-radius:3px;">';
+        t += '<div class="mono" style="font-size:12px;color:#000;font-weight:700">' + (v !== null && v !== undefined ? fmtFn(v) : '--') + '</div>';
+        if (isBest) t += '<div style="font-size:9px;color:#000;font-weight:700">BEST</div>';
+        t += '</td>';
+      }
+      t += '</tr>';
+    }
+    t += '</tbody></table></div></div>';
+    return t;
+  }
+
+  html += makeHeatTable('OOS SHARPE HEATMAP', minSh, maxSh,
+    function(r) { return r.sharpe; },
+    function(v) { return v.toFixed(2); }
+  );
+  html += makeHeatTable('OOS CAGR HEATMAP', minCa, maxCa,
+    function(r) { return r.cagr; },
+    function(v) { return fp(v); }
+  );
+
+  if (bestB && bestB.res) {
+    html += '<div style="background:var(--bd);border-radius:3px;padding:8px;font-size:11px;margin-top:6px;">';
+    html += 'Best small-pool combo: <b style="color:var(--tw)">TW=' + bestB.tw + '</b>';
+    html += ' + <b style="color:var(--us)">US=' + bestB.us + '</b>';
+    html += ' + ETF=' + etfQ;
+    html += ' (N=' + bestB.n + ')';
+    html += ' | Sharpe <b style="color:var(--gr)">' + bestB.res.sharpe.toFixed(2) + '</b>';
+    html += ' | CAGR <b style="color:var(--gr)">' + fp(bestB.res.cagr) + '</b>';
+    html += ' | MDD <b style="color:var(--re)">' + fp(bestB.res.mdd) + '</b>';
+    html += '</div>';
+  }
+  html += '</div>';
+  html += '</div>';
+
+  $('stressRes').classList.remove('hidden');
+  var el = $('stressMetrics');
+  if (el) el.innerHTML = el.innerHTML + html;
 }
 
 </script>
