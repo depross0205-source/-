@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>\u53f0\u80a1\u52d5\u80fd\u9078\u80a1 V1.9 (Experimental)</title>
+<title>台股動能選股 V1.9 (Experimental)</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Noto+Sans+TC:wght@400;600;700&display=swap');
@@ -100,29 +100,29 @@ tr:hover{background:var(--sf2)}
   <div id="loadTxt" style="font-family:monospace;font-size:13px;color:var(--mu)">...</div>
 </div>
 <div class="wrap">
-<h1>TW \u53f0\u80a1\u52d5\u80fd\u9078\u80a1 <span class="tag">V1.9</span></h1>
-<div class="sub">\u53f050+\u4e2d100+US ETF+Mag7 | TS=^TNX+0.5% | \u531313\u9031/\u7f8e50\u65e5 | Long/Short + IVOL \u5b8c\u6574\u652f\u63f4</div>
+<h1>TW 台股動能選股 <span class="tag">V1.9</span></h1>
+<div class="sub">台50+中100+US ETF+Mag7 | TS=^TNX+0.5% | 匓13週/美50日 | Long/Short + IVOL 完整支援</div>
 <div class="tabs">
-  <button class="tab active" onclick="switchTab('pool',this)">\u80a1\u6c60</button>
-  <button class="tab" onclick="switchTab('fetch',this)">\u6293\u53d6</button>
-  <button class="tab" onclick="switchTab('signal',this)">\u4fe1\u865f</button>
-  <button class="tab" onclick="switchTab('backtest',this)">\u56de\u6e2c</button>
-  <button class="tab" onclick="switchTab('stress',this)">\u58d3\u529b\u6e2c\u8a66</button>
+  <button class="tab active" onclick="switchTab('pool',this)">股池</button>
+  <button class="tab" onclick="switchTab('fetch',this)">抓取</button>
+  <button class="tab" onclick="switchTab('signal',this)">信號</button>
+  <button class="tab" onclick="switchTab('backtest',this)">回測</button>
+  <button class="tab" onclick="switchTab('stress',this)">壓力測試</button>
 </div>
 
 <div class="panel active" id="panel-pool">
   <div class="shbar">
-    <label>\u76fe\u724c\u5206\u6578</label>
+    <label>盾牌分數</label>
     <input type="number" id="shieldScore" placeholder="0-100" min="0" max="100">
-    <span>\u7559\u7a7a=\u4e0d\u904e\u6ffe</span>
+    <span>留空=不過濾</span>
   </div>
   <div class="card">
-    <div class="ct">\u80a1\u6c60
+    <div class="ct">股池
       <div style="display:flex;gap:6px">
-        <button class="bo sm" onclick="selectAll()">\u5168\u9078</button>
-        <button class="bo sm" onclick="selectNone()">\u5168\u505c</button>
-        <button class="bo sm" style="color:var(--tw);border-color:var(--tw)" onclick="selectTW(true)">\u53f0\u80a1\u5168\u9078</button>
-        <button class="bo sm" style="color:var(--tw);border-color:var(--tw)" onclick="selectTW(false)">\u53f0\u80a1\u5168\u505c</button>
+        <button class="bo sm" onclick="selectAll()">全選</button>
+        <button class="bo sm" onclick="selectNone()">全停</button>
+        <button class="bo sm" style="color:var(--tw);border-color:var(--tw)" onclick="selectTW(true)">台股全選</button>
+        <button class="bo sm" style="color:var(--tw);border-color:var(--tw)" onclick="selectTW(false)">台股全停</button>
       </div>
     </div>
     <div id="poolContainer"></div>
@@ -132,26 +132,26 @@ tr:hover{background:var(--sf2)}
       <select id="cusI" style="max-width:110px">
         <option value="US-ETF">US-ETF</option>
         <option value="US-Mag7">US-Mag7</option>
-        <option value="\u5149\u5b78\u7cbe\u5bc6">\u5149\u5b78\u7cbe\u5bc6</option>
-        <option value="\u534a\u5c0e\u9ad4">\u534a\u5c0e\u9ad4</option>
-        <option value="\u5de5\u696d\u6a5f\u68b0">\u5de5\u696d\u6a5f\u68b0</option>
-        <option value="\u5de5\u696d\u96fb\u8166">\u5de5\u696d\u96fb\u8166</option>
-        <option value="\u6c7d\u8eca">\u6c7d\u8eca</option>
-        <option value="\u751f\u6280\u91ab\u7642">\u751f\u6280\u91ab\u7642</option>
-        <option value="\u77f3\u5316">\u77f3\u5316</option>
-        <option value="\u822a\u904b">\u822a\u904b</option>
-        <option value="\u91d1\u878d">\u91d1\u878d</option>
-        <option value="\u9f8b\u9435">\u9f8b\u9435</option>
-        <option value="\u96fb\u4fe1">\u96fb\u4fe1</option>
-        <option value="\u96fb\u5b50\u88fd\u9020">\u96fb\u5b50\u88fd\u9020</option>
-        <option value="\u96fb\u5b50\u96f6\u7d44\u4ef6">\u96fb\u5b50\u96f6\u7d44\u4ef6</option>
-        <option value="\u96fb\u8166\u5468\u908a">\u96fb\u8166\u5468\u908a</option>
-        <option value="\u9762\u677f">\u9762\u677f</option>
-        <option value="\u98df\u54c1\u6d88\u8cbb">\u98df\u54c1\u6d88\u8cbb</option>
-        <option value="\u7d21\u7e54\u6210\u8863">\u7d21\u7e54\u6210\u8863</option>
-        <option value="\u6a61\u8a60\u6c7d\u8eca">\u6a61\u8a60\u6c7d\u8eca</option>
-        <option value="\u5efa\u6750\u4e0d\u52d5\u7522">\u5efa\u6750\u4e0d\u52d5\u7522</option>
-        <option value="\u901a\u8def\u6d41\u901a">\u901a\u8def\u6d41\u901a</option>
+        <option value="光學精密">光學精密</option>
+        <option value="半導體">半導體</option>
+        <option value="工業機械">工業機械</option>
+        <option value="工業電腦">工業電腦</option>
+        <option value="汽車">汽車</option>
+        <option value="生技醫療">生技醫療</option>
+        <option value="石化">石化</option>
+        <option value="航運">航運</option>
+        <option value="金融">金融</option>
+        <option value="龋鐵">龋鐵</option>
+        <option value="電信">電信</option>
+        <option value="電子製造">電子製造</option>
+        <option value="電子零組件">電子零組件</option>
+        <option value="電腦周邊">電腦周邊</option>
+        <option value="面板">面板</option>
+        <option value="食品消費">食品消費</option>
+        <option value="紡織成衣">紡織成衣</option>
+        <option value="橡詠汽車">橡詠汽車</option>
+        <option value="建材不動產">建材不動產</option>
+        <option value="通路流通">通路流通</option>
       </select>
       <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--mu);cursor:pointer">
         <input type="checkbox" id="cusUS" style="width:14px;accent-color:var(--us)"> US
@@ -160,19 +160,19 @@ tr:hover{background:var(--sf2)}
     </div>
   </div>
   <div class="card">
-    <div class="ct">\u8a55\u5206\u6b0a\u91cd <span style="font-size:10px;color:var(--gr)">\u6539\u5b8c\u6b0a\u91cd\u76f4\u63a5\u91cd\u8a08</span></div>
+    <div class="ct">評分權重 <span style="font-size:10px;color:var(--gr)">改完權重直接重計</span></div>
     <div class="g3">
-      <div class="fi"><label>\u52d5\u80fdz(%)</label><input type="number" id="wMom" value="50" min="0" max="100"></div>
+      <div class="fi"><label>動能z(%)</label><input type="number" id="wMom" value="50" min="0" max="100"></div>
       <div class="fi"><label>Bias(%)</label><input type="number" id="wBias" value="15" min="0" max="100"></div>
       <div class="fi"><label>Slope(%)</label><input type="number" id="wSlope" value="15" min="0" max="100"></div>
-      <div class="fi"><label>\u91cf\u80fd(%)</label><input type="number" id="wVol" value="10" min="0" max="100"></div>
-      <div class="fi"><label>K\u68d2(%)</label><input type="number" id="wKbar" value="10" min="0" max="100"></div>
+      <div class="fi"><label>量能(%)</label><input type="number" id="wVol" value="10" min="0" max="100"></div>
+      <div class="fi"><label>K棒(%)</label><input type="number" id="wKbar" value="10" min="0" max="100"></div>
       <div class="fi"><label>Corr Thresh</label><input type="number" id="corrT" value="0.75" step="0.05" min="0.3" max="1"></div>
       <div class="fi"><label>Corr Window (mo)</label><input type="number" id="corrW" value="24" min="6" max="60" step="6"></div>
-      <div class="fi"><label>&gt;60MA \u7d55\u5c0d\u9580\u6ebb</label><select id="ma60Filter"><option value="on" selected>On (\u7834\u7dda\u6dd8\u6c70)</option><option value="off">Off (\u50c5\u4f9d\u8a55\u5206)</option></select></div>
+      <div class="fi"><label>&gt;60MA 絕對門溻</label><select id="ma60Filter"><option value="on" selected>On (破線淘汰)</option><option value="off">Off (僅依評分)</option></select></div>
     </div>
     <div class="ib2">
-      <b>\u52d5\u80fd</b>: 0.5z12+0.3z6+0.2z3 (\u6708\u983b) | <b>\u53f0</b>: \u9031\u983b 13\u9031 | <b>US/Mag7</b>: \u65e5\u983b 50\u65e5<br>
+      <b>動能</b>: 0.5z12+0.3z6+0.2z3 (月頻) | <b>台</b>: 週頻 13週 | <b>US/Mag7</b>: 日頻 50日<br>
       <b>TS</b>: R12 &gt; ^TNX + spread%
     </div>
   </div>
@@ -180,26 +180,26 @@ tr:hover{background:var(--sf2)}
 
 <div class="panel" id="panel-fetch">
   <div class="card">
-    <div class="ct">Proxy / \u7db2\u8def\u8a2d\u5b9a</div>
+    <div class="ct">Proxy / 網路設定</div>
     <div class="fi"><label>Primary Proxy URL</label>
       <input type="text" id="proxyUrl" value="https://shield-proxy.depross0205.workers.dev?url=" autocorrect="off" spellcheck="false">
     </div>
   </div>
 
   <div class="card" style="border-left: 4px solid var(--ye);">
-    <div class="ct">\u8cc7\u6599\u5065\u5eb7\u8a3a\u65b7 <button class="bo sm" onclick="checkDataHealth()">\u7acb\u5373\u8a3a\u65b7</button></div>
+    <div class="ct">資料健康診斷 <button class="bo sm" onclick="checkDataHealth()">立即診斷</button></div>
     <div id="healthDashboard">
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
-        <div class="ib2" style="margin-top:0">\u5f85\u66f4\u65b0\u80a1\u6578\uff1a<b id="staleCount" style="color:var(--re)">0</b></div>
-        <div class="ib2" style="margin-top:0">\u5e73\u5747\u5ef6\u9072\uff1a<b id="avgDelay" style="color:var(--ye)">0</b> \u5929</div>
+        <div class="ib2" style="margin-top:0">待更新股數：<b id="staleCount" style="color:var(--re)">0</b></div>
+        <div class="ib2" style="margin-top:0">平均延遲：<b id="avgDelay" style="color:var(--ye)">0</b> 天</div>
       </div>
       <div class="tw-wrap" style="max-height: 200px;">
         <table>
           <thead>
-            <tr><th>\u5e02\u5834</th><th>\u4ee3\u78bc</th><th>\u6700\u5f8c\u65e5\u671f</th><th>\u5ef6\u9072\u5929\u6578</th><th>\u72c0\u614b</th></tr>
+            <tr><th>市場</th><th>代碼</th><th>最後日期</th><th>延遲天數</th><th>狀態</th></tr>
           </thead>
           <tbody id="healthBody">
-            <tr><td colspan="5" style="text-align:center; color:var(--mu)">\u8acb\u9ede\u64ca\u8a3a\u65b7\u6309\u9215</td></tr>
+            <tr><td colspan="5" style="text-align:center; color:var(--mu)">請點擊診斷按鈕</td></tr>
           </tbody>
         </table>
       </div>
@@ -207,35 +207,35 @@ tr:hover{background:var(--sf2)}
   </div>
 
   <div class="card">
-    <div class="ct">\u8cc7\u6599\u6293\u53d6</div>
+    <div class="ct">資料抓取</div>
     <div class="tnx-bar">
       <span>^TNX:</span>
       <b id="tnxVal" style="color:var(--bl);font-family:monospace">not fetched</b>
       <span id="tnxThresh" style="color:var(--mu)"></span>
     </div>
     <div id="fetchStat" style="display:flex;flex-wrap:wrap;margin-bottom:8px"></div>
-    <button class="btw" onclick="fetchAll()">\u6293\u53d6\u5168\u90e8 - \u81ea\u52d5\u5efa\u5feb\u53d6</button>
+    <button class="btw" onclick="fetchAll()">抓取全部 - 自動建快取</button>
     <div class="log" id="fetchLog"></div>
     <div class="pw hidden" id="fetchProg"><div class="pf" id="fetchFill" style="width:0%"></div></div>
   </div>
 
   <div class="card">
-    <div class="ct">\u5b58\u6a94/\u8f09\u5165
+    <div class="ct">存檔/載入
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="bo sm" onclick="dlJson()">JSON</button>
         <button class="bo sm" onclick="dlOHLCV()">OHLCV</button>
-        <button class="bo sm" onclick="dlMonthly()">\u6708\u983b</button>
+        <button class="bo sm" onclick="dlMonthly()">月頻</button>
       </div>
     </div>
     <div class="cs-bar"><span id="cacheTxt" style="font-size:11px;font-weight:700">Cache: not built</span></div>
-    <button class="bte" onclick="fetchUpdate()" style="margin-bottom:8px">\u81ea\u52d5\u88dc\u9f4a\u66f4\u65b0</button>
+    <button class="bte" onclick="fetchUpdate()" style="margin-bottom:8px">自動補齊更新</button>
     <div class="log" id="updateLog"></div>
     <div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <input type="file" id="fileJson" accept=".json" style="display:none" onchange="upJson(this)">
-      <button class="bo sm" onclick="document.getElementById('fileJson').click()">JSON \u9084\u539f</button>
+      <button class="bo sm" onclick="document.getElementById('fileJson').click()">JSON 還原</button>
       <button class="bo sm" style="color:var(--re);border-color:var(--re)" onclick="clearAndReset()">Clear DB</button>
       <button class="bo sm" style="color:var(--ye);border-color:var(--ye)" onclick="debugDataLen()">Debug</button>
-      <span style="font-size:10px;color:var(--mu)">\u4e0a\u50b3\u5f8c\u81ea\u52d5\u91cd\u5efa\u5feb\u53d6</span>
+      <span style="font-size:10px;color:var(--mu)">上傳後自動重建快取</span>
     </div>
     <div class="log" id="dlLog"></div>
   </div>
@@ -243,12 +243,12 @@ tr:hover{background:var(--sf2)}
 
 <div class="panel" id="panel-signal">
   <div class="card">
-    <div class="ct">\u5373\u6642\u4fe1\u865f</div>
-    <div id="sigContent" style="color:var(--mu);font-size:12px">\u8acb\u5148\u6293\u53d6\u8cc7\u6599\u3002</div>
-    <button class="btw" onclick="calcSignal()" style="margin-top:10px">\u8a08\u7b97\u4fe1\u865f</button>
+    <div class="ct">即時信號</div>
+    <div id="sigContent" style="color:var(--mu);font-size:12px">請先抓取資料。</div>
+    <button class="btw" onclick="calcSignal()" style="margin-top:10px">計算信號</button>
   </div>
   <div class="card hidden" id="stCard">
-    <div class="ct">\u5168\u80a1\u6c60\u6392\u884c</div>
+    <div class="ct">全股池排行</div>
     <div class="tw-wrap"><table><thead><tr>
       <th>#</th><th>Code</th><th>Name</th><th>Ind</th>
       <th>Score</th><th>MomZ</th><th>BiasZ</th><th>SlopeZ</th><th>VolZ</th><th>KbarZ</th>
@@ -259,22 +259,22 @@ tr:hover{background:var(--sf2)}
 
 <div class="panel" id="panel-stress">
   <div class="card">
-    <div class="ct">\u58d3\u529b\u6e2c\u8a66</div>
+    <div class="ct">壓力測試</div>
     <div class="g3">
-      <div class="fi"><label>\u6a21\u64ec\u6b21\u6578</label><input type="number" id="stSimN" value="1000" min="100" max="5000" step="100"></div>
-      <div class="fi"><label>Block Size (\u6708)</label><input type="number" id="stBlock" value="4" min="1" max="12"></div>
-      <div class="fi"><label>WF \u6700\u5c11\u8a13\u7df4\u5e74\u6578</label><input type="number" id="wfMinTrain" value="8" min="3" max="20"></div>
-      <div class="fi"><label>WF \u6e2c\u8a66\u7a97\u53e3(\u5e74)</label><input type="number" id="wfTestWin" value="1" min="1" max="3"></div>
-      <div class="fi"><label>Pool Compare ETF\u914d\u984d</label><input type="number" id="wfETFQuota" value="1" min="0" max="5"></div>
+      <div class="fi"><label>模擬次數</label><input type="number" id="stSimN" value="1000" min="100" max="5000" step="100"></div>
+      <div class="fi"><label>Block Size (月)</label><input type="number" id="stBlock" value="4" min="1" max="12"></div>
+      <div class="fi"><label>WF 最少訓練年數</label><input type="number" id="wfMinTrain" value="8" min="3" max="20"></div>
+      <div class="fi"><label>WF 測試窗口(年)</label><input type="number" id="wfTestWin" value="1" min="1" max="3"></div>
+      <div class="fi"><label>Pool Compare ETF配額</label><input type="number" id="wfETFQuota" value="1" min="0" max="5"></div>
     </div>
     <div style="display:flex;gap:8px;margin-top:8px">
       <button class="bo" onclick="runMonteCarlo()" style="flex:1">Monte Carlo</button>
       <button class="bo" onclick="runBlockBootstrap()" style="flex:1">Block Bootstrap</button>
-      <button class="bo sm" onclick="document.getElementById('stressMetrics').innerHTML=''" style="color:var(--re);border-color:var(--re)">\u6e05\u9664</button>
+      <button class="bo sm" onclick="document.getElementById('stressMetrics').innerHTML=''" style="color:var(--re);border-color:var(--re)">清除</button>
     </div>
     <button class="bo" onclick="runWalkForward()" style="width:100%;margin-top:6px;color:var(--ye);border-color:var(--ye)">Walk-Forward Analysis (Anchored)</button>
-    <button class="bo" onclick="runWFNCompare()" style="width:100%;margin-top:6px;color:var(--ac);border-color:var(--ac)">WF N\u6bd4\u8f03 (N=2~15)</button>
-    <button class="bo" onclick="runPoolCompare()" style="width:100%;margin-top:6px;color:var(--bl);border-color:var(--bl)">Pool Compare A+B (\u7d0430~60\u79d2)</button>
+    <button class="bo" onclick="runWFNCompare()" style="width:100%;margin-top:6px;color:var(--ac);border-color:var(--ac)">WF N比較 (N=2~15)</button>
+    <button class="bo" onclick="runPoolCompare()" style="width:100%;margin-top:6px;color:var(--bl);border-color:var(--bl)">Pool Compare A+B (約30~60秒)</button>
     <div class="log" id="stressLog"></div>
   </div>
   <div id="stressRes" class="hidden">
@@ -284,34 +284,34 @@ tr:hover{background:var(--sf2)}
 
 <div class="panel" id="panel-backtest">
   <div class="card">
-    <div class="ct">\u56de\u6e2c\u8a2d\u5b9a</div>
+    <div class="ct">回測設定</div>
     <div class="g3">
       <div class="fi"><label>Start</label><input type="text" id="btS" placeholder="YYYY-MM"></div>
       <div class="fi"><label>End</label><input type="text" id="btE" placeholder="YYYY-MM"></div>
       <div class="fi">
-        <label>\u9078\u80a1\u6a21\u5f0f</label>
+        <label>選股模式</label>
         <select id="poolMode" onchange="togglePoolUI()">
-          <option value="large">\u5927\u6c60\u6a21\u5f0f (\u5168\u5c40\u6392\u540d)</option>
-          <option value="small" selected>\u5c0f\u6c60\u6a21\u5f0f (\u5206\u5340\u914d\u984d)</option>
+          <option value="large">大池模式 (全局排名)</option>
+          <option value="small" selected>小池模式 (分區配額)</option>
         </select>
       </div>
-      <div class="fi"><label>Max Hold (\u7e3d\u540d\u984d)</label><input type="number" id="btH" value="5"></div>
-      <div class="fi"><label>\u53f0\u80a1\u914d\u984d</label><input type="number" id="btQuotaTW" value="2" onchange="updTotalH()"></div>
-      <div class="fi"><label>\u7f8e\u80a1\u914d\u984d</label><input type="number" id="btQuotaUS" value="2" onchange="updTotalH()"></div>
-      <div class="fi"><label>ETF \u914d\u984d</label><input type="number" id="btQuotaETF" value="1" onchange="updTotalH()"></div>
+      <div class="fi"><label>Max Hold (總名額)</label><input type="number" id="btH" value="5"></div>
+      <div class="fi"><label>台股配額</label><input type="number" id="btQuotaTW" value="2" onchange="updTotalH()"></div>
+      <div class="fi"><label>美股配額</label><input type="number" id="btQuotaUS" value="2" onchange="updTotalH()"></div>
+      <div class="fi"><label>ETF 配額</label><input type="number" id="btQuotaETF" value="1" onchange="updTotalH()"></div>
       <div class="fi"><label>Capital</label><input type="number" id="btCap" value="100000"></div>
       <div class="fi"><label>Cost(%)</label><input type="number" id="btC" value="0.3" step="0.1"></div>
       <div class="fi"><label>TNX Spread(%)</label><input type="number" id="btSpread" value="0.5" step="0.1"></div>
       <div class="fi"><label>Weight Mode</label>
         <div style="display:flex;gap:10px;margin-top:6px;font-size:12px">
           <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
-            <input type="radio" name="wtMode" id="wtEq" value="eq" checked style="width:14px;accent-color:var(--tw)"> \u7b49\u6b0a
+            <input type="radio" name="wtMode" id="wtEq" value="eq" checked style="width:14px;accent-color:var(--tw)"> 等權
           </label>
           <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
-            <input type="radio" name="wtMode" id="wtRank" value="rank" style="width:14px;accent-color:var(--tw)"> \u6392\u540d\u52a0\u6b0a
+            <input type="radio" name="wtMode" id="wtRank" value="rank" style="width:14px;accent-color:var(--tw)"> 排名加權
           </label>
           <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
-            <input type="radio" name="wtMode" value="ivol" style="width:14px;accent-color:var(--tw)"> IV\u52a0\u6b0a
+            <input type="radio" name="wtMode" value="ivol" style="width:14px;accent-color:var(--tw)"> IV加權
           </label>
         </div>
       </div>
@@ -341,7 +341,7 @@ tr:hover{background:var(--sf2)}
       </div>
       <div class="fi"><label>Skip Month</label>
         <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;cursor:pointer">
-          <input type="checkbox" id="btSkipMo" style="width:14px;accent-color:var(--tw)"> \u8df3\u904e\u6700\u8fd11\u6708
+          <input type="checkbox" id="btSkipMo" style="width:14px;accent-color:var(--tw)"> 跳過最近1月
         </label>
       </div>
       <div class="fi"><label>Signal Lag</label>
@@ -350,33 +350,33 @@ tr:hover{background:var(--sf2)}
           <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="radio" name="lagMode" id="lagT2" value="2" style="width:14px;accent-color:var(--tw)"> t-2</label>
         </div>
       </div>
-      <div class="fi"><label>\u56de\u6e2c\u983b\u7387</label>
+      <div class="fi"><label>回測頻率</label>
         <select id="btFreq">
-          <option value="1">\u5168\u6708 (\u6bcf\u67081\u865f)</option>
-          <option value="2">\u534a\u6708 (1\u865f &amp; 15\u865f)</option>
+          <option value="1">全月 (每月1號)</option>
+          <option value="2">半月 (1號 &amp; 15號)</option>
         </select>
       </div>
-      <div class="fi"><label>\u5927\u76e4\u98a8\u63a7 (Regime)</label>
+      <div class="fi"><label>大盤風控 (Regime)</label>
         <select id="btRegime">
           <option value="off">Off</option>
           <option value="on">On (0050/SPY &lt; 60MA)</option>
         </select>
       </div>
-      <div class="fi"><label>\u66dd\u5149\u5ea6 (Regime)</label>
+      <div class="fi"><label>曝光度 (Regime)</label>
         <input type="number" id="btRegimeExp" value="50" min="0" max="100">
       </div>
-      <div class="fi"><label>\u500b\u80a1\u5f37\u52e2\u6ffe\u7db2</label>
+      <div class="fi"><label>個股強勢濾網</label>
         <select id="btIndExit">
           <option value="off">Off</option>
-          <option value="on">On (\u784660MA\u4e14\u5747\u7dda\u5411\u4e0b)</option>
+          <option value="on">On (硆60MA且均線向下)</option>
         </select>
       </div>
     </div>
     <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="btw" onclick="runBT()" style="flex:1">\u57f7\u884c\u56de\u6e2c</button>
-      <button class="bo" onclick="runCompare()" style="flex:1">\u6bd4\u8f03 N=1~max</button>
+      <button class="btw" onclick="runBT()" style="flex:1">執行回測</button>
+      <button class="bo" onclick="runCompare()" style="flex:1">比較 N=1~max</button>
     </div>
-    <button class="bte" onclick="runRolling()" style="width:100%;margin-top:6px">\u6eda\u52d5\u5831\u916c\u5206\u6790</button>
+    <button class="bte" onclick="runRolling()" style="width:100%;margin-top:6px">滚動報酬分析</button>
     <div class="log" id="btLog"></div>
   </div>
   <div id="btRes" class="hidden">
