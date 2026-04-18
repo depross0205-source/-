@@ -2289,68 +2289,133 @@ function runRandomBaseline() {
   }, 80);
 }
 
-function renderRandomBaseline(cagrs, mdds, sharpes, simN, N) {
-  function ptile(arr, p) { 
-    var s = arr.slice().sort(function(a, b) { return a - b; });
-    var i = (p / 100) * (s.length - 1);
-    var lo = Math.floor(i), hi = Math.ceil(i);
-    return s[lo] + (s[hi] - s[lo]) * (i - lo);
-  }
-  function fp(v) { return (v >= 0 ? '+' : '') + (v * 100).toFixed(2) + '%'; }
-  function gc(v) { return v >= 0 ? 'var(--gr)' : 'var(--re)'; }
-  var orig = BT_RESULT;
-  var origLast = orig.records[orig.records.length - 1];
-  var origYrs = (new Date(origLast.month) - new Date(orig.records[0].month)) / (365.25 * 86400000);
-  var origCagr = Math.pow(origLast.nav / orig.initial, 1 / origYrs) - 1;
-  var origRets = orig.records.map(function(r) { return r.pRet; });
-  var origAvg = origRets.reduce(function(a, b) { return a + b; }, 0) / origRets.length;
-  var origStd = Math.sqrt(origRets.reduce(function(a, b) { return a + Math.pow(b - origAvg, 2); }, 0) / origRets.length) * Math.sqrt(12);
-  var origSharpe = origStd > 0 ? (origCagr - 0.015) / origStd : 0;
-  var origPeak = orig.initial, origMdd = 0;
-  orig.records.forEach(function(r) { 
-    if (r.nav > origPeak) origPeak = r.nav; 
-    var dd = (r.nav - origPeak) / origPeak; 
-    if (dd < origMdd) origMdd = dd; 
-  });
-  var beatCagr = cagrs.filter(function(v) { return origCagr > v; }).length / simN;
-  var beatSharpe = sharpes.filter(function(v) { return origSharpe > v; }).length / simN;
-  var beatCol = beatCagr >= 0.8 ? 'var(--gr)' : beatCagr >= 0.6 ? 'var(--ye)' : 'var(--re)';
-  var verdict = beatCagr >= 0.8 ? 'STRONG ALPHA' : beatCagr >= 0.6 ? 'WEAK ALPHA' : 'NO EDGE';
+function runRandomBaseline() {
+  if (!BT_RESULT) { alert('請先執行單次回測'); return; }
+  var simN = parseInt(document.getElementById('stSimN') ? document.getElementById('stSimN').value : '1000') || 1000;
+  var records = BT_RESULT.records;
+  var init = BT_RESULT.initial;
+  var N = BT_RESULT.mh || 5; 
+  var stocks = getEnabledStocks().filter(function(s) { return DAILY[s.c] && DAILY[s.c].length > 0; });
+  if (stocks.length < N) { alert('股池中的有效標的數量不足'); return; }
   
-  var html = '<div class="card" style="border-top:3px solid var(--gr);margin-bottom:10px;">';
-  html += '<div class="ct">RANDOM BASELINE (N=' + N + ' x' + simN + ')</div>';
-  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">';
-  html += '<div class="card" style="border-top:2px solid ' + beatCol + ';padding:9px;">';
-  html += '<div style="font-size:10px;font-weight:700;color:var(--mu);margin-bottom:4px">CAGR 超越隨機率</div>';
-  html += '<div class="mono" style="font-size:20px;color:' + beatCol + '">' + (beatCagr * 100).toFixed(1) + '%</div></div>';
-  html += '<div class="card" style="border-top:2px solid ' + beatCol + ';padding:9px;">';
-  html += '<div style="font-size:10px;font-weight:700;color:var(--mu);margin-bottom:4px">Sharpe 超越隨機率</div>';
-  html += '<div class="mono" style="font-size:20px;color:' + beatCol + '">' + (beatSharpe * 100).toFixed(1) + '%</div></div></div>';
-  html += '<div style="background:var(--sf2);border:1px solid var(--bd);padding:8px;font-size:12px;margin-bottom:10px;">';
-  html += '評定: <b style="color:' + beatCol + '">' + verdict + '</b> | ';
-  html += '策略 CAGR <b style="color:var(--ye)">' + fp(origCagr) + '</b> | ';
-  html += '隨機 P50 <b style="color:var(--mu)">' + fp(ptile(cagrs, 50)) + '</b></div>';
-  html += '<div class="tw-wrap"><table><thead><tr>';
-  html += '<th>指標</th><th>P10</th><th>P25</th><th>P50</th><th>P75</th><th>P90</th><th>策略實際</th></tr></thead><tbody>';
+  sl('stressLog', 'Running Random Baseline x' + simN + '...', null); 
+  showL('Random Baseline (預先計算報酬率中)...');
   
-  var rows = [ ['CAGR', cagrs, true, origCagr], ['MDD', mdds, true, origMdd], ['Sharpe', sharpes, false, origSharpe] ];
-  rows.forEach(function(row) {
-    var name = row[0], arr = row[1], isPct = row[2], actual = row[3];
-    var f = isPct ? fp : function(v) { return v.toFixed(2); };
-    html += '<tr><td style="color:var(--mu);font-size:10px">' + name + '</td>';
-    [10, 25, 50, 75, 90].forEach(function(p) {
-      var v = ptile(arr, p);
-      html += '<td class="mono" style="color:' + gc(v) + '">' + f(v) + '</td>';
-    });
-    html += '<td class="mono" style="color:var(--ye);font-weight:700">' + f(actual) + '</td></tr>';
-  });
-  html += '</tbody></table></div>';
-  html += '<div style="font-size:10px;color:var(--mu);margin-top:8px;">隨機基準: 每期從全股池隨機抽N檔等權重買入 (不計交易成本)</div>';
-  html += '</div>';
+  setTimeout(function() {
+    try {
+      // ---------------------------------------------------------
+      // 優化 1: O(M*S) 預運算 (Pre-computation)
+      // 提早在迴圈外把「所有股票」在「每個月」的報酬率算好
+      // 徹底消滅深層迴圈中數百萬次的 getPriceOnDate 呼叫
+      // ---------------------------------------------------------
+      var numMonths = records.length;
+      var precalcRets = []; // 存放每個月的可用報酬率陣列
+      
+      for (var ri = 0; ri < numMonths; ri++) {
+        if (ri === 0) {
+          precalcRets.push([]);
+          continue;
+        }
+        var prevM = records[ri - 1].month;
+        var currM = records[ri].month;
+        var monthValidRets = [];
+        
+        for (var si = 0; si < stocks.length; si++) {
+          var p0 = getPriceOnDate(DAILY[stocks[si].c], prevM);
+          var p1 = getPriceOnDate(DAILY[stocks[si].c], currM);
+          if (p0 && p1 && p0 > 0) {
+            monthValidRets.push(p1 / p0 - 1);
+          }
+        }
+        precalcRets.push(monthValidRets);
+      }
 
-  document.getElementById('stressRes').classList.remove('hidden');
-  var el = document.getElementById('stressMetrics');
-  if (el) el.innerHTML = el.innerHTML + html;
+      var cagrs = [], mdds = [], sharpes = [];
+      var currentSim = 0;
+      var chunkSize = 150; // 每次執行 150 次模擬就讓出 Main Thread
+
+      // ---------------------------------------------------------
+      // 優化 2: 非阻塞分塊執行 (Asynchronous Chunking)
+      // 避免瀏覽器判定為「網頁無回應」而卡死 UI
+      // ---------------------------------------------------------
+      function processChunk() {
+        var endSim = Math.min(currentSim + chunkSize, simN);
+        
+        for (var s = currentSim; s < endSim; s++) {
+          var nav = init, peak = init, mdd = 0, simRets = [];
+          
+          for (var rj = 0; rj < numMonths; rj++) {
+            if (rj === 0) { simRets.push(0); continue; }
+            
+            var availableRets = precalcRets[rj];
+            var availCount = availableRets.length;
+            var grossRet = 0;
+            
+            if (availCount > 0) {
+              var picks = Math.min(N, availCount);
+              var sum = 0;
+              
+              // ---------------------------------------------------------
+              // 優化 3: 局部亂數抽樣 (Partial Shuffle / Set Pick)
+              // 只需要抽 N 個，不需要對全陣列做 Fisher-Yates 洗牌
+              // ---------------------------------------------------------
+              if (picks * 3 < availCount) {
+                // 如果要抽的數量遠小於總數，用 Set 抽最快
+                var pickedIndices = new Set();
+                while(pickedIndices.size < picks) {
+                  pickedIndices.add(Math.floor(Math.random() * availCount));
+                }
+                pickedIndices.forEach(function(idx) { sum += availableRets[idx]; });
+              } else {
+                // 否則用陣列拷貝做局部洗牌
+                var copy = availableRets.slice();
+                for (var k = 0; k < picks; k++) {
+                  var rIdx = k + Math.floor(Math.random() * (availCount - k));
+                  var tmp = copy[k]; copy[k] = copy[rIdx]; copy[rIdx] = tmp;
+                  sum += copy[k];
+                }
+              }
+              grossRet = sum / picks;
+            }
+            
+            nav *= (1 + grossRet);
+            if (nav > peak) peak = nav;
+            var dd = (nav - peak) / peak;
+            if (dd < mdd) mdd = dd;
+            simRets.push(grossRet);
+          }
+          
+          var yrs = numMonths / 12;
+          var cagr = yrs > 0 ? Math.pow(nav / init, 1 / yrs) - 1 : 0;
+          var avg = simRets.reduce(function(a, b) { return a + b; }, 0) / simRets.length;
+          var variance = simRets.reduce(function(a, b) { return a + Math.pow(b - avg, 2); }, 0) / simRets.length;
+          var std = Math.sqrt(variance) * Math.sqrt(12);
+          var sharpe = std > 0 ? (cagr - 0.015) / std : 0;
+          
+          cagrs.push(cagr); mdds.push(mdd); sharpes.push(sharpe);
+        }
+        
+        currentSim = endSim;
+        
+        // 判斷是否還要繼續跑
+        if (currentSim < simN) {
+          $('loadTxt').textContent = 'Random Baseline (' + currentSim + '/' + simN + ') ...';
+          setTimeout(processChunk, 0); // 讓出 Main Thread 使畫面得以渲染
+        } else {
+          renderRandomBaseline(cagrs, mdds, sharpes, simN, N);
+          sl('stressLog', 'Random Baseline done x' + simN, true);
+          hideL();
+        }
+      }
+
+      // 啟動第一個運算區塊
+      processChunk();
+
+    } catch(e) { 
+      sl('stressLog', 'Error: ' + e.message, false); 
+      hideL();
+    }
+  }, 50);
 }
 
 // ==========================================
