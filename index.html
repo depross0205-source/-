@@ -168,7 +168,7 @@ tr:hover{background:var(--sf2)}
       <div class="fi"><label>量能(%)</label><input type="number" id="wVol" value="20" min="0" max="100"></div>
       <div class="fi"><label>K棒(%)</label><input type="number" id="wKbar" value="20" min="0" max="100"></div>
       <div class="fi"><label>Corr Thresh</label><input type="number" id="corrT" value="0.8" step="0.05" min="0.3" max="1"></div>
-      <div class="fi"><label>Corr Window (mo)</label><input type="number" id="corrW" value="18" min="6" max="60" step="6"></div>
+      <div class="fi"><label>Corr Window (mo)</label><input type="number" id="corrW" value="24" min="6" max="60" step="6"></div>
       <div class="fi"><label>&gt;60MA 絕對門溻</label><select id="ma60Filter"><option value="on" selected>On (破線淘汰)</option><option value="off">Off (僅依評分)</option></select></div>
     </div>
     <div class="ib2">
@@ -294,17 +294,17 @@ tr:hover{background:var(--sf2)}
       <div class="fi">
         <label>選股模式</label>
         <select id="poolMode" onchange="togglePoolUI()">
-          <option value="large">大池模式 (全局排名)</option>
-          <option value="small" selected>小池模式 (分區配額)</option>
+          <option value="large"selected>大池模式 (全局排名)</option>
+          <option value="small">小池模式 (分區配額)</option>
         </select>
       </div>
-      <div class="fi"><label>Max Hold (總名額)</label><input type="number" id="btH" value="5"></div>
-      <div class="fi"><label>台股配額</label><input type="number" id="btQuotaTW" value="2" onchange="updTotalH()"></div>
-      <div class="fi"><label>美股配額</label><input type="number" id="btQuotaUS" value="2" onchange="updTotalH()"></div>
-      <div class="fi"><label>ETF 配額</label><input type="number" id="btQuotaETF" value="1" onchange="updTotalH()"></div>
+      <div class="fi"><label>Max Hold (總名額)</label><input type="number" id="btH" value="7"></div>
+      <div class="fi"><label>台股配額</label><input type="number" id="btQuotaTW" value="0" onchange="updTotalH()"></div>
+      <div class="fi"><label>美股配額</label><input type="number" id="btQuotaUS" value="0" onchange="updTotalH()"></div>
+      <div class="fi"><label>ETF 配額</label><input type="number" id="btQuotaETF" value="0" onchange="updTotalH()"></div>
       <div class="fi"><label>Capital</label><input type="number" id="btCap" value="100000"></div>
       <div class="fi"><label>Cost(%)</label><input type="number" id="btC" value="0.3" step="0.1"></div>
-      <div class="fi"><label>TNX Spread(%)</label><input type="number" id="btSpread" value="0.5" step="0.1"></div>
+      <div class="fi"><label>TNX Spread(%)</label><input type="number" id="btSpread" value="25" step="0.1"></div>
       <div class="fi"><label>Weight Mode</label>
         <div style="display:flex;gap:10px;margin-top:6px;font-size:12px">
           <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
@@ -1069,7 +1069,9 @@ function runBTcore(mh, mode) {
   var useMA60=$('ma60Filter')?$('ma60Filter').value==='on':true;
 
   var nav=INIT, bNav=INIT, records=[], holdings={CASH:1.0};
-  var DEFENSIVE=['TLT','GLD','SGOV'];
+      var DEFENSIVE=['SGOV'];
+
+
 
   for (var idx=cS; idx<=cE; idx++) {
     var sigM=allM[idx];
@@ -1141,15 +1143,16 @@ function runBTcore(mh, mode) {
       });
     }
 
-    var totalQuota = poolModeSetting==='large' ? (parseInt(document.getElementById('btH').value)||5) : (parseInt($('btQuotaTW')?$('btQuotaTW').value:'2')||0)+(parseInt($('btQuotaUS')?$('btQuotaUS').value:'2')||0)+(parseInt($('btQuotaETF')?$('btQuotaETF').value:'1')||0);
+        var totalQuota = poolModeSetting==='large' ? (parseInt(document.getElementById('btH').value)||5) : (parseInt($('btQuotaTW')?$('btQuotaTW').value:'2')||0)+(parseInt($('btQuotaUS')?$('btQuotaUS').value:'2')||0)+(parseInt($('btQuotaETF')?$('btQuotaETF').value:'1')||0);
     var slots = totalQuota - sel.length;
     if (slots > 0) {
-      var defCands = sc2.filter(function(r){ return (r.s.c==='TLT'||r.s.c==='GLD')&&r.r240!==null&&r.r240>hurdle+0.01; }).sort(function(a,b){ return b.r240-a.r240; });
-      for (var jd=0; jd<defCands.length&&slots>0; jd++) { sel.push(defCands[jd]); slots--; }
-      if (slots > 0) {
+      var hasSGOV = DAILY['SGOV'] && DAILY['SGOV'].length > 0 && getPriceOnDate(DAILY['SGOV'], scoreM) !== null;
+      if (hasSGOV) {
         var sgovFill={s:{c:'SGOV',n:'0-3M Treasury',pool:'etf',tw:false},score:0,r240:0,zm:0,zb:0,zs:0,zv:0,zk:0};
         for (var ks2=0; ks2<slots; ks2++) sel.push(sgovFill);
-        slots=0;
+      } else {
+        var cashFill={s:{c:'CASH',n:'Cash',pool:'etf',tw:false},score:0,r240:0,zm:0,zb:0,zs:0,zv:0,zk:0};
+        for (var ks3=0; ks3<slots; ks3++) sel.push(cashFill);
       }
     }
 
@@ -1165,6 +1168,7 @@ function runBTcore(mh, mode) {
         if (selS.every(function(x){ return Math.abs(calcCorr(candS.s.c,x.s.c,scoreM))<ct; })) selS.push(candS);
       }
     }
+
 
     var exposure=1.0;
     if (regimeOn&&isBearishRegime(refDaily,scoreM,60)) exposure=regimeExp/100;
